@@ -11,7 +11,11 @@
 //! have runtime behavior and the seams are felt (see docs/architecture.md).
 
 pub mod grants;
+pub mod grid_quiz;
 pub mod judge;
 pub mod project;
 pub mod room;
 pub mod state;
+
+#[cfg(test)]
+mod tests;

@@ -27,8 +27,9 @@ use tokio::sync::oneshot;
 
 use crate::game::{
     grants::{Grant, GrantSet},
+    grid_quiz::GridQuizPhase,
     judge::Verdict,
-    state::{GridQuizPhase, Token},
+    state::Token,
 };
 
 #[derive(Debug)]

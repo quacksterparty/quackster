@@ -23,9 +23,8 @@ use crate::{
     data::{Dataset, GameConfig, GameMode, build_board},
     game::{
         grants::Grant::{self},
-        state::{
-            Cell, GameState, GridQuizState, LinearState, ModeState, PlayerSlot, PlayerSlots, Token,
-        },
+        grid_quiz::{Cell, GridQuizState},
+        state::{GameState, LinearState, ModeState, PlayerSlot, PlayerSlots, Token},
     },
     protocol::{ConnectionError, RoomMessage},
 };
@@ -62,6 +61,7 @@ pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -
 
     let state_tx_loop = state_tx.clone();
     tokio::spawn(async move {
+        let seed = rand::rng().random::<u64>();
         let mode = match &game_config
             .games
             .first()
@@ -69,7 +69,6 @@ pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -
             .mode
         {
             GameMode::GridQuiz(game) => {
-                let seed = rand::rng().random::<u64>();
                 let cells = build_board(&data, &game.board, seed)
                     .into_iter()
                     .map(|row| row.into_iter().map(Cell::from).collect())
@@ -85,6 +84,7 @@ pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -
             player_slots: PlayerSlots::default(),
             mode,
             judgment_log: Vec::new(),
+            seed,
         };
 
         while let Some(room_msg) = room_msg_rx.recv().await {

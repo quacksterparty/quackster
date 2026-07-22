@@ -12,7 +12,8 @@ use crate::{
     data::{Correctness, Dataset, GameMode, Media, MediaKind, Question, VariantName},
     game::{
         grants::{Grant, GrantSet},
-        state::{Cell, GameState, GridQuizPhase, Token},
+        grid_quiz::{Cell, GridQuizPhase},
+        state::{GameState, Token},
     },
     protocol::{
         AnswerView, ChoiceView, ClientView, CorrectnessView, GamemodeView, GridQuizView,
