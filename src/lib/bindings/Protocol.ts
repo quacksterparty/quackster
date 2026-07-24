@@ -14,7 +14,7 @@ export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Recon
 
 export type ClientView = { players: { [key in string]: PlayerView }, stage: GamemodeView, question: QuestionView | null, judgment_log: Array<JudgmentView>, };
 
-export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", player: string, verdict: Verdict, } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
+export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "OutOfBandRule", player: string, verdict: Verdict, } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
 
 export type CorrectnessView = { "kind": "MultipleChoice", correct_ids: Array<string>, } | { "kind": "Open", accepted: Array<string>, } | { "kind": "TrueFalse", correct: boolean, } | { "kind": "Numeric", value: number, tolerance: number, } | { "kind": "Order", positions: Array<OrderPositionView>, };
 

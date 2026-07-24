@@ -12,13 +12,13 @@ use crate::{
     data::{Correctness, Dataset, GameMode, Media, MediaKind, Question, VariantName},
     game::{
         grants::{Grant, GrantSet},
-        grid_quiz::{Cell, GridQuizPhase},
+        grid_quiz::{Cell, phase::Phase},
         state::{GameState, Token},
     },
     protocol::{
-        AnswerView, ChoiceView, ClientView, CorrectnessView, GamemodeView, GridQuizView,
-        JudgmentView, MediaSrc, MediaView, OrderPositionView, PlayerView, PromptView, QuestionView,
-        VariantView,
+        AnswerView, ChoiceView, ClientView, CorrectnessView, GamemodeView, GridQuizPhase,
+        GridQuizView, JudgmentView, MediaSrc, MediaView, OrderPositionView, PlayerView, PromptView,
+        QuestionView, VariantView,
     },
 };
 
@@ -90,6 +90,21 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                 })
                 .collect();
 
+            let current = &grid_quiz.phase.current_cell();
+            let (active_picker, floored, locked_out) = match &grid_quiz.phase {
+                Phase::BoardSelect(board_select) => {
+                    (Some(board_select.active_player()), None, None)
+                }
+                Phase::QuestionOpen(question_open) => (
+                    None,
+                    question_open.floored_player(),
+                    Some(question_open.locked_out()),
+                ),
+                Phase::Lobby(_) | Phase::GameOver(_) | Phase::Reveal(_) | Phase::Poisoned => {
+                    (None, None, None)
+                }
+            };
+
             GamemodeView::GridQuiz(GridQuizView {
                 phase: grid_quiz.phase.kind(),
                 categories: board
@@ -99,27 +114,23 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                     .collect(),
                 points: board.points.clone(),
                 used,
-                current_category: grid_quiz
-                    .current
+                current_category: current
                     .as_ref()
                     .and_then(|cell| board.categories.get(cell.category))
                     .map(|category| category.name.clone()),
-                current_points: grid_quiz
-                    .current
+                current_points: current
                     .as_ref()
                     .and_then(|cell| board.points.get(cell.point))
                     .copied(),
-                active_picker: grid_quiz
-                    .active_picker
+                active_picker: active_picker
                     .as_ref()
                     .and_then(|token| gamestate.player_slots.name_for_token(token)),
-                floored: grid_quiz
-                    .floored_player
+                floored: floored
                     .as_ref()
                     .and_then(|token| gamestate.player_slots.name_for_token(token)),
-                locked_out: grid_quiz
-                    .locked_out
-                    .iter()
+                locked_out: locked_out
+                    .into_iter()
+                    .flatten()
                     .flat_map(|token| gamestate.player_slots.name_for_token(token))
                     .collect(),
             })
@@ -129,23 +140,25 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
     };
 
     let question = match &gamestate.mode {
-        ModeState::GridQuiz(grid_quiz) => grid_quiz.current.as_ref().and_then(|cell| {
-            let include_answer = grants.contains(&Grant::Moderate)
-                || matches!(grid_quiz.phase.kind(), GridQuizPhase::Reveal);
-            let question = match data.questions.get(&cell.question_id) {
-                Some(entry) => &entry.item,
-                None => {
-                    tracing::warn!(
-                        question_id = %cell.question_id,
-                        "cell references unknown question id; projecting without question"
-                    );
-                    return None;
-                }
-            };
-            // TODO: we currently default to the open variant, needs to be fixed when todo 12 lands
-            // TODO: we need to translate these fields for the locale the user has
-            build_question_view(question, VariantName::Open, include_answer)
-        }),
+        ModeState::GridQuiz(grid_quiz) => {
+            grid_quiz.phase.current_cell().as_ref().and_then(|cell| {
+                let include_answer = grants.contains(&Grant::Moderate)
+                    || matches!(grid_quiz.phase.kind(), GridQuizPhase::Reveal);
+                let question = match data.questions.get(&cell.question_id) {
+                    Some(entry) => &entry.item,
+                    None => {
+                        tracing::warn!(
+                            question_id = %cell.question_id,
+                            "cell references unknown question id; projecting without question"
+                        );
+                        return None;
+                    }
+                };
+                // TODO: we currently default to the open variant, needs to be fixed when todo 12 lands
+                // TODO: we need to translate these fields for the locale the user has
+                build_question_view(question, VariantName::Open, include_answer)
+            })
+        }
         ModeState::Linear(_) => todo!("Linedar not implemented yet"),
     };
 

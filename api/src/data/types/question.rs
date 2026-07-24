@@ -460,7 +460,7 @@ impl Question {
                         }
                     })
                 }
-                VariantName::Open => content.variants.open.as_ref().map(|o| Correctness::Open {
+                VariantName::Open => content.variants.open.as_ref().map(|_| Correctness::Open {
                     accepted: vec![content.answer.clone()],
                 }),
                 VariantName::TrueFalse => {

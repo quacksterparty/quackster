@@ -20,14 +20,13 @@
 //!
 //! TODO: define ServerMsg, ClientView; flesh out Command's full variant set.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 
 use crate::game::{
     grants::{Grant, GrantSet},
-    grid_quiz::GridQuizPhase,
     judge::Verdict,
     state::Token,
 };
@@ -80,6 +79,10 @@ pub enum Command {
     Buzz,
     Answer { text: String },
     Rule { verdict: Verdict },
+    // TODO: not handled by any gamemode yet, this is the revision path for
+    // rulings after the question closed (Rule only targets the floored
+    // player), un-ignore revised_ruling_supersedes_and_refolds_score when it
+    // lands
     OutOfBandRule { player: String, verdict: Verdict },
     // ── controls ──
     Grant { player: String, grants: GrantSet },
@@ -167,6 +170,25 @@ pub struct GridQuizView {
     pub active_picker: Option<String>,
     pub floored: Option<String>,
     pub locked_out: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Protocol.ts"))]
+pub enum GridQuizPhase {
+    /// Pre-`StartGame`; players joining.
+    Lobby,
+    /// `active_picker` chooses a cell.
+    BoardSelect,
+    /// Question on screen. `floored_player == None` = buzz open; `Some` =
+    /// answering. The re-buzz-after-wrong loop stays in this phase.
+    QuestionOpen,
+    /// Correct answer + verdict shown. Human-paced beat (discussion); exits on
+    /// mod `Next` or an optional auto-advance — not auto-timed by default.
+    Reveal,
+    /// Terminal: board exhausted or mod ended early.
+    GameOver,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

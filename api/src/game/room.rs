@@ -12,7 +12,7 @@
 //! TODO: RoomHandle, spawn_room, the select! loop.
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     sync::Arc,
 };
 

@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
-use crate::game::{
-    grid_quiz::{CurrentCell, GridQuizPhase},
-    state::Token,
+use crate::{
+    game::{grid_quiz::CurrentCell, state::Token},
+    protocol::GridQuizPhase,
 };
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub enum Phase {
     #[default]
     Poisoned,
@@ -27,8 +27,17 @@ impl Phase {
             Phase::Poisoned => GridQuizPhase::GameOver,
         }
     }
+
+    pub(crate) fn current_cell(&self) -> Option<&CurrentCell> {
+        match self {
+            Phase::QuestionOpen(question_open) => Some(question_open.current()),
+            Phase::Reveal(reveal) => Some(reveal.current()),
+            Phase::Poisoned | Phase::Lobby(_) | Phase::BoardSelect(_) | Phase::GameOver(_) => None,
+        }
+    }
 }
 
+#[derive(Clone, Debug)]
 pub struct Lobby;
 
 impl Lobby {
@@ -39,6 +48,7 @@ impl Lobby {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct BoardSelect {
     active_player: Token,
 }
@@ -58,6 +68,7 @@ impl BoardSelect {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct QuestionOpen {
     current: CurrentCell,
     floored_player: Option<Token>,
@@ -65,6 +76,22 @@ pub struct QuestionOpen {
 }
 
 impl QuestionOpen {
+    pub fn current(&self) -> &CurrentCell {
+        &self.current
+    }
+
+    pub fn floored_player(&self) -> Option<&Token> {
+        self.floored_player.as_ref()
+    }
+
+    pub fn is_locked_out(&self, player: &Token) -> bool {
+        self.locked_out.contains(player)
+    }
+
+    pub fn locked_out(&self) -> &HashSet<Token> {
+        &self.locked_out
+    }
+
     pub fn buzz(&mut self, player: Token) -> BuzzOutcome {
         if self.floored_player.is_some() {
             return BuzzOutcome::OtherPlayerFloored;
@@ -75,10 +102,6 @@ impl QuestionOpen {
 
         self.floored_player = Some(player);
         BuzzOutcome::Success
-    }
-
-    pub fn clear_floor(&mut self) {
-        self.floored_player = None;
     }
 
     pub fn lock_out(&mut self) {
@@ -92,18 +115,6 @@ impl QuestionOpen {
             current: self.current,
         }
     }
-
-    pub fn current(&self) -> &CurrentCell {
-        &self.current
-    }
-
-    pub fn floored_player(&self) -> Option<&Token> {
-        self.floored_player.as_ref()
-    }
-
-    pub fn is_locked_out(&self, player: &Token) -> bool {
-        self.locked_out.contains(player)
-    }
 }
 
 pub enum BuzzOutcome {
@@ -112,11 +123,16 @@ pub enum BuzzOutcome {
     LockedOut,
 }
 
+#[derive(Clone, Debug)]
 pub struct Reveal {
     current: CurrentCell,
 }
 
 impl Reveal {
+    pub fn current(&self) -> &CurrentCell {
+        &self.current
+    }
+
     pub fn next(self, board_status: BoardStatus) -> Resolution {
         match board_status {
             BoardStatus::OpenCellsRemain { next_picker } => Resolution::BoardSelect(BoardSelect {
@@ -127,6 +143,7 @@ impl Reveal {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct GameOver;
 
 pub enum BoardStatus {

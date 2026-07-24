@@ -1,14 +1,12 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::VecDeque,
     mem,
 };
-
-use serde::{Deserialize, Serialize};
 
 use crate::{
     game::{
         grants::Grant,
-        grid_quiz::phase::{BoardStatus, BuzzOutcome, GameOver, Lobby, Phase, Resolution, Reveal},
+        grid_quiz::phase::{BoardStatus, BuzzOutcome, Lobby, Phase, Resolution},
         judge::Verdict,
         state::{CommandError, Effect, PlayerSlots, Token},
     },
@@ -19,20 +17,9 @@ use rand::{SeedableRng, rngs::StdRng, seq::SliceRandom};
 
 pub mod phase;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct GridQuizState {
     pub phase: Phase,
-    /// Whose turn to choose a cell. Meaningful only while `phase == BoardSelect`.
-    pub active_picker: Option<Token>,
-    /// Who may answer right now. `None` = buzz open; `Some` = that player has
-    /// the floor. How it relates to `active_picker` depends on the answer
-    /// policy (turn-order: floored == picker on pick; open-floor: first buzz).
-    // TODO: this will probably something every mode has, so maybe refactor this
-    pub floored_player: Option<Token>,
-    /// Answered wrong this question — barred from re-buzzing until it resets.
-    pub locked_out: HashSet<Token>,
-    /// Cell + question currently in play; `None` while on the board.
-    pub current: Option<CurrentCell>,
     /// Picking turn order. Shuffled at `StartGame`; advanced per picker policy.
     // TODO: kicked/disconnected players stay in the rotation and can become
     // active_picker, deadlocking the board once turn enforcement lands. clean
@@ -113,8 +100,6 @@ impl GridQuizState {
 
                 // TODO: this should respect different flooring strategies like OpenBuzz or
                 // TurnBased etc.
-                // TODO: anyone can pick a cell right now, we should check that token is
-                // the active picker (or a moderator) before transitioning
                 match mem::take(&mut self.phase) {
                     Phase::BoardSelect(board_select) => {
                         self.phase = Phase::QuestionOpen(board_select.pick(cell));
@@ -130,7 +115,23 @@ impl GridQuizState {
                 };
             }
             Command::Answer { text } => {
-                todo!("player answer not implemented yet")
+                let Phase::QuestionOpen(question_open) = &self.phase else {
+                    return Err(CommandError::WrongPhase(self.phase.kind()));
+                };
+
+                if question_open.floored_player() != Some(&token)
+                    && !player_slots.is_grant(&token, &Grant::Moderate)
+                {
+                    return Err(CommandError::PlayerNotFloored(token.0));
+                }
+
+                // TODO: we should check for a pending judgement here before pushing, maybe we
+                // could even allow or prevent updating your answer
+                return Ok(vec![Effect::Submit {
+                    player: token,
+                    question_id: question_open.current().question_id.clone(),
+                    text,
+                }]);
             }
             Command::Rule { verdict } => {
                 let Phase::QuestionOpen(question_open) = &mut self.phase else {
@@ -148,7 +149,8 @@ impl GridQuizState {
                     .ok_or_else(|| CommandError::PlayerNotFloored(token.0.clone()))?;
 
                 // TODO: if there is someone locked out the points should be halved
-                let mut points = match verdict {
+                // this could also work if we check if there is judgement for the question id
+                let points = match verdict {
                     Verdict::Correct => value as i32,
                     Verdict::Incorrect => -(value as i32) / 2,
                     Verdict::Void | Verdict::Pending => 0,
@@ -234,10 +236,6 @@ impl GridQuizState {
     pub(crate) fn build(cells: Vec<Vec<Cell>>, points: Vec<u32>) -> Self {
         Self {
             phase: Phase::Lobby(Lobby),
-            active_picker: None,
-            floored_player: None,
-            locked_out: HashSet::new(),
-            current: None,
             picker_rotation: VecDeque::new(),
             cells,
             points,
@@ -284,25 +282,6 @@ impl From<Option<String>> for Cell {
             None => Cell::Empty,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(test, derive(ts_rs::TS))]
-#[cfg_attr(test, ts(export, export_to = "Protocol.ts"))]
-pub enum GridQuizPhase {
-    /// Pre-`StartGame`; players joining.
-    Lobby,
-    /// `active_picker` chooses a cell.
-    BoardSelect,
-    /// Question on screen. `floored_player == None` = buzz open; `Some` =
-    /// answering. The re-buzz-after-wrong loop stays in this phase.
-    QuestionOpen,
-    /// Correct answer + verdict shown. Human-paced beat (discussion); exits on
-    /// mod `Next` or an optional auto-advance — not auto-timed by default.
-    Reveal,
-    /// Terminal: board exhausted or mod ended early.
-    GameOver,
 }
 
 /// The cell in play + its resolved question id. Question content itself lives

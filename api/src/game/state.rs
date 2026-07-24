@@ -9,27 +9,24 @@
 //! TODO: GameState, apply(Command), on_timeout, snapshot, score = fold(log).
 
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     ops::{Deref, DerefMut},
 };
 
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    data::{Game, GameConfig},
+    data::GameConfig,
     game::{
         grants::{Grant, GrantSet},
-        grid_quiz::{self, GridQuizPhase, GridQuizState},
+        grid_quiz::GridQuizState,
         judge::Verdict,
     },
-    protocol::Command,
+    protocol::{Command, GridQuizPhase},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandError {
-    #[error("no cell in play")]
-    NoCurrentCell,
     #[error("no players in game")]
     NoPlayers,
     #[error("player not floored {0}")]
@@ -44,10 +41,6 @@ pub enum CommandError {
     NotYourTurn(String),
     #[error("question not open (phase {0:?})")]
     WrongPhase(GridQuizPhase),
-    #[error("unknown player {0}")]
-    UnknownPlayer(String),
-    #[error("missing grant {0:?}")]
-    MissingGrant(Grant),
     #[error("the cell type isn't open")]
     WrongCellType,
 }
@@ -166,13 +159,6 @@ impl GameState {
                     .then_some(i)
             })
     }
-
-    pub(crate) fn current_game(&self) -> &Game {
-        self.game_config
-            .games
-            .get(self.current_game_idx)
-            .expect("current game idx does not yield a game")
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -257,7 +243,7 @@ pub(crate) enum Effect {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ModeState {
     GridQuiz(GridQuizState),
     Linear(LinearState),
@@ -300,5 +286,5 @@ pub struct Judgment {
 
 /// linear play state — not yet designed. Stub so `ModeState` carries both
 /// variants from the start.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct LinearState;
