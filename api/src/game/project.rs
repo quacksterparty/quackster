@@ -91,7 +91,7 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                 .collect();
 
             GamemodeView::GridQuiz(GridQuizView {
-                phase: grid_quiz.phase,
+                phase: grid_quiz.phase.kind(),
                 categories: board
                     .categories
                     .iter()
@@ -131,7 +131,7 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
     let question = match &gamestate.mode {
         ModeState::GridQuiz(grid_quiz) => grid_quiz.current.as_ref().and_then(|cell| {
             let include_answer = grants.contains(&Grant::Moderate)
-                || matches!(grid_quiz.phase, GridQuizPhase::Reveal);
+                || matches!(grid_quiz.phase.kind(), GridQuizPhase::Reveal);
             let question = match data.questions.get(&cell.question_id) {
                 Some(entry) => &entry.item,
                 None => {

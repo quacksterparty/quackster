@@ -79,7 +79,8 @@ pub enum Command {
     // ── answering ──
     Buzz,
     Answer { text: String },
-    Rule { player: String, verdict: Verdict },
+    Rule { verdict: Verdict },
+    OutOfBandRule { player: String, verdict: Verdict },
     // ── controls ──
     Grant { player: String, grants: GrantSet },
     ExtendTimer { delta_secs: u32 },

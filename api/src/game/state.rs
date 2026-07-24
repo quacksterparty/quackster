@@ -20,7 +20,7 @@ use crate::{
     data::{Game, GameConfig},
     game::{
         grants::{Grant, GrantSet},
-        grid_quiz::{GridQuizPhase, GridQuizState},
+        grid_quiz::{self, GridQuizPhase, GridQuizState},
         judge::Verdict,
     },
     protocol::Command,
@@ -38,12 +38,18 @@ pub enum CommandError {
     PointOutOfRange,
     #[error("buzzed while floored player")]
     BuzzWhileFlooredPlayer,
+    #[error("buzzed while locked out")]
+    BuzzWhileLockedOut,
+    #[error("picked cell while not being the picker {0}")]
+    NotYourTurn(String),
     #[error("question not open (phase {0:?})")]
     WrongPhase(GridQuizPhase),
     #[error("unknown player {0}")]
     UnknownPlayer(String),
     #[error("missing grant {0:?}")]
     MissingGrant(Grant),
+    #[error("the cell type isn't open")]
+    WrongCellType,
 }
 
 #[derive(Clone, Debug)]
