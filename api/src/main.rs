@@ -2,10 +2,12 @@ mod config;
 mod data;
 mod game;
 mod http;
+mod media;
 mod protocol;
 mod state;
 
 use std::sync::Arc;
+use std::{fs, process};
 
 use axum::Router;
 use dashmap::DashMap;
@@ -30,6 +32,19 @@ async fn main() {
 
     let config = load().expect("couldn't load config");
 
+    if config.ytdlp_enabled {
+        let status = process::Command::new(&config.ytdlp_path)
+            .arg("--version")
+            .output();
+        if let Err(e) = status {
+            panic!(
+                "APP_YTDLP_ENABLED is set but '{}' is not runnable: {e}",
+                config.ytdlp_path
+            );
+        }
+        fs::create_dir_all(&config.media_cache_dir).expect("failed to create media cache dir");
+    }
+
     let data = data::load("../data").expect("failed to load data");
     if data.issues.is_empty() {
         tracing::info!(
@@ -53,10 +68,12 @@ async fn main() {
         }
     }
 
+    let media = Arc::new(media::MediaFetcher::from_config(&config));
     let state = Arc::new(AppState {
         config,
         data: Arc::new(data),
         rooms: DashMap::new(),
+        media,
     });
     let addr = format!("{}:{}", state.config.host, state.config.port);
 
@@ -66,6 +83,10 @@ async fn main() {
     let app = Router::new()
         .nest("/api", rest::router())
         .nest_service("/media", ServeDir::new("../data/media"))
+        .nest_service(
+            "/media-cache",
+            ServeDir::new(state.config.media_cache_dir.clone()),
+        )
         .merge(ws::router())
         .fallback_service(serve_dir)
         .layer(TraceLayer::new_for_http())

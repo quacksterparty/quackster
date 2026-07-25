@@ -29,3 +29,4 @@ project.inlang/cache/
 
 .direnv
 target
+cache/

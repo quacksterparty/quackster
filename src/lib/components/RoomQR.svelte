@@ -17,7 +17,7 @@
 			return;
 		}
 		url = `${window.location.origin}/room/${code}`;
-		QRCode.toString(url, {
+		void QRCode.toString(url, {
 			type: 'svg',
 			margin: 1,
 			width: 240,

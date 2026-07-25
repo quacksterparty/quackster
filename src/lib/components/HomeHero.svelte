@@ -4,6 +4,7 @@
 	import CodeInput from '$lib/components/CodeInput.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { api } from '$lib/api';
 	import { toast } from '$lib/toast.svelte';
 	import { lastSession, type RoomSession } from '$lib/session';
@@ -28,15 +29,15 @@
 			return;
 		}
 
-		await goto(`/room/${joinCode}`);
+		await goto(resolve('/room/[code]', { code: joinCode }));
 	}
 
 	async function room() {
-		await goto('/room');
+		await goto(resolve('/room', {}));
 	}
 
 	async function rejoin() {
-		if (recentSession) await goto(`/room/${recentSession.room}`);
+		if (recentSession) await goto(resolve('/room/[code]', { code: recentSession.room }));
 	}
 
 	onMount(() => {

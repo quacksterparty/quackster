@@ -3,7 +3,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import MediaDisplay from './MediaDisplay.svelte';
 
-	let { question }: { question: QuestionView } = $props();
+	let { question, playNonce = 0 }: { question: QuestionView; playNonce?: number } = $props();
 
 	const variant = $derived(question.variant);
 </script>
@@ -12,7 +12,7 @@
 	<h2>{question.prompt.text}</h2>
 
 	{#if question.prompt.media}
-		<MediaDisplay media={question.prompt.media} />
+		<MediaDisplay media={question.prompt.media} {playNonce} />
 	{/if}
 
 	{#if variant.kind === 'MultipleChoice'}

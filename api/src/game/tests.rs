@@ -168,7 +168,11 @@ fn start_game_enters_board_select_with_a_playing_picker() {
     let Phase::BoardSelect(b) = &g.phase else {
         panic!("expected BoardSelect, got {:?}", g.phase.kind());
     };
-    assert_eq!(g.picker_rotation.len(), 2, "only Play-granted players rotate");
+    assert_eq!(
+        g.picker_rotation.len(),
+        2,
+        "only Play-granted players rotate"
+    );
     assert!(!g.picker_rotation.contains(&token("mod")));
     assert_eq!(Some(b.active_player()), g.picker_rotation.front());
 }
@@ -201,15 +205,30 @@ fn pick_cell_opens_question_and_floors_the_picker() {
 fn pick_used_cell_is_rejected_without_state_change() {
     let mut state = setup(&["alice", "bob"]);
     start_and_pick(&mut state, 0, 0);
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Correct });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Correct,
+        },
+    );
     state.apply(token("mod"), Command::Next);
 
     let rotation_before = grid(&state).picker_rotation.clone();
     let p2 = picker(&state);
-    state.apply(token(&p2), Command::PickCell { category: 0, point: 0 });
+    state.apply(
+        token(&p2),
+        Command::PickCell {
+            category: 0,
+            point: 0,
+        },
+    );
 
     let g = grid(&state);
-    assert_eq!(g.phase.kind(), GridQuizPhase::BoardSelect, "used cell not pickable");
+    assert_eq!(
+        g.phase.kind(),
+        GridQuizPhase::BoardSelect,
+        "used cell not pickable"
+    );
     assert_eq!(g.picker_rotation, rotation_before, "rotation not burned");
 }
 
@@ -235,7 +254,12 @@ fn non_floored_player_cannot_answer() {
     let p = start_and_pick(&mut state, 0, 0);
     let other = if p == "alice" { "bob" } else { "alice" };
 
-    state.apply(token(other), Command::Answer { text: "sneaky".into() });
+    state.apply(
+        token(other),
+        Command::Answer {
+            text: "sneaky".into(),
+        },
+    );
     assert!(state.judgment_log.is_empty());
 }
 
@@ -244,7 +268,12 @@ fn correct_ruling_awards_cell_value_and_reveals() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
     state.apply(token(&p), Command::Answer { text: "42".into() });
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Correct });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Correct,
+        },
+    );
 
     assert_eq!(score(&state, &p), 100);
     let g = grid(&state);
@@ -261,7 +290,12 @@ fn correct_ruling_awards_cell_value_and_reveals() {
 fn incorrect_ruling_halves_penalty_and_locks_out() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Incorrect });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Incorrect,
+        },
+    );
 
     assert_eq!(score(&state, &p), -50);
     let q = open_question(&state);
@@ -272,15 +306,29 @@ fn incorrect_ruling_halves_penalty_and_locks_out() {
 #[test]
 #[ignore = "regression: Rule targets the floored player, so a ruling can't be \
             revised once the question closes (no floor in Reveal); port to \
-            OutOfBandRule once gamemodes handle it"]
+            RulePlayer once gamemodes handle it"]
 fn revised_ruling_supersedes_and_refolds_score() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
     state.apply(token(&p), Command::Answer { text: "42".into() });
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Correct });
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Incorrect });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Correct,
+        },
+    );
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Incorrect,
+        },
+    );
 
-    assert_eq!(score(&state, &p), -50, "latest ruling wins, no double count");
+    assert_eq!(
+        score(&state, &p),
+        -50,
+        "latest ruling wins, no double count"
+    );
     assert_eq!(state.judgment_log[2].supersedes, Some(1));
 }
 
@@ -288,7 +336,12 @@ fn revised_ruling_supersedes_and_refolds_score() {
 fn all_players_locked_out_closes_the_question() {
     let mut state = setup(&["alice"]);
     start_and_pick(&mut state, 0, 0);
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Incorrect });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Incorrect,
+        },
+    );
 
     let g = grid(&state);
     assert_eq!(g.phase.kind(), GridQuizPhase::Reveal);
@@ -302,7 +355,12 @@ fn buzz_takes_the_floor_when_open() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
     let other = if p == "alice" { "bob" } else { "alice" };
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Incorrect });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Incorrect,
+        },
+    );
 
     state.apply(token(other), Command::Buzz);
     assert_eq!(open_question(&state).floored_player(), Some(&token(other)));
@@ -335,7 +393,12 @@ fn buzz_rejected_outside_question_open() {
 fn locked_out_player_cannot_rebuzz() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Incorrect });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Incorrect,
+        },
+    );
 
     state.apply(token(&p), Command::Buzz);
     assert_eq!(
@@ -351,7 +414,12 @@ fn locked_out_player_cannot_rebuzz() {
 fn next_resets_question_state_and_returns_to_board() {
     let mut state = setup(&["alice", "bob"]);
     start_and_pick(&mut state, 0, 0);
-    state.apply(token("mod"), Command::Rule { verdict: Verdict::Correct });
+    state.apply(
+        token("mod"),
+        Command::Rule {
+            verdict: Verdict::Correct,
+        },
+    );
     state.apply(token("mod"), Command::Next);
 
     let g = grid(&state);
@@ -382,7 +450,12 @@ fn exhausting_the_board_ends_the_game() {
         let p = picker(&state);
         let (category, point) = first_open_cell(&state);
         state.apply(token(&p), Command::PickCell { category, point });
-        state.apply(token("mod"), Command::Rule { verdict: Verdict::Correct });
+        state.apply(
+            token("mod"),
+            Command::Rule {
+                verdict: Verdict::Correct,
+            },
+        );
         // every close lands in Reveal (even the last question); Next resolves
         // Exhausted -> GameOver
         state.apply(token("mod"), Command::Next);
@@ -391,7 +464,9 @@ fn exhausting_the_board_ends_the_game() {
     let g = grid(&state);
     assert_eq!(g.phase.kind(), GridQuizPhase::GameOver);
     assert!(
-        g.cells.iter().all(|col| col.iter().all(|c| matches!(c, Cell::Used(_)))),
+        g.cells
+            .iter()
+            .all(|col| col.iter().all(|c| matches!(c, Cell::Used(_)))),
         "all cells used"
     );
     assert_eq!(

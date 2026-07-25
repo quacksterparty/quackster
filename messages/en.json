@@ -60,6 +60,8 @@
 	"rule_void": "Void",
 	"rule_right": "Right",
 	"close_question": "Close question",
+	"play_media": "Play media",
+	"replay_media": "Replay media",
 	"answer_label": "Answer",
 	"answer_true": "True",
 	"answer_false": "False",

@@ -11,10 +11,7 @@
 //!
 //! TODO: RoomHandle, spawn_room, the select! loop.
 
-use std::{
-    collections::HashSet,
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 use rand::RngExt;
 use tokio::sync::{broadcast, mpsc};
@@ -26,6 +23,7 @@ use crate::{
         grid_quiz::{Cell, GridQuizState},
         state::{GameState, LinearState, ModeState, PlayerSlot, PlayerSlots, Token},
     },
+    media::MediaFetcher,
     protocol::{ConnectionError, RoomMessage},
 };
 
@@ -55,7 +53,12 @@ pub struct RoomHandle {
     pub state_tx: broadcast::Sender<Arc<GameState>>,
 }
 
-pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -> RoomHandle {
+pub fn spawn_room(
+    code: JoinCode,
+    game_config: GameConfig,
+    data: Arc<Dataset>,
+    media_fetcher: Arc<MediaFetcher>,
+) -> RoomHandle {
     let (room_msg_tx, mut room_msg_rx) = mpsc::channel::<RoomMessage>(64);
     let (state_tx, _) = broadcast::channel::<Arc<GameState>>(16);
 
@@ -69,10 +72,12 @@ pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -
             .mode
         {
             GameMode::GridQuiz(game) => {
-                let cells = build_board(&data, &game.board, seed)
-                    .into_iter()
-                    .map(|row| row.into_iter().map(Cell::from).collect())
-                    .collect();
+                let cells: Vec<Vec<Cell>> =
+                    build_board(&data, &game.board, seed, media_fetcher.enabled())
+                        .into_iter()
+                        .map(|row| row.into_iter().map(Cell::from).collect())
+                        .collect();
+                prefetch_board_media(&cells, &data, &media_fetcher);
                 ModeState::GridQuiz(GridQuizState::build(cells, game.board.points.clone()))
             }
             GameMode::Linear(_) => ModeState::Linear(LinearState::default()),
@@ -145,4 +150,21 @@ pub fn spawn_room(code: JoinCode, game_config: GameConfig, data: Arc<Dataset>) -
         command_tx: room_msg_tx,
         state_tx,
     }
+}
+
+/// Kick off yt-dlp downloads for every youtube prompt media on the board.
+fn prefetch_board_media(cells: &[Vec<Cell>], data: &Dataset, media_fetcher: &Arc<MediaFetcher>) {
+    let to_fetch: Vec<_> = cells
+        .iter()
+        .flatten()
+        .filter_map(|cell| match cell {
+            Cell::Open(id) | Cell::Used(id) => data.questions.get(id),
+            Cell::Empty => None,
+        })
+        .filter_map(|entry| entry.item.prompt().media.as_deref())
+        .flatten()
+        .filter(|media| media.media_ref.starts_with("youtube:"))
+        .cloned()
+        .collect();
+    media_fetcher.prefetch(to_fetch);
 }

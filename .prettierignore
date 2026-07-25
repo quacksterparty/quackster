@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# ts-rs generated
+src/lib/bindings/

@@ -16,10 +16,12 @@ use crate::{
     config::AppConfig,
     data::Dataset,
     game::room::{JoinCode, RoomHandle},
+    media::MediaFetcher,
 };
 
 pub struct AppState {
     pub config: AppConfig,
     pub data: Arc<Dataset>,
     pub rooms: DashMap<JoinCode, RoomHandle>,
+    pub media: Arc<MediaFetcher>,
 }

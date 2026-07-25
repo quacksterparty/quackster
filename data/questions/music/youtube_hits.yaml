@@ -1,0 +1,191 @@
+- id: q_music_yt_take_on_me
+  kind: text
+  tags: [subject:music, region:global, difficulty:easy]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wie heißt dieser Song?'
+      media:
+        - kind: audio
+          ref: 'youtube:djV11Xbc914?end=12'
+          alt: 'Synth-Riff-Intro eines 80er-Jahre-Hits'
+    answer: Take On Me
+    explanation: '„Take On Me" von a-ha (1985) ist vor allem für sein ikonisches Synth-Riff und das Rotoskopie-Musikvideo bekannt.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: take_on_me, text: 'Take On Me', correct: true }
+          - { id: africa, text: 'Africa' }
+          - { id: final_countdown, text: 'The Final Countdown' }
+          - { id: sweet_dreams, text: 'Sweet Dreams' }
+      open:
+        accepted: ['Take On Me', 'Take on me']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_teen_spirit
+  kind: text
+  tags: [subject:music, region:global, difficulty:easy]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Von welcher Band stammt dieser Song?'
+      media:
+        - kind: audio
+          ref: 'youtube:hTWKbfoikeg?end=12'
+          alt: 'Verzerrtes Gitarren-Intro eines Grunge-Klassikers'
+    answer: Nirvana
+    explanation: '„Smells Like Teen Spirit" (1991) von Nirvana machte Grunge weltweit populär.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: nirvana, text: Nirvana, correct: true }
+          - { id: pearl_jam, text: 'Pearl Jam' }
+          - { id: soundgarden, text: Soundgarden }
+          - { id: foo_fighters, text: 'Foo Fighters' }
+      open:
+        accepted: ['Nirvana']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_africa
+  kind: text
+  tags: [subject:music, region:global, difficulty:general]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wie heißt dieser Song?'
+      media:
+        - kind: audio
+          ref: 'youtube:FTQbiNvZqaY?end=12'
+          alt: 'Keyboard- und Schlagzeug-Intro eines Soft-Rock-Hits von 1982'
+    answer: Africa
+    explanation: '„Africa" von Toto (1982) erlebte durch Internet-Memes ein großes Revival.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: africa, text: Africa, correct: true }
+          - { id: rosanna, text: Rosanna }
+          - { id: hold_the_line, text: 'Hold the Line' }
+          - { id: down_under, text: 'Down Under' }
+      open:
+        accepted: ['Africa', 'Afrika', 'Africa Toto']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_hello
+  kind: text
+  tags: [subject:music, subject:2010s, region:global, difficulty:general]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Welche Sängerin singt hier?'
+      media:
+        - kind: audio
+          ref: 'youtube:YQHsXMglC9A?start=95&end=110'
+          alt: 'Klavierballade mit markanter Frauenstimme'
+    answer: Adele
+    explanation: '„Hello" (2015) war die Lead-Single von Adeles Album „25" und brach mehrere Streaming-Rekorde.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: adele, text: Adele, correct: true }
+          - { id: duffy, text: Duffy }
+          - { id: amy_winehouse, text: 'Amy Winehouse' }
+          - { id: sia, text: Sia }
+      open:
+        accepted: ['Adele', 'Adele Adkins']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_gangnam_style
+  kind: text
+  tags: [subject:music, subject:2010s, region:global, difficulty:easy]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wie heißt dieser Song?'
+      media:
+        - kind: video
+          ref: 'youtube:9bZkp7q19f0?start=67&end=82'
+          alt: 'Musikvideo mit dem berühmten Pferdetanz'
+    answer: Gangnam Style
+    explanation: '„Gangnam Style" von PSY (2012) war das erste YouTube-Video mit über einer Milliarde Aufrufen.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: gangnam_style, text: 'Gangnam Style', correct: true }
+          - { id: gentleman, text: Gentleman }
+          - { id: harlem_shake, text: 'Harlem Shake' }
+          - { id: dynamite, text: Dynamite }
+      open:
+        accepted: ['Gangnam Style', 'Gangnamstyle']
+        normalize: [lowercase, strip_punctuation, strip_whitespace]
+
+- id: q_music_yt_never_gonna
+  kind: text
+  tags: [subject:music, region:global, difficulty:easy]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wer singt diesen Song?'
+      media:
+        - kind: video
+          ref: 'youtube:dQw4w9WgXcQ?start=43&end=58'
+          alt: 'Musikvideo mit tanzendem Sänger im Trenchcoat, 80er Jahre'
+    answer: Rick Astley
+    explanation: '„Never Gonna Give You Up" (1987) von Rick Astley wurde durch das „Rickrolling"-Meme zum Internet-Phänomen.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: rick_astley, text: 'Rick Astley', correct: true }
+          - { id: george_michael, text: 'George Michael' }
+          - { id: phil_collins, text: 'Phil Collins' }
+          - { id: neil_diamond, text: 'Neil Diamond' }
+      open:
+        accepted: ['Rick Astley', 'Astley']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_billie_jean
+  kind: text
+  tags: [subject:music, region:global, difficulty:general]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wie heißt dieser Song?'
+      media:
+        - kind: video
+          ref: 'youtube:Zi_XLOBDo_Y?start=30&end=45'
+          alt: 'Musikvideo mit aufleuchtenden Gehwegplatten'
+    answer: Billie Jean
+    explanation: '„Billie Jean" (1983) von Michael Jackson stammt vom meistverkauften Album aller Zeiten, „Thriller".'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: billie_jean, text: 'Billie Jean', correct: true }
+          - { id: beat_it, text: 'Beat It' }
+          - { id: thriller, text: Thriller }
+          - { id: bad, text: Bad }
+      open:
+        accepted: ['Billie Jean', 'Billy Jean']
+        normalize: [lowercase, strip_punctuation]
+
+- id: q_music_yt_despacito
+  kind: text
+  tags: [subject:music, subject:2010s, region:global, difficulty:general]
+  content:
+    default_lang: de
+    prompt:
+      text: 'Wie heißt dieser Song?'
+      media:
+        - kind: video
+          ref: 'youtube:kJQP7kiw5Fk?start=65&end=80'
+          alt: 'Musikvideo in Puerto Rico mit Reggaeton-Rhythmus'
+    answer: Despacito
+    explanation: '„Despacito" von Luis Fonsi feat. Daddy Yankee (2017) war jahrelang das meistgesehene Video auf YouTube.'
+    variants:
+      multiple_choice:
+        choices:
+          - { id: despacito, text: Despacito, correct: true }
+          - { id: bailando, text: Bailando }
+          - { id: danza_kuduro, text: 'Danza Kuduro' }
+          - { id: mi_gente, text: 'Mi Gente' }
+      open:
+        accepted: ['Despacito']
+        normalize: [lowercase, strip_punctuation]

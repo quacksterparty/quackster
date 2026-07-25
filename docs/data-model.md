@@ -450,7 +450,6 @@ content:
     media:
       - kind: audio # image | audio | video
         ref: 'local:audio/wonderwall-clip.ogg'
-        duration_ms: 8000 # type-specific metadata
         alt: '8-second clip of a guitar riff' # accessibility
   variants:
     multiple_choice:
@@ -480,11 +479,11 @@ Recommended: **hybrid**.
 
 `ref` uses the same `prefix:value` syntax as tags. Three sources:
 
-| Prefix     | Value                           | Resolves to                                |
-| ---------- | ------------------------------- | ------------------------------------------ |
-| `local:`   | path relative to `data/media/`  | Local file shipped with the repo.          |
-| `url:`     | absolute `https://` URL         | Arbitrary remote asset.                    |
-| `youtube:` | video ID, optional query params | YouTube embed (`youtube:abc123?start=10`). |
+| Prefix     | Value                          | Resolves to                                 |
+| ---------- | ------------------------------ | ------------------------------------------- |
+| `local:`   | path relative to `data/media/` | Local file shipped with the repo.           |
+| `url:`     | absolute `https://` URL        | Arbitrary remote asset.                     |
+| `youtube:` | video ID, optional clip bounds | yt-dlp segment (`youtube:abc123?start=10`). |
 
 Examples:
 
@@ -493,6 +492,13 @@ ref: "local:img/flags/it.svg"
 ref: "url:https://example.org/clip.mp3"
 ref: "youtube:pkndFYSTr0Y?start=10&end=18"
 ```
+
+**Clip bounds are youtube-only.** `?start=` / `?end=` take decimal seconds
+(`start=95.5`), normalized to ms internally; either bound may be omitted
+(`?end=12` = first 12 s). The server downloads only that segment via yt-dlp,
+so clients always receive pre-trimmed files — no client-side clipping exists.
+`local:` and `url:` media must be trimmed before adding (a future editor UI
+will trim uploads at creation time).
 
 Each prefix is validated by its own schema (URL parsing, YouTube ID regex, local
 path disallowing `..`). Adding a new source (e.g. `s3:`) is a schema PR.
@@ -510,7 +516,11 @@ internet; only `local:` is guaranteed offline — see the offline-capable note i
 - For `url:` refs: must be `https://`, scheme-validated only — no liveness
   check in CI (too flaky).
 - For `youtube:` refs: video ID must match `^[A-Za-z0-9_-]{8,24}$` (generous
-  range, Google may extend beyond 11 chars).
+  range, Google may extend beyond 11 chars). Query params: only `start` and
+  `end` (non-negative decimal seconds, `start < end`, no duplicates) —
+  anything else (typos, pasted `si=` tracking junk) is a hard error.
+  `kind: image` with a `youtube:` ref is invalid — youtube is inherently
+  temporal.
 
 ### Per-locale media
 

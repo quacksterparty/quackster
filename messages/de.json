@@ -60,6 +60,8 @@
 	"rule_void": "Ungültig",
 	"rule_right": "Richtig",
 	"close_question": "Frage schließen",
+	"play_media": "Medien abspielen",
+	"replay_media": "Medien erneut abspielen",
 	"answer_label": "Antwort",
 	"answer_true": "Wahr",
 	"answer_false": "Falsch",

@@ -6,7 +6,7 @@ import Welcome from './Welcome.svelte';
 
 describe('Welcome.svelte', () => {
 	it('renders greetings for host and guest', async () => {
-		render(Welcome, { guest: 'Vitest', host: 'SvelteKit' });
+		await render(Welcome, { guest: 'Vitest', host: 'SvelteKit' });
 
 		await expect
 			.element(page.getByRole('heading', { level: 1 }))

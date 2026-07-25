@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    mem,
-};
+use std::{collections::VecDeque, mem};
 
 use crate::{
     game::{
@@ -225,6 +222,13 @@ impl GridQuizState {
                         return Err(CommandError::WrongPhase(kind));
                     }
                 }
+            }
+            Command::PlayMedia => {
+                let Phase::QuestionOpen(question_open) = &mut self.phase else {
+                    return Err(CommandError::WrongPhase(self.phase.kind()));
+                };
+
+                question_open.play_media();
             }
             Command::CloseQuestion => self.close_question()?,
             _ => todo!("other gridquiz cmds not implemented yet"),

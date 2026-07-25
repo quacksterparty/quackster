@@ -71,23 +71,43 @@ pub enum ClientMessage {
 pub enum Command {
     // ── lifecycle ──
     StartGame,
-    PickCell { category: usize, point: usize },
+    PickCell {
+        category: usize,
+        point: usize,
+    },
     CloseQuestion,
     Next,
     EndGame,
     // ── answering ──
     Buzz,
-    Answer { text: String },
-    Rule { verdict: Verdict },
+    Answer {
+        text: String,
+    },
+    Rule {
+        verdict: Verdict,
+    },
     // TODO: not handled by any gamemode yet, this is the revision path for
     // rulings after the question closed (Rule only targets the floored
     // player), un-ignore revised_ruling_supersedes_and_refolds_score when it
     // lands
-    OutOfBandRule { player: String, verdict: Verdict },
+    RulePlayer {
+        player: String,
+        verdict: Verdict,
+    },
     // ── controls ──
-    Grant { player: String, grants: GrantSet },
-    ExtendTimer { delta_secs: u32 },
-    Kick { player: String },
+    /// Mod triggers playback of the current question's prompt media on
+    /// Present screens. Replay = send again (bumps the nonce).
+    PlayMedia,
+    Grant {
+        player: String,
+        grants: GrantSet,
+    },
+    ExtendTimer {
+        delta_secs: u32,
+    },
+    Kick {
+        player: String,
+    },
 }
 
 impl Command {
@@ -98,7 +118,9 @@ impl Command {
             | Command::EndGame
             | Command::Grant { .. }
             | Command::Next
-            | Command::Rule { .. } => Some(Grant::Moderate),
+            | Command::Rule { .. }
+            | Command::RulePlayer { .. }
+            | Command::PlayMedia => Some(Grant::Moderate),
             _ => None,
         }
     }
@@ -170,6 +192,9 @@ pub struct GridQuizView {
     pub active_picker: Option<String>,
     pub floored: Option<String>,
     pub locked_out: Vec<String>,
+    /// Bumps on each mod `PlayMedia`; Present clients play prompt media on
+    /// change. Resets with each question.
+    pub media_play_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -206,45 +231,33 @@ pub struct PromptView {
     pub media: Option<MediaView>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "kind", content = "value")]
-#[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
-pub enum MediaSrc {
-    /// `local:` (server-resolved to a URL) or `url:` direct remote — load into
-    /// the kind's media element.
-    Url(String),
-    /// `youtube:` id — render an iframe embed, not a media element.
-    Youtube(String),
-}
-
 /// Per-kind: each variant exposes only the fields valid for that kind — Audio
-/// carries no dimensions, Image carries no playback timing. Type error, not a
-/// stray `Option`, if they're mismatched.
+/// carries no dimensions. Type error, not a stray `Option`, if they're
+/// mismatched. No playback timing anywhere: clips are youtube-only and arrive
+/// pre-cut from the yt-dlp cache.
+///
+/// `src` is always a directly loadable URL (`/media/…` for `local:`, the raw
+/// URL for `url:`, `/media-cache/…` for yt-dlp segments) — `youtube:` refs
+/// never reach the client.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind")]
 #[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
 pub enum MediaView {
     Image {
-        src: MediaSrc,
+        src: String,
         alt: Option<String>,
         width: Option<u32>,
         height: Option<u32>,
     },
     Video {
-        src: MediaSrc,
+        src: String,
         alt: Option<String>,
         width: Option<u32>,
         height: Option<u32>,
-        duration_ms: Option<u32>,
-        start_ms: Option<u32>,
-        end_ms: Option<u32>,
     },
     Audio {
-        src: MediaSrc,
+        src: String,
         alt: Option<String>,
-        duration_ms: Option<u32>,
-        start_ms: Option<u32>,
-        end_ms: Option<u32>,
     },
 }
 

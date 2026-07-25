@@ -15,7 +15,7 @@ function parse(raw: string | null): Stored | null {
 
 	try {
 		const parsed = JSON.parse(raw) as Partial<Stored>;
-		if (typeof parsed?.room !== 'string' || typeof parsed?.timestamp !== 'number') {
+		if (typeof parsed.room !== 'string' || typeof parsed.timestamp !== 'number') {
 			return null;
 		}
 
@@ -34,7 +34,10 @@ export function readSession(room: string): RoomSession | null {
 }
 
 export function saveSession(session: RoomSession): void {
-	localStorage.setItem(PREFIX + session.room, JSON.stringify({ ...session, timestamp: Date.now() }));
+	localStorage.setItem(
+		PREFIX + session.room,
+		JSON.stringify({ ...session, timestamp: Date.now() })
+	);
 	localStorage.setItem(LAST_KEY, session.room);
 	prune();
 }

@@ -1,10 +1,10 @@
 export type ToastVariant = 'success' | 'error' | 'info';
 
-export type Toast = {
+export interface Toast {
 	id: number;
 	variant: ToastVariant;
 	message: string;
-};
+}
 
 const MAX_VISIBLE = 3;
 

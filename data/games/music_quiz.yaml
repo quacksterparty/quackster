@@ -1,0 +1,32 @@
+id: game_music_quiz
+title: Musik-Quiz
+description: Ein Grid-Quiz mit YouTube-Songschnipseln — eine Runde nur Hören, eine Runde Musikvideo.
+games:
+  - title: Runde 1
+    rules:
+      buzz_policy: open_floor
+      scoring_mode: first_correct
+      lockout_policy: this_question
+      steal_policy: round_limited
+      judge: auto
+      question_timer_secs: 30
+      answer_timer_secs: 15
+    mode:
+      kind: grid_quiz
+      grid_rules:
+        picker_mode: winner_picks
+      board:
+        points: [100, 200, 300, 500]
+        categories:
+          - name: Nur Hören
+            question_ids:
+              100: q_music_yt_take_on_me
+              200: q_music_yt_teen_spirit
+              300: q_music_yt_africa
+              500: q_music_yt_hello
+          - name: Musikvideo
+            question_ids:
+              100: q_music_yt_gangnam_style
+              200: q_music_yt_never_gonna
+              300: q_music_yt_billie_jean
+              500: q_music_yt_despacito

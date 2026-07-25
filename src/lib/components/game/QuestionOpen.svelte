@@ -15,6 +15,9 @@
 	const modAnswer = $derived(
 		has('Moderate') && question?.answer ? correctnessText(question.answer, question.variant) : null
 	);
+	const playableMedia = $derived(
+		question?.prompt.media != null && question.prompt.media.kind !== 'Image'
+	);
 
 	// Transient disable after buzzing, cleared when the snapshot reflects a floor.
 	let buzzed = $state(false);
@@ -32,7 +35,7 @@
 
 <section class="q">
 	{#if question}
-		<QuestionPrompt {question} />
+		<QuestionPrompt {question} playNonce={view.media_play_count} />
 	{/if}
 
 	{#if modAnswer}
@@ -56,25 +59,25 @@
 		<p class="muted center">{m.waiting_for_buzz()}</p>
 	{/if}
 
+	{#if has('Moderate') && playableMedia}
+		<Button variant="ghost" onclick={() => room.send?.({ kind: 'PlayMedia' })}>
+			▶ {view.media_play_count > 0 ? m.replay_media() : m.play_media()}
+		</Button>
+	{/if}
+
 	{#if has('Moderate')}
 		{#if floored}
 			<div class="rules">
 				<Button
 					variant="danger"
-					onclick={() => room.send?.({ kind: 'Rule', player: floored, verdict: 'incorrect' })}
+					onclick={() => room.send?.({ kind: 'Rule', verdict: 'incorrect' })}
 				>
 					✗ {m.rule_wrong()}
 				</Button>
-				<Button
-					variant="ghost"
-					onclick={() => room.send?.({ kind: 'Rule', player: floored, verdict: 'void' })}
-				>
+				<Button variant="ghost" onclick={() => room.send?.({ kind: 'Rule', verdict: 'void' })}>
 					⊘ {m.rule_void()}
 				</Button>
-				<Button
-					variant="primary"
-					onclick={() => room.send?.({ kind: 'Rule', player: floored, verdict: 'correct' })}
-				>
+				<Button variant="primary" onclick={() => room.send?.({ kind: 'Rule', verdict: 'correct' })}>
 					✓ {m.rule_right()}
 				</Button>
 			</div>

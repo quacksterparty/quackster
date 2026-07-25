@@ -10,6 +10,16 @@ pub struct AppConfig {
     pub port: u16,
 
     pub admin_secret: Option<String>,
+
+    #[serde(default)]
+    pub ytdlp_enabled: bool,
+
+    /// Binary to invoke when `ytdlp_enabled`; default resolves `yt-dlp` via PATH.
+    #[serde(default = "default_ytdlp_path")]
+    pub ytdlp_path: String,
+
+    #[serde(default = "default_media_cache_dir")]
+    pub media_cache_dir: String,
 }
 
 fn default_host() -> String {
@@ -17,6 +27,12 @@ fn default_host() -> String {
 }
 fn default_port() -> u16 {
     3000
+}
+fn default_ytdlp_path() -> String {
+    "yt-dlp".into()
+}
+fn default_media_cache_dir() -> String {
+    "./cache/yt".into()
 }
 
 pub fn load() -> Result<AppConfig, ConfigError> {

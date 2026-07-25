@@ -64,6 +64,7 @@ impl BoardSelect {
             // TODO: when flooring strategies land this needs to be changed
             floored_player: Some(self.active_player),
             locked_out: HashSet::new(),
+            media_play_count: 0,
         }
     }
 }
@@ -73,6 +74,7 @@ pub struct QuestionOpen {
     current: CurrentCell,
     floored_player: Option<Token>,
     locked_out: HashSet<Token>,
+    media_play_count: u32,
 }
 
 impl QuestionOpen {
@@ -90,6 +92,14 @@ impl QuestionOpen {
 
     pub fn locked_out(&self) -> &HashSet<Token> {
         &self.locked_out
+    }
+
+    pub fn media_play_count(&self) -> u32 {
+        self.media_play_count
+    }
+
+    pub fn play_media(&mut self) {
+        self.media_play_count += 1;
     }
 
     pub fn buzz(&mut self, player: Token) -> BuzzOutcome {

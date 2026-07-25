@@ -23,7 +23,7 @@
 			return;
 		}
 
-		const result = await api.room.create(secret, selectedGame);
+		const result = await api.room.create({ secret, game_id: selectedGame });
 
 		if (!result.ok) {
 			toast.error(m.error_generic());
@@ -42,16 +42,26 @@
 			{#await api.games.list()}
 				<p class="state">…</p>
 			{:then result}
-				{#if !result.ok}
-					<p class="state">{m.error_generic()}</p>
-				{:else if result.value.length === 0}
-					<p class="state">No games yet.</p>
+				<!-- positive `result.ok` first: svelte-eslint-parser loses union narrowing
+				     in negated/else branches, error-typing everything below -->
+				{#if result.ok}
+					{#if result.value.length === 0}
+						<p class="state">No games yet.</p>
+					{:else}
+						<div class="grid">
+							{#each result.value as game (game.id)}
+								<GameCard
+									{game}
+									selected={selectedGame === game.id}
+									onclick={() => {
+										pick(game.id);
+									}}
+								/>
+							{/each}
+						</div>
+					{/if}
 				{:else}
-					<div class="grid">
-						{#each result.value as game (game.id)}
-							<GameCard {game} selected={selectedGame === game.id} onclick={() => pick(game.id)} />
-						{/each}
-					</div>
+					<p class="state">{m.error_generic()}</p>
 				{/if}
 			{/await}
 		</ScrollArea.Viewport>
@@ -69,7 +79,7 @@
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
-			create();
+			void create();
 		}}
 	>
 		<TextInput bind:value={secret} placeholder="Secret" />

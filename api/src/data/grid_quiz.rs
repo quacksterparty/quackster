@@ -16,7 +16,11 @@ use super::types::*;
 pub type BoardGrid = Vec<Vec<Option<String>>>;
 
 /// Build a resolved NxM board grid. Unresolvable slots are `None`.
-pub fn build_board(ds: &Dataset, board: &Board, seed: u64) -> BoardGrid {
+///
+/// `allow_youtube = false` (yt-dlp feature off) degrades instead of blocking:
+/// youtube-ref questions drop out of candidate pools, explicit youtube
+/// question_ids resolve to `None` (an empty cell).
+pub fn build_board(ds: &Dataset, board: &Board, seed: u64, allow_youtube: bool) -> BoardGrid {
     let mut rng = StdRng::seed_from_u64(seed);
     let mut used = HashSet::new();
     let mut pack_cache: PackCache = PackCache::new();
@@ -34,13 +38,24 @@ pub fn build_board(ds: &Dataset, board: &Board, seed: u64) -> BoardGrid {
         for point in &board.points {
             // 1. Explicit question_ids override
             if let Some(qid) = cat.question_ids.as_ref().and_then(|m| m.get(point)) {
+                if !allow_youtube && has_youtube_media(ds, qid) {
+                    tracing::warn!(
+                        question_id = %qid,
+                        "explicit board cell needs yt-dlp (disabled); leaving cell empty"
+                    );
+                    row.push(None);
+                    continue;
+                }
                 used.insert(qid.clone());
                 row.push(Some(qid.clone()));
                 continue;
             }
 
             // 2. Build candidates from pack_ref + filter + difficulty_map
-            let candidates = build_candidates(cat, point, ds, &mut pack_cache, &diff_map);
+            let mut candidates = build_candidates(cat, point, ds, &mut pack_cache, &diff_map);
+            if !allow_youtube {
+                candidates.retain(|qid| !has_youtube_media(ds, qid));
+            }
             let unused: Vec<&String> = candidates.iter().filter(|id| !used.contains(*id)).collect();
             let pool: Vec<&String> = if unused.is_empty() {
                 candidates.iter().collect()
@@ -100,4 +115,11 @@ fn build_candidates(
     }
 
     candidates
+}
+
+fn has_youtube_media(ds: &Dataset, qid: &str) -> bool {
+    ds.questions
+        .get(qid)
+        .and_then(|entry| entry.item.prompt().media.as_deref())
+        .is_some_and(|media| media.iter().any(|m| m.media_ref.starts_with("youtube:")))
 }

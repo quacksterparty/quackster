@@ -112,6 +112,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
 
     let (token_tx, token_rx) = oneshot::channel::<Token>();
     let data = Arc::clone(&state.data);
+    let media_fetcher = Arc::clone(&state.media);
 
     let mut write_task = tokio::spawn(async move {
         let token = match reply_rx.await {
@@ -146,7 +147,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
             let view = match grants {
                 Some(grants) => {
                     joined_seen = true;
-                    project(&data, &gamestate, grants)
+                    project(&data, &media_fetcher, &gamestate, grants)
                 }
                 // snapshot predates our join - skip, own join broadcast is still queued
                 None if !joined_seen => continue,
@@ -201,18 +202,22 @@ mod tests {
             .item
             .clone();
         let code = JoinCode("TEST42".into());
-        let handle = spawn_room(code.clone(), game, Arc::clone(&data));
+        let media = Arc::new(crate::media::MediaFetcher::disabled());
+        let handle = spawn_room(code.clone(), game, Arc::clone(&data), Arc::clone(&media));
         let state = Arc::new(AppState {
             config: AppConfig::default(),
             data,
             rooms: DashMap::new(),
+            media,
         });
         state.rooms.insert(code, handle);
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         tokio::spawn(async move {
-            axum::serve(listener, router().with_state(state)).await.unwrap();
+            axum::serve(listener, router().with_state(state))
+                .await
+                .unwrap();
         });
         format!("ws://{addr}/ws/TEST42")
     }
@@ -257,12 +262,30 @@ mod tests {
         // B joins while A sits at the name dialog → a snapshot without A
         // queues up in A's rx
         let mut b = connect(&url).await;
-        send_msg(&mut b, &ClientMessage::Join { name: "host".into() }).await;
-        assert!(matches!(recv_msg(&mut b).await, ServerMessage::Joined { .. }));
+        send_msg(
+            &mut b,
+            &ClientMessage::Join {
+                name: "host".into(),
+            },
+        )
+        .await;
+        assert!(matches!(
+            recv_msg(&mut b).await,
+            ServerMessage::Joined { .. }
+        ));
         assert!(matches!(recv_msg(&mut b).await, ServerMessage::Snapshot(_)));
 
-        send_msg(&mut a, &ClientMessage::Join { name: "karl".into() }).await;
-        assert!(matches!(recv_msg(&mut a).await, ServerMessage::Joined { .. }));
+        send_msg(
+            &mut a,
+            &ClientMessage::Join {
+                name: "karl".into(),
+            },
+        )
+        .await;
+        assert!(matches!(
+            recv_msg(&mut a).await,
+            ServerMessage::Joined { .. }
+        ));
         match recv_msg(&mut a).await {
             ServerMessage::Snapshot(view) => assert!(view.players.contains_key("karl")),
             other => panic!("expected snapshot containing karl, got {other:?}"),
@@ -277,14 +300,29 @@ mod tests {
 
         // first joiner gets the Moderate grant
         let mut host = connect(&url).await;
-        send_msg(&mut host, &ClientMessage::Join { name: "host".into() }).await;
+        send_msg(
+            &mut host,
+            &ClientMessage::Join {
+                name: "host".into(),
+            },
+        )
+        .await;
         let ServerMessage::Joined { token } = recv_msg(&mut host).await else {
             panic!("expected Joined");
         };
 
         let mut karl = connect(&url).await;
-        send_msg(&mut karl, &ClientMessage::Join { name: "karl".into() }).await;
-        assert!(matches!(recv_msg(&mut karl).await, ServerMessage::Joined { .. }));
+        send_msg(
+            &mut karl,
+            &ClientMessage::Join {
+                name: "karl".into(),
+            },
+        )
+        .await;
+        assert!(matches!(
+            recv_msg(&mut karl).await,
+            ServerMessage::Joined { .. }
+        ));
 
         send_msg(
             &mut host,

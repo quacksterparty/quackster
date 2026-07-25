@@ -14,9 +14,7 @@
 
 <article class="stage">
 	{#if grid}
-		{#if (grid.phase === 'question_open' || grid.phase === 'reveal') &&
-		grid.current_category !== null &&
-		grid.current_points !== null}
+		{#if (grid.phase === 'question_open' || grid.phase === 'reveal') && grid.current_category !== null && grid.current_points !== null}
 			<p class="question-context">
 				{m.question_cell({ category: grid.current_category, points: grid.current_points })}
 			</p>

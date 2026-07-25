@@ -9,7 +9,7 @@
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	function start() {
-		timer = setTimeout(() => dismiss(toast.id), DURATION[toast.variant]);
+		timer = setTimeout(() => { dismiss(toast.id); }, DURATION[toast.variant]);
 	}
 	function pause() {
 		if (timer) clearTimeout(timer);
@@ -30,7 +30,7 @@
 	transition:fly={{ x: 24, duration: 200 }}
 >
 	<span class="msg">{toast.message}</span>
-	<button class="close" aria-label="Dismiss" onclick={() => dismiss(toast.id)}>×</button>
+	<button class="close" aria-label="Dismiss" onclick={() => { dismiss(toast.id); }}>×</button>
 </div>
 
 <style>

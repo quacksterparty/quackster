@@ -60,7 +60,10 @@
   tags: [subject:kids_shows, region:germany, difficulty:niche]
   content:
     default_lang: de
-    prompt: { text: 'Welcher Sender zeigte ab 2004 die Neuauflage von „Bibi Blocksberg" als Zeichentrickserie?' }
+    prompt:
+      {
+        text: 'Welcher Sender zeigte ab 2004 die Neuauflage von „Bibi Blocksberg" als Zeichentrickserie?'
+      }
     answer: ZDF
     explanation: 'Die ZDF-Neuauflage von „Bibi Blocksberg" startete 2004 und läuft seitdem im KiKA-Vorabend.'
     variants:

@@ -15,16 +15,22 @@ use crate::{
         grid_quiz::{Cell, phase::Phase},
         state::{GameState, Token},
     },
+    media::MediaFetcher,
     protocol::{
         AnswerView, ChoiceView, ClientView, CorrectnessView, GamemodeView, GridQuizPhase,
-        GridQuizView, JudgmentView, MediaSrc, MediaView, OrderPositionView, PlayerView, PromptView,
+        GridQuizView, JudgmentView, MediaView, OrderPositionView, PlayerView, PromptView,
         QuestionView, VariantView,
     },
 };
 
 use super::state::ModeState;
 
-pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> ClientView {
+pub fn project(
+    data: &Dataset,
+    media_fetcher: &MediaFetcher,
+    gamestate: &GameState,
+    grants: &GrantSet,
+) -> ClientView {
     let superseded: HashSet<usize> = gamestate
         .judgment_log
         .iter()
@@ -104,6 +110,10 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                     (None, None, None)
                 }
             };
+            let media_play_count = match &grid_quiz.phase {
+                Phase::QuestionOpen(question_open) => question_open.media_play_count(),
+                _ => 0,
+            };
 
             GamemodeView::GridQuiz(GridQuizView {
                 phase: grid_quiz.phase.kind(),
@@ -133,6 +143,7 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                     .flatten()
                     .flat_map(|token| gamestate.player_slots.name_for_token(token))
                     .collect(),
+                media_play_count,
             })
         }
 
@@ -156,7 +167,7 @@ pub fn project(data: &Dataset, gamestate: &GameState, grants: &GrantSet) -> Clie
                 };
                 // TODO: we currently default to the open variant, needs to be fixed when todo 12 lands
                 // TODO: we need to translate these fields for the locale the user has
-                build_question_view(question, VariantName::Open, include_answer)
+                build_question_view(question, VariantName::Open, include_answer, media_fetcher)
             })
         }
         ModeState::Linear(_) => todo!("Linedar not implemented yet"),
@@ -174,6 +185,7 @@ pub(crate) fn build_question_view(
     question: &Question,
     variant: VariantName,
     include_answer: bool,
+    media_fetcher: &MediaFetcher,
 ) -> Option<QuestionView> {
     let variant_view = match variant {
         VariantName::MultipleChoice => {
@@ -185,7 +197,10 @@ pub(crate) fn build_question_view(
                     .map(|c| ChoiceView {
                         id: c.id.clone(),
                         text: c.text.clone(),
-                        media: c.media.as_deref().and_then(project_first_media),
+                        media: c
+                            .media
+                            .as_deref()
+                            .and_then(|ms| project_first_media(ms, media_fetcher)),
                     })
                     .collect(),
             }
@@ -217,7 +232,10 @@ pub(crate) fn build_question_view(
     Some(QuestionView {
         prompt: PromptView {
             text: prompt.text.clone(),
-            media: prompt.media.as_deref().and_then(project_first_media),
+            media: prompt
+                .media
+                .as_deref()
+                .and_then(|ms| project_first_media(ms, media_fetcher)),
         },
         variant: variant_view,
         answer,
@@ -241,14 +259,14 @@ impl From<Correctness> for CorrectnessView {
     }
 }
 
-fn project_first_media(ms: &[Media]) -> Option<MediaView> {
+fn project_first_media(ms: &[Media], media_fetcher: &MediaFetcher) -> Option<MediaView> {
     // TODO: support multiple media
-    ms.first().map(project_media)
+    ms.first().and_then(|m| project_media(m, media_fetcher))
 }
 
-fn project_media(m: &Media) -> MediaView {
-    let src = parse_media_src(&m.media_ref);
-    match m.kind {
+fn project_media(m: &Media, media_fetcher: &MediaFetcher) -> Option<MediaView> {
+    let src = resolve_media_src(m, media_fetcher)?;
+    Some(match m.kind {
         MediaKind::Image => MediaView::Image {
             src,
             alt: m.alt.clone(),
@@ -260,32 +278,36 @@ fn project_media(m: &Media) -> MediaView {
             alt: m.alt.clone(),
             width: m.width,
             height: m.height,
-            duration_ms: m.duration_ms,
-            start_ms: m.start_ms,
-            end_ms: m.end_ms,
         },
         MediaKind::Audio => MediaView::Audio {
             src,
             alt: m.alt.clone(),
-            duration_ms: m.duration_ms,
-            start_ms: m.start_ms,
-            end_ms: m.end_ms,
         },
-    }
+    })
 }
 
-fn parse_media_src(r: &str) -> MediaSrc {
-    if let Some(id) = r.strip_prefix("youtube:") {
-        MediaSrc::Youtube(id.split('?').next().unwrap_or(id).to_string())
+/// Resolve a media ref to a client-loadable URL. `youtube:` refs resolve to
+/// the yt-dlp cache (already trimmed to any clip bounds) once downloaded;
+/// not-yet-cached (or feature off) projects as no media.
+fn resolve_media_src(m: &Media, media_fetcher: &MediaFetcher) -> Option<String> {
+    let r = m.media_ref.as_str();
+    if r.starts_with("youtube:") {
+        match media_fetcher.resolve(m) {
+            Some(url) => Some(url),
+            None => {
+                tracing::warn!(media_ref = %r, "youtube segment not cached; projecting without media");
+                None
+            }
+        }
     } else if let Some(p) = r.strip_prefix("local:") {
-        MediaSrc::Url(format!("/media/{p}"))
+        Some(format!("/media/{p}"))
     } else if let Some(url) = r.strip_prefix("url:") {
-        MediaSrc::Url(url.to_string())
+        Some(url.to_string())
     } else {
         // ponytail: malformed ref passes garde validation only if the dataset
         // was loaded; if a bad ref leaks in, surface as opaque Url for the
         // frontend rather than panicking the projection path.
-        MediaSrc::Url(r.to_string())
+        Some(r.to_string())
     }
 }
 
@@ -358,7 +380,8 @@ content:
     #[test]
     fn text_strips_answer_when_disabled() {
         let q = load_q(TEXT_Q);
-        let view = build_question_view(&q, VariantName::Open, false).unwrap();
+        let view =
+            build_question_view(&q, VariantName::Open, false, &MediaFetcher::disabled()).unwrap();
         assert!(
             view.answer.is_none(),
             "Play view leaked answer: {:?}",
@@ -369,7 +392,13 @@ content:
     #[test]
     fn numeric_strips_answer_when_disabled() {
         let q = load_q(NUMERIC_Q);
-        let view = build_question_view(&q, VariantName::NumericInput, false).unwrap();
+        let view = build_question_view(
+            &q,
+            VariantName::NumericInput,
+            false,
+            &MediaFetcher::disabled(),
+        )
+        .unwrap();
         assert!(
             view.answer.is_none(),
             "Play view leaked answer: {:?}",
@@ -380,7 +409,8 @@ content:
     #[test]
     fn order_strips_answer_when_disabled() {
         let q = load_q(ORDER_Q);
-        let view = build_question_view(&q, VariantName::Open, false).unwrap();
+        let view =
+            build_question_view(&q, VariantName::Open, false, &MediaFetcher::disabled()).unwrap();
         assert!(
             view.answer.is_none(),
             "Play view leaked answer: {:?}",
@@ -393,7 +423,7 @@ content:
         // Sanity: the gate's other side actually populates the field.
         let q = load_q(TEXT_Q);
         assert!(
-            build_question_view(&q, VariantName::Open, true)
+            build_question_view(&q, VariantName::Open, true, &MediaFetcher::disabled())
                 .unwrap()
                 .answer
                 .is_some()
@@ -403,7 +433,9 @@ content:
     #[test]
     fn true_false_strips_answer_when_disabled() {
         let q = load_q(TF_Q);
-        let view = build_question_view(&q, VariantName::TrueFalse, false).unwrap();
+        let view =
+            build_question_view(&q, VariantName::TrueFalse, false, &MediaFetcher::disabled())
+                .unwrap();
         assert!(
             view.answer.is_none(),
             "Play view leaked answer: {:?}",
@@ -414,10 +446,11 @@ content:
     #[test]
     fn true_false_reveal_carries_correct() {
         let q = load_q(TF_Q);
-        let answer = build_question_view(&q, VariantName::TrueFalse, true)
-            .unwrap()
-            .answer
-            .expect("reveal view must include answer");
+        let answer =
+            build_question_view(&q, VariantName::TrueFalse, true, &MediaFetcher::disabled())
+                .unwrap()
+                .answer
+                .expect("reveal view must include answer");
         assert_eq!(
             answer.correctness,
             CorrectnessView::TrueFalse { correct: true }

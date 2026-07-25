@@ -12,9 +12,11 @@ export type ChoiceView = { id: string, text: string, media: MediaView | null, };
 
 export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Reconnect", token: string, } | { "kind": "Authed", token: string, cmd: Command, };
 
+export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Reconnect", token: string, } | { "kind": "Authed", token: string, cmd: Command, };
+
 export type ClientView = { players: { [key in string]: PlayerView }, stage: GamemodeView, question: QuestionView | null, judgment_log: Array<JudgmentView>, };
 
-export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "OutOfBandRule", player: string, verdict: Verdict, } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
+export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "RulePlayer", player: string, verdict: Verdict, } | { "kind": "PlayMedia" } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
 
 export type CorrectnessView = { "kind": "MultipleChoice", correct_ids: Array<string>, } | { "kind": "Open", accepted: Array<string>, } | { "kind": "TrueFalse", correct: boolean, } | { "kind": "Numeric", value: number, tolerance: number, } | { "kind": "Order", positions: Array<OrderPositionView>, };
 
@@ -22,7 +24,12 @@ export type GamemodeView = { "kind": "GridQuiz" } & GridQuizView | { "kind": "Li
 
 export type GridQuizPhase = "lobby" | "board_select" | "question_open" | "reveal" | "game_over";
 
-export type GridQuizView = { phase: GridQuizPhase, categories: Array<string>, points: Array<number>, used: Array<Array<boolean>>, current_category: string | null, current_points: number | null, active_picker: string | null, floored: string | null, locked_out: Array<string>, };
+export type GridQuizView = { phase: GridQuizPhase, categories: Array<string>, points: Array<number>, used: Array<Array<boolean>>, current_category: string | null, current_points: number | null, active_picker: string | null, floored: string | null, locked_out: Array<string>, 
+/**
+ * Bumps on each mod `PlayMedia`; Present clients play prompt media on
+ * change. Resets with each question.
+ */
+media_play_count: number, };
 
 export type JudgmentView = { game_idx: number, player: string, question_id: string, 
 /**
@@ -40,14 +47,17 @@ points: number,
  */
 supersedes: number | null, };
 
-export type MediaSrc = { "kind": "Url", "value": string } | { "kind": "Youtube", "value": string };
-
 /**
  * Per-kind: each variant exposes only the fields valid for that kind — Audio
- * carries no dimensions, Image carries no playback timing. Type error, not a
- * stray `Option`, if they're mismatched.
+ * carries no dimensions. Type error, not a stray `Option`, if they're
+ * mismatched. No playback timing anywhere: clips are youtube-only and arrive
+ * pre-cut from the yt-dlp cache.
+ *
+ * `src` is always a directly loadable URL (`/media/…` for `local:`, the raw
+ * URL for `url:`, `/media-cache/…` for yt-dlp segments) — `youtube:` refs
+ * never reach the client.
  */
-export type MediaView = { "kind": "Image", src: MediaSrc, alt: string | null, width: number | null, height: number | null, } | { "kind": "Video", src: MediaSrc, alt: string | null, width: number | null, height: number | null, duration_ms: number | null, start_ms: number | null, end_ms: number | null, } | { "kind": "Audio", src: MediaSrc, alt: string | null, duration_ms: number | null, start_ms: number | null, end_ms: number | null, };
+export type MediaView = { "kind": "Image", src: string, alt: string | null, width: number | null, height: number | null, } | { "kind": "Video", src: string, alt: string | null, width: number | null, height: number | null, } | { "kind": "Audio", src: string, alt: string | null, };
 
 export type OrderItemView = { id: string, text: string, media: MediaView | null, };
 
@@ -60,5 +70,9 @@ export type PromptView = { text: string, media: MediaView | null, };
 export type QuestionView = { prompt: PromptView, variant: VariantView, answer: AnswerView | null, };
 
 export type ServerMessage = { "kind": "Joined", token: string, } | { "kind": "Snapshot" } & ClientView | { "kind": "Error", message: string, };
+
+export type ServerMessage = { "kind": "Joined", token: string, } | { "kind": "Snapshot" } & ClientView | { "kind": "Error", message: string, };
+
+export type VariantView = { "kind": "MultipleChoice", choices: Array<ChoiceView>, } | { "kind": "Open" } | { "kind": "TrueFalse" } | { "kind": "NumericInput" } | { "kind": "Range", min: number, max: number, step: number, } | { "kind": "Order", items: Array<OrderItemView>, };
 
 export type VariantView = { "kind": "MultipleChoice", choices: Array<ChoiceView>, } | { "kind": "Open" } | { "kind": "TrueFalse" } | { "kind": "NumericInput" } | { "kind": "Range", min: number, max: number, step: number, } | { "kind": "Order", items: Array<OrderItemView>, };
