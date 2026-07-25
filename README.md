@@ -108,6 +108,40 @@ For more information about the architecture and past decisions, see the
 
 Contributions are welcome, questions too, open an issue or a PR.
 
+## A note on AI-assisted development
+
+Parts of this codebase were written with the help of LLM coding tools, and I
+want to be upfront about that, including the ethics.
+
+I think LLMs are very hard to do ethically. The big models are trained by
+scraping enormous amounts of copyrighted material, almost certainly including
+countless license violations. At the same time, I believe this technology is
+too important to be left solely in the hands of the corporations building it
+this way. It should be shaped and used by everybody, so we can find better,
+more ethical ways to use and build these tools, not just the ways that big
+tech hands us.
+
+What that means for this project:
+
+- I try to use **open models** wherever possible. I've experimented with
+  various setups to figure out how to navigate this new landscape. Currently
+  I use **MiniMax M3** via their subscription to keep costs low, which lets me
+  prototype faster and try things I haven't done before.
+- **Every line of code that lands in this codebase is reviewed and revised by
+  me.** I use the [pi](https://github.com/earendil-works/pi) coding agent, which
+  opens every change in a review tab in Neovim before the agent is allowed to
+  continue. Throwaway experiments aside, I can say I understand every line in
+  this codebase (at least at the time it was written).
+- I've used this project to properly learn Rust. I'm not a Rust pro, but the
+  code here is not blindly generated output.
+- For the frontend I had a lot of help, as I don't really like to do CSS and
+  LLMs are really good at that (most of the times).
+
+If you don't want to use software that had LLMs involved in its creation,
+that's a completely valid standpoint and I respect it.
+
+Fuck Anthropic, fuck OpenAI, fuck Google, and fuck Elon Musk.
+
 ## License
 
 Licensed under the [EUPL-1.2](LICENSE).
