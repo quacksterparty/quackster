@@ -1,6 +1,7 @@
 {
 	"name": "quackster",
 	"private": true,
+	"license": "EUPL-1.2",
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {

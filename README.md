@@ -1,8 +1,15 @@
-<p align="center">
-  <img src="src/lib/assets/duck.svg" alt="Quackster logo" width="200" />
-</p>
+<h1 align="center">
+  <img src="src/lib/assets/duck.svg" alt="" width="110" /><br />
+  Quackster
+</h1>
 
-# Quackster
+<p align="center">
+  <img alt="status" src="https://img.shields.io/badge/status-pre--alpha-orange" />
+  <img alt="license" src="https://img.shields.io/badge/license-EUPL--1.2-blue" />
+  <img alt="backend" src="https://img.shields.io/badge/backend-Rust%20%2B%20axum-DEA584?logo=rust&logoColor=white" />
+  <img alt="frontend" src="https://img.shields.io/badge/frontend-Svelte%205-FF3E00?logo=svelte&logoColor=white" />
+  <img alt="self-hosted" src="https://img.shields.io/badge/self--hostable-offline%20capable-2EB73E" />
+</p>
 
 Self-hostable, multi-gamemode, open quiz platform — think Kahoot/ClassQuiz, but
 with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy,
