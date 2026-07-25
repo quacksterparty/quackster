@@ -12,12 +12,18 @@
 </p>
 
 Self-hostable, multi-gamemode, open quiz platform. Think Kahoot, but
-with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy,
-…) sharing a single pool of community-contributed or custom made, translatable questions.
+with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy, ...)
+that will share a single pool of community-contributed or custom made, translatable questions.
 
 Content (questions, packs, tags, media) lives in the repo as human or LLM-editable YAML.
 A self-hosted instance runs the core game loop **offline** after setup.
 Set it up at home, play on LAN or even set up your own hosted instance.
+
+<p align="center">
+  <img width="30%" src=".github/previews/1.png" alt="Home">
+  <img width="30%" src=".github/previews/2.png" alt="Lobby">
+  <img width="30%" src=".github/previews/3.png" alt="Grid quiz board">
+</p>
 
 ## Features
 
@@ -48,6 +54,9 @@ There is no Docker container yet. But if you use Nix you can use our flake:
 nix run github:quacksterparty/quackster#default
 ```
 
+The server listens on `http://localhost:3000`. Open it in your browser, click
+**Host** to create a room, and players join with the room code or QR code.
+
 Planned for easy setup:
 
 - [ ] NixOS service module
@@ -58,6 +67,13 @@ issue, please report it via GitHub's Security tab (private reporting is
 enabled).
 
 USE AT YOUR OWN RISK! THIS IS PRE-ALPHA SOFTWARE!
+
+## Adding questions
+
+Questions are plain YAML files in `data/questions/`. There is no authoring
+tool yet, the current best way is to ask an LLM to generate a quiz for you
+(point it at an existing file in `data/questions/` as a template), then run
+`cargo test` in `api/` to check that your questions load correctly.
 
 ## Development
 
@@ -86,4 +102,11 @@ pnpm test     # unit + e2e tests
 cargo test    # backend tests (run in api/)
 ```
 
+For more information about the architecture and past decisions, see the
+[`docs/`](docs/) folder.
+
 Contributions are welcome, questions too, open an issue or a PR.
+
+## License
+
+Licensed under the [EUPL-1.2](LICENSE).
