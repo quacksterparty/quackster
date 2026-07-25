@@ -11,51 +11,79 @@
   <img alt="self-hosted" src="https://img.shields.io/badge/self--hostable-offline%20capable-2EB73E?style=for-the-badge" />
 </p>
 
-Self-hostable, multi-gamemode, open quiz platform — think Kahoot/ClassQuiz, but
+Self-hostable, multi-gamemode, open quiz platform. Think Kahoot, but
 with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy,
-…) sharing a single pool of community-contributed, translatable questions.
+…) sharing a single pool of community-contributed or custom made, translatable questions.
 
-Content (questions, packs, tags, media) lives in the repo as human-editable,
-PR-reviewable YAML. A self-hosted instance runs the core game loop **offline**
-after setup — set it up at home, play on a LAN, no internet required.
+Content (questions, packs, tags, media) lives in the repo as human or LLM-editable YAML.
+A self-hosted instance runs the core game loop **offline** after setup.
+Set it up at home, play on LAN or even set up your own hosted instance.
 
-## Architecture
+## Features
 
-- **Rust + axum backend** (`api/`) — owns content loading/validation/query/board
-  and the live game runtime (rooms over WebSocket). Single source of truth for
-  shared types via `ts-rs`.
-- **SvelteKit static frontend** (`adapter-static`) — built to `build/`, served
-  by the Rust backend. No SvelteKit server, no SSR.
+As Quackster is in very early development, not everything is here yet, but you can already
+do some things:
 
-See the docs for the full picture:
+- [x] Data structure for different types of questions, question types and languages
+- [x] Basic Gameloop (Host, Join, Start, Question, Answer, End)
+  - [x] GridQuiz gamemode (like Jeopardy)
+  - [ ] Linear gamemode
+  - [ ] Different flooring strategies (Open buzzer, Turn-based)
+  - [ ] More gamemodes: battle royale, survival, music quiz, who wants to be a
+        millionaire, higher or lower, ...
+- [x] Media questions (Local/YouTube clips with moderator-controlled playback)
+- [x] Translatable question content (German overlays today)
+  - [ ] Localized question delivery in-game (play in your language)
+- [ ] Game chaining, play multiple games back-to-back in one room
+- [ ] Room persistence, rooms survive a server restart
+- [x] QR code to join a room
+- [ ] Question authoring tools (scaffolding script, editor schema support)
+- [ ] Community pack pipeline, share and reuse curated question packs
 
-- `docs/architecture.md` — runtime: backend ownership, transport, concurrency,
-  game-session model. **Canonical runtime reference.**
-- `docs/data-model.md` — content shape: schemas, i18n, tagging, packs, media,
-  gamemodes, boards. **Canonical content reference.**
-- `docs/game-flow.md` — host & player UX journeys.
-- `docs/glossary.md` — domain vocabulary.
-- `docs/decisions/` — architecture decision records.
+## Self-hosting
 
-## Frontend (SvelteKit)
-
-```sh
-pnpm install
-pnpm dev          # vite dev server
-pnpm build        # static build → build/
-pnpm check        # svelte-kit sync + svelte-check
-pnpm lint         # prettier --check + eslint
-pnpm test:unit    # vitest
-```
-
-## Backend (Rust)
+There is no Docker container yet. But if you use Nix you can use our flake:
 
 ```sh
-cd api
-cargo run         # loads ../data (validates, logs issues), serves ../build + the API
-cargo test
+nix run github:quacksterparty/quackster#default
 ```
 
-The data layer (content load/validate/query/board) lives in Rust
-(`api/src/data/`); the legacy TS implementation has been removed now that Rust
-reached parity.
+Planned for easy setup:
+
+- [ ] NixOS service module
+- [ ] Docker container + compose file
+
+We want these setups to be as secure as possible. If you find a security
+issue, please report it via GitHub's Security tab (private reporting is
+enabled).
+
+USE AT YOUR OWN RISK! THIS IS PRE-ALPHA SOFTWARE!
+
+## Development
+
+My philosophy on programming is that I want as few footguns as I can get, so I
+just can't do something stupid. That's why we use Rust and TypeScript, this
+gives us a lot of safety while developing, at least that's what I tell myself.
+
+The backend is Rust + axum (`api/`), the frontend is SvelteKit built as a
+static site. Shared types are generated from Rust via `ts-rs`. Questions,
+packs and tags live as plain YAML in `data/`.
+
+To get started you only need Nix:
+
+```sh
+nix develop   # dev shell with everything installed
+pnpm dev      # terminal 1: frontend with hot reload
+bacon l       # terminal 2: backend, rebuilds on change
+```
+
+Before you push, make sure these pass:
+
+```sh
+pnpm check    # type checks
+pnpm lint     # formatting + eslint
+pnpm test     # unit + e2e tests
+cargo test    # backend tests (run in api/)
+```
+
+Contributions are welcome, questions too, open an issue or a PR.
