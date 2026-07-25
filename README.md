@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/lib/assets/logo.png" alt="Quackster logo" width="500" />
+  <img src="src/lib/assets/duck.svg" alt="Quackster logo" width="200" />
 </p>
 
 # Quackster
