@@ -12,8 +12,6 @@ export type ChoiceView = { id: string, text: string, media: MediaView | null, };
 
 export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Reconnect", token: string, } | { "kind": "Authed", token: string, cmd: Command, };
 
-export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Reconnect", token: string, } | { "kind": "Authed", token: string, cmd: Command, };
-
 export type ClientView = { players: { [key in string]: PlayerView }, stage: GamemodeView, question: QuestionView | null, judgment_log: Array<JudgmentView>, };
 
 export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "RulePlayer", player: string, verdict: Verdict, } | { "kind": "PlayMedia" } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
@@ -70,9 +68,5 @@ export type PromptView = { text: string, media: MediaView | null, };
 export type QuestionView = { prompt: PromptView, variant: VariantView, answer: AnswerView | null, };
 
 export type ServerMessage = { "kind": "Joined", token: string, } | { "kind": "Snapshot" } & ClientView | { "kind": "Error", message: string, };
-
-export type ServerMessage = { "kind": "Joined", token: string, } | { "kind": "Snapshot" } & ClientView | { "kind": "Error", message: string, };
-
-export type VariantView = { "kind": "MultipleChoice", choices: Array<ChoiceView>, } | { "kind": "Open" } | { "kind": "TrueFalse" } | { "kind": "NumericInput" } | { "kind": "Range", min: number, max: number, step: number, } | { "kind": "Order", items: Array<OrderItemView>, };
 
 export type VariantView = { "kind": "MultipleChoice", choices: Array<ChoiceView>, } | { "kind": "Open" } | { "kind": "TrueFalse" } | { "kind": "NumericInput" } | { "kind": "Range", min: number, max: number, step: number, } | { "kind": "Order", items: Array<OrderItemView>, };

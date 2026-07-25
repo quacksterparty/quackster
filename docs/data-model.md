@@ -488,9 +488,9 @@ Recommended: **hybrid**.
 Examples:
 
 ```yaml
-ref: "local:img/flags/it.svg"
-ref: "url:https://example.org/clip.mp3"
-ref: "youtube:pkndFYSTr0Y?start=10&end=18"
+ref: 'local:img/flags/it.svg'
+ref: 'url:https://example.org/clip.mp3'
+ref: 'youtube:pkndFYSTr0Y?start=10&end=18'
 ```
 
 **Clip bounds are youtube-only.** `?start=` / `?end=` take decimal seconds

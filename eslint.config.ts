@@ -5,7 +5,7 @@ import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
 
-import svelteConfig from './svelte.config.js';
+import svelteConfig from './svelte.config.ts';
 
 export default defineConfig(
 	// global ignores — must be the sole key for flat-config global ignore semantics
@@ -94,7 +94,7 @@ export default defineConfig(
 
 	{
 		extends: [ts.configs.disableTypeChecked],
-		files: ['*.js', '*.config.js', '*.config.ts']
+		files: ['*.js', '*.config.{js,ts}']
 	},
 
 	{
