@@ -4,11 +4,11 @@
 </h1>
 
 <p align="center">
-  <img alt="status" src="https://img.shields.io/badge/status-pre--alpha-orange" />
-  <img alt="license" src="https://img.shields.io/badge/license-EUPL--1.2-blue" />
-  <img alt="backend" src="https://img.shields.io/badge/backend-Rust%20%2B%20axum-DEA584?logo=rust&logoColor=white" />
-  <img alt="frontend" src="https://img.shields.io/badge/frontend-Svelte%205-FF3E00?logo=svelte&logoColor=white" />
-  <img alt="self-hosted" src="https://img.shields.io/badge/self--hostable-offline%20capable-2EB73E" />
+  <img alt="status" src="https://img.shields.io/badge/status-pre--alpha-orange?style=for-the-badge" />
+  <img alt="license" src="https://img.shields.io/badge/license-EUPL--1.2-blue?style=for-the-badge" />
+  <img alt="backend" src="https://img.shields.io/badge/backend-Rust%20%2B%20axum-DEA584?style=for-the-badge&logo=rust&logoColor=white" />
+  <img alt="frontend" src="https://img.shields.io/badge/frontend-Svelte%205-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" />
+  <img alt="self-hosted" src="https://img.shields.io/badge/self--hostable-offline%20capable-2EB73E?style=for-the-badge" />
 </p>
 
 Self-hostable, multi-gamemode, open quiz platform — think Kahoot/ClassQuiz, but
