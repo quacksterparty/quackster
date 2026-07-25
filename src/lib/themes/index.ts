@@ -56,7 +56,7 @@ export const themes: Record<ThemeId, ThemeMeta> = {
 	}
 };
 
-const STORAGE_KEY = 'quackbox-theme';
+const STORAGE_KEY = 'quackster-theme';
 
 function systemPrefersDark(): boolean {
 	if (!browser) return false;

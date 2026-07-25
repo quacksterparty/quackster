@@ -8,11 +8,11 @@
 </script>
 
 <svelte:head>
-	<title>Quackbox</title>
+	<title>Quackster</title>
 </svelte:head>
 
 <div class="page">
-	<h1>Quackbox</h1>
+	<h1>Quackster</h1>
 	<p>Multi-gamemode quiz platform</p>
 
 	<section class="demo">

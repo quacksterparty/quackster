@@ -1,4 +1,4 @@
-# Quackbox — Data Model
+# Quackster — Data Model
 
 > Status: **partially implemented** — schemas, data loader, cross-file
 > validation, pool query engine, board builder, and an example dataset are

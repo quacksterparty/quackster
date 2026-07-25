@@ -1,4 +1,4 @@
-# Quackbox — Runtime Architecture
+# Quackster — Runtime Architecture
 
 > Status: **design**. The data layer (content load/validate/query/board) is
 > implemented in Rust (`api/src/data/`); the game runtime described here is not

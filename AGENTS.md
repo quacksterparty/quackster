@@ -1,8 +1,8 @@
-# Quackbox — Agent Guide
+# Quackster — Agent Guide
 
 ## What this is
 
-Quackbox is a **self-hostable, multi-gamemode, open quiz platform** —
+Quackster is a **self-hostable, multi-gamemode, open quiz platform** —
 think Kahoot/ClassQuiz but with multiple gamemodes (classic, battle royale,
 survival, music quiz, quiz duel/jeopardy, who wants to be a millionair, higher or lower, …) sharing a single pool of community-
 contributed, translatable questions.
@@ -135,12 +135,12 @@ export for editor YAML LSP.
 - Rust code uses `Result` / `thiserror` idiomatically for fallible paths.
 - No comments restating what code does; comment only non-obvious _why_.
 - Don't edit `src/lib/paraglide/**` — generated.
-- Read the task list at session start from the `quackbox` notebook in `nb`:
-  `nb todos quackbox:`. Priorities are tags (`p1`/`p2`/`p3`), projects are tags
+- Read the task list at session start from the `quackster` notebook in `nb`:
+  `nb todos quackster:`. Priorities are tags (`p1`/`p2`/`p3`), projects are tags
   (`runtime`, `frontend`, `tooling`, `gamemodes`). Each todo body holds
   context + file refs; large items carry `--task` subtasks (see them with
-  `nb todos quackbox:tasks <id>`). Complete with `nb todo do quackbox:<id>`
-  (or `nb todo do quackbox:<id> <task#>` for one subtask).
+  `nb todos quackster:tasks <id>`). Complete with `nb todo do quackster:<id>`
+  (or `nb todo do quackster:<id> <task#>` for one subtask).
 
 ## Implementation order (from data-model.md §Implementation order)
 

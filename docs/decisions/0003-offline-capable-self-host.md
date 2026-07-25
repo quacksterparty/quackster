@@ -1,6 +1,6 @@
 # Offline-capable self-hosting: core play needs no internet, extras degrade
 
-A self-hosted Quackbox instance must run the **core game loop** (questions,
+A self-hosted Quackster instance must run the **core game loop** (questions,
 buzz, floor, submission, verdict, score) with **no internet connection** after
 setup — a moderator sets it up at home (binary + content + local media) and runs
 games on a LAN or single box, air-gapped if they like. Features that

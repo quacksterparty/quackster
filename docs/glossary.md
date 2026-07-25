@@ -1,4 +1,4 @@
-# Quackbox
+# Quackster
 
 Self-hostable multi-gamemode quiz platform. Content (questions, packs, tags,
 media) lives as PR-reviewable YAML; the runtime serves it to live multiplayer

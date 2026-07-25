@@ -10,7 +10,7 @@
 
 The first thing a user sees.
 
-- **Quackbox logo + tagline**
+- **Quackster logo + tagline**
 - **Host Game** button (primary CTA)
 - **Join Game** section: text field for room code + submit, inline on this
   screen — no separate page

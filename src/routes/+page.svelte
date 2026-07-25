@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-	<title>Quackbox</title>
+	<title>Quackster</title>
 </svelte:head>
 
 <HomeHero />

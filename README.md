@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="src/lib/assets/logo.png" alt="Quackbox logo" width="500" />
+  <img src="src/lib/assets/logo.png" alt="Quackster logo" width="500" />
 </p>
 
-# Quackbox
+# Quackster
 
 Self-hostable, multi-gamemode, open quiz platform — think Kahoot/ClassQuiz, but
 with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy,

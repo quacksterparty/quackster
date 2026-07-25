@@ -1,6 +1,6 @@
 { pkgs, ... }:
 pkgs.stdenvNoCC.mkDerivation rec {
-  name = "quackbox";
+  name = "quackster";
   src = ../.;
   nativeBuildInputs = with pkgs; [
     nodejs_24

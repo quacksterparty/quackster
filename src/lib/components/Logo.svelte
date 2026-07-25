@@ -2,7 +2,6 @@
 	import duck from '$lib/assets/duck.svg';
 	import duckRetro from '$lib/assets/duck-retro.png';
 	import duckKawaii from '$lib/assets/duck-kawaii.svg';
-	import wordmarkSvg from '$lib/assets/wordmark.svg?raw';
 	import { onDestroy } from 'svelte';
 	import { m } from '$lib/paraglide/messages';
 
@@ -53,8 +52,7 @@
 		</span>
 	</button>
 	{#if showWordmark}
-		<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted local SVG asset -->
-		<div class="logo-wordmark" role="img" aria-label="Quackbox">{@html wordmarkSvg}</div>
+		<span class="logo-wordmark">QUACKSTER</span>
 	{/if}
 </div>
 
@@ -75,7 +73,7 @@
 		font-size: 2rem;
 	}
 	.logo-sm .logo-wordmark {
-		width: 8rem;
+		font-size: clamp(1.3rem, 4vw, 1.525rem);
 	}
 	.logo-lg .logo-duck {
 		width: 6rem;
@@ -84,8 +82,7 @@
 		font-size: 6rem;
 	}
 	.logo-lg .logo-wordmark {
-		width: 18rem;
-		max-width: 80vw;
+		font-size: clamp(2.5rem, 8vw, 3rem);
 	}
 	.logo-duck-frame {
 		position: relative;
@@ -120,13 +117,12 @@
 		display: block;
 	}
 	.logo-wordmark {
-		width: 14rem;
+		font-family: 'Inter', system-ui, sans-serif;
+		font-weight: 800;
+		font-size: 2.25rem;
+		letter-spacing: 0.01em;
+		white-space: nowrap;
 		color: var(--color-text);
-	}
-	.logo-wordmark :global(svg) {
-		width: 100%;
-		height: auto;
-		display: block;
 	}
 
 	/* Per-theme duck tinting via whole-image filters. Wordmark left plain. */

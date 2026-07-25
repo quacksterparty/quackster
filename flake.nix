@@ -1,5 +1,5 @@
 {
-  description = "quackbox - open source quiz engine";
+  description = "quackster - open source quiz engine";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
