@@ -12,12 +12,13 @@
 </p>
 
 Self-hostable, multi-gamemode, open quiz platform. Think Kahoot, but
-with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy, ...)
-that will share a single pool of community-contributed or custom made, translatable questions.
+with multiple gamemodes (classic, battle royale, survival, music quiz, jeopardy,
+...) that will share a single pool of community-contributed or custom made,
+translatable questions.
 
-Content (questions, packs, tags, media) lives in the repo as human or LLM-editable YAML.
-A self-hosted instance runs the core game loop **offline** after setup.
-Set it up at home, play on LAN or even set up your own hosted instance.
+Content (questions, packs, tags, media) lives in the repo as human or
+LLM-editable YAML. A self-hosted instance runs the core game loop **offline**
+after setup. Set it up at home, play on LAN or even set up your own hosted instance.
 
 <p align="center">
   <img width="30%" src=".github/previews/1.png" alt="Home">
@@ -27,8 +28,8 @@ Set it up at home, play on LAN or even set up your own hosted instance.
 
 ## Features
 
-As Quackster is in very early development, not everything is here yet, but you can already
-do some things:
+As Quackster is in very early development, not everything is here yet, but you
+can already do some things:
 
 - [x] Data structure for different types of questions, question types and languages
 - [x] Basic Gameloop (Host, Join, Start, Question, Answer, End)
