@@ -4,8 +4,8 @@
 //! Sits ABOVE both `http` and `game`: both need it, neither owns it.
 //! - `data`   — read-only loaded content (`Arc` is enough; no mutation).
 //! - `rooms`  — the live-game registry: `DashMap<JoinCode, RoomHandle>`. The
-//!              ONLY mutable shared state; DashMap gives concurrent interior
-//!              mutability so no lock is written by hand.
+//!   ONLY mutable shared state; DashMap gives concurrent interior
+//!   mutability so no lock is written by hand.
 //! - `config` — server config (host/port, creation secret).
 
 use std::sync::Arc;

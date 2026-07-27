@@ -21,6 +21,21 @@
         "type": "github"
       }
     },
+    "crane": {
+      "locked": {
+        "lastModified": 1784564969,
+        "narHash": "sha256-TkTWNhJV/8Wk3czlbz4bwHZkFCaCHPsOy+oJe4PUiXg=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "7930f6c291de6f83c257839d434592aa085f290a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1784796856,
@@ -40,6 +55,7 @@
     "root": {
       "inputs": {
         "blueprint": "blueprint",
+        "crane": "crane",
         "nixpkgs": "nixpkgs",
         "treefmt-nix": "treefmt-nix"
       }

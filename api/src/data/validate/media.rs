@@ -6,7 +6,7 @@ use super::*;
 const KB: u64 = 1024;
 const MB: u64 = 1024 * KB;
 const IMAGE_CAP: u64 = 100 * KB;
-const MEDIA_CAP: u64 = 1 * MB;
+const MEDIA_CAP: u64 = MB;
 
 /// Extension → media kind mapping.
 fn ext_kind(ext: &str) -> Option<MediaKind> {

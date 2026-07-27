@@ -9,7 +9,7 @@
 //! TODO: GameState, apply(Command), on_timeout, snapshot, score = fold(log).
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     ops::{Deref, DerefMut},
 };
 
@@ -22,7 +22,7 @@ use crate::{
         grid_quiz::GridQuizState,
         judge::Verdict,
     },
-    protocol::{Command, GridQuizPhase},
+    protocol::{Command, GridQuizPhase, MediaFetchStatus},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -55,6 +55,7 @@ pub struct GameState {
     /// Global, append-only, spans all rounds. `score = fold(judgment_log)`.
     pub judgment_log: Vec<Judgment>,
     pub seed: u64,
+    pub media_status: BTreeMap<String, MediaFetchStatus>,
 }
 
 impl GameState {
@@ -103,13 +104,12 @@ impl GameState {
                 question_id,
                 text,
             } => {
-                if let Some(idx) = self.live_judgment(&player, &question_id) {
-                    if self.judgment_log[idx].verdict == Verdict::Pending {
+                if let Some(idx) = self.live_judgment(&player, &question_id)
+                    && self.judgment_log[idx].verdict == Verdict::Pending {
                         // TODO: maybe we want to allow updating the answer before judgment
                         tracing::warn!(?player, "answer while pending judgment");
                         return;
                     }
-                }
 
                 self.judgment_log.push(Judgment {
                     game_idx: self.current_game_idx,
@@ -177,10 +177,7 @@ impl PlayerSlots {
     }
 
     pub(crate) fn name_for_token(&self, token: &Token) -> Option<String> {
-        match self.get(token) {
-            Some(slot) => Some(slot.name.clone()),
-            None => None,
-        }
+        self.get(token).map(|slot| slot.name.clone())
     }
 
     pub(crate) fn token_for_name(&self, name: &str) -> Option<Token> {
@@ -257,10 +254,10 @@ impl ModeState {
         cmd: Command,
         seed: u64,
     ) -> Result<Vec<Effect>, CommandError> {
-        return match self {
+        match self {
             ModeState::GridQuiz(modestate) => modestate.apply(player_slots, token, cmd, seed),
             ModeState::Linear(_) => todo!("Linear not implemented yet"),
-        };
+        }
     }
 }
 

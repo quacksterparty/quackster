@@ -88,10 +88,7 @@ pub fn project(
                 .iter()
                 .map(|row| {
                     row.iter()
-                        .map(|cell| match cell {
-                            Cell::Open(_) => false,
-                            _ => true,
-                        })
+                        .map(|cell| !matches!(cell, Cell::Open(_)))
                         .collect()
                 })
                 .collect();
@@ -178,6 +175,7 @@ pub fn project(
         stage,
         question,
         judgment_log,
+        media_status: grants.contains(&Grant::Moderate).then(|| gamestate.media_status.clone()),
     }
 }
 

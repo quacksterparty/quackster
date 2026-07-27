@@ -16,6 +16,7 @@ pub enum License {
     #[serde(rename = "CC-BY-ND-4.0")]
     CC_BY_ND_4_0,
     #[serde(rename = "MIT")]
+    #[allow(clippy::upper_case_acronyms)]
     MIT,
 }
 

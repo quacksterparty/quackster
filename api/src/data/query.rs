@@ -54,40 +54,35 @@ pub fn query_pool(ds: &Dataset, filter: &PackFilter) -> Vec<String> {
 }
 
 fn matches_filter(q: &Question, f: &PackFilter) -> bool {
-    if let Some(ref kinds) = f.kinds {
-        if !kinds.is_empty() && !kinds.contains(&q.kind()) {
+    if let Some(ref kinds) = f.kinds
+        && !kinds.is_empty() && !kinds.contains(&q.kind()) {
             return false;
         }
-    }
 
     let tags = q.tags();
 
-    if let Some(ref tags_all) = f.tags_all {
-        if !tags_all.is_empty() && !tags_all.iter().all(|t| tags.contains(t)) {
+    if let Some(ref tags_all) = f.tags_all
+        && !tags_all.is_empty() && !tags_all.iter().all(|t| tags.contains(t)) {
             return false;
         }
-    }
 
-    if let Some(ref tags_any) = f.tags_any {
-        if !tags_any.is_empty() && !tags_any.iter().any(|t| tags.contains(t)) {
+    if let Some(ref tags_any) = f.tags_any
+        && !tags_any.is_empty() && !tags_any.iter().any(|t| tags.contains(t)) {
             return false;
         }
-    }
 
-    if let Some(ref tags_none) = f.tags_none {
-        if tags_none.iter().any(|t| tags.contains(t)) {
+    if let Some(ref tags_none) = f.tags_none
+        && tags_none.iter().any(|t| tags.contains(t)) {
             return false;
         }
-    }
 
-    if let Some(ref variants_any) = f.variants_any {
-        if !variants_any.is_empty() {
+    if let Some(ref variants_any) = f.variants_any
+        && !variants_any.is_empty() {
             let defined = q.variant_names();
             if !variants_any.iter().any(|v| defined.contains(v)) {
                 return false;
             }
         }
-    }
 
     true
 }

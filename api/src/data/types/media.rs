@@ -77,11 +77,10 @@ pub fn parse_youtube_ref(value: &str) -> Result<(&str, YoutubeClip), String> {
                 return Err(format!("duplicate query param: {key}"));
             }
         }
-        if let (Some(start), Some(end)) = (clip.start_ms, clip.end_ms) {
-            if start >= end {
+        if let (Some(start), Some(end)) = (clip.start_ms, clip.end_ms)
+            && start >= end {
                 return Err("start must be less than end".into());
             }
-        }
     }
     Ok((id, clip))
 }

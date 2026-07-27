@@ -6,12 +6,12 @@
 //! `protocol` ← `game` ← `http`.
 //!
 //! - `Command`   — client → server, tagged enum (Join, Buzz, Answer, Next,
-//!                 StartGame, Grant, ExtendTimer, …). `#[serde(tag = "kind")]`.
+//!   StartGame, Grant, ExtendTimer, …). `#[serde(tag = "kind")]`.
 //! - `ServerMsg` — server → client envelope (Snapshot(ClientView), Joined,
-//!                 Error, …).
+//!   Error, …).
 //! - `ClientView`— the per-role projection result: one type with OPTIONAL
-//!                 sections (question?, buzzer?, answer_input?, correct_answer?,
-//!                 controls?, scoreboard?). `project` fills only what grants allow.
+//!   sections (question?, buzzer?, answer_input?, correct_answer?,
+//!   controls?, scoreboard?). `project` fills only what grants allow.
 //!
 //! ts-rs is a DEV-dependency, so the `TS` derive only exists under `cargo test`.
 //! Gate it with `#[cfg_attr(test, ...)]`: bindings are a test-time artifact,
@@ -48,6 +48,20 @@ pub enum RoomMessage {
     Disconnect {
         token: Token,
     },
+    MediaStatus {
+        media_ref: String,
+        status: MediaFetchStatus,
+    },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "kind")]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
+pub enum MediaFetchStatus {
+    Pending,
+    Downloading,
+    Ready,
+    Failed { message: String },
 }
 
 #[derive(Debug)]
@@ -108,6 +122,8 @@ pub enum Command {
     Kick {
         player: String,
     },
+    /// Mod retries all currently-failed media downloads 
+    RetryMediaFetch,
 }
 
 impl Command {
@@ -120,7 +136,8 @@ impl Command {
             | Command::Next
             | Command::Rule { .. }
             | Command::RulePlayer { .. }
-            | Command::PlayMedia => Some(Grant::Moderate),
+            | Command::PlayMedia
+            | Command::RetryMediaFetch => Some(Grant::Moderate),
             _ => None,
         }
     }
@@ -131,7 +148,7 @@ impl Command {
 #[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
 pub enum ServerMessage {
     Joined { token: String },
-    Snapshot(ClientView),
+    Snapshot(Box<ClientView>),
     Error { message: String },
 }
 
@@ -145,6 +162,8 @@ pub struct ClientView {
     pub(crate) stage: GamemodeView,
     pub(crate) question: Option<QuestionView>,
     pub(crate) judgment_log: Vec<JudgmentView>,
+    /// `Some` only when the viewer has `Moderate`
+    pub(crate) media_status: Option<BTreeMap<String, MediaFetchStatus>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

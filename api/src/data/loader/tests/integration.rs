@@ -13,6 +13,6 @@ fn loads_real_dataset_without_issues() {
     ds.issues.extend(cross);
     assert!(ds.issues.is_empty(), "real dataset issues: {:?}", ds.issues);
     assert!(ds.questions.len() >= 20);
-    assert!(ds.packs.len() >= 1);
+    assert!(!ds.packs.is_empty());
     assert!(ds.tags.len() >= 10);
 }

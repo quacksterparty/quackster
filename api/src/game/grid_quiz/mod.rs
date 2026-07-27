@@ -163,7 +163,7 @@ impl GridQuizState {
                         let all_locked = player_slots
                             .iter()
                             .filter(|(player_token, slot)| {
-                                slot.connected && player_slots.is_grant(&player_token, &Grant::Play)
+                                slot.connected && player_slots.is_grant(player_token, &Grant::Play)
                             })
                             .all(|(player_token, _)| question_open.is_locked_out(player_token));
 

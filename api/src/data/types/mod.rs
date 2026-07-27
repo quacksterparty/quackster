@@ -1,11 +1,20 @@
 //! Domain types for the data layer.
 
+// schema modules: fields are deserialized, garde-validated and ts-rs-exported,
+// but not all are read by Rust yet (overlay merge + game runtime pending)
+// TODO: remove these as soon as all fields are used
+#[allow(dead_code)]
 mod common;
+#[allow(dead_code)]
 mod game;
 mod media;
+#[allow(dead_code)]
 mod overlay;
+#[allow(dead_code)]
 mod pack;
+#[allow(dead_code)]
 mod question;
+#[allow(dead_code)]
 mod tag;
 
 pub use common::*;

@@ -7,9 +7,12 @@
 
 use std::{path::PathBuf, sync::Arc};
 
+use tokio::sync::mpsc;
+
 use crate::{
     config::AppConfig,
     data::{Media, MediaKind, parse_youtube_ref},
+    protocol::{MediaFetchStatus, RoomMessage},
 };
 
 pub struct MediaFetcher {
@@ -27,6 +30,7 @@ impl MediaFetcher {
         }
     }
 
+    #[cfg(test)]
     pub fn disabled() -> Self {
         Self {
             enabled: false,
@@ -53,18 +57,67 @@ impl MediaFetcher {
     }
 
     // TODO: maybe parallelize if lobby-time prefetch is too slow
-    pub fn prefetch(self: &Arc<Self>, media_list: Vec<Media>) {
+    // TODO: maybe cross-room in-flight dedup. Two rooms racing the same
+    // ref may both spawn yt-dlp, worst case one fails (collision on the
+    // target file), mod hits RetryMediaFetch, retry succeeds.
+    pub fn prefetch(
+        self: &Arc<Self>,
+        media_list: Vec<Media>,
+        command_tx: mpsc::Sender<RoomMessage>,
+    ) {
         if !self.enabled || media_list.is_empty() {
             return;
         }
         let fetcher = Arc::clone(self);
         tokio::spawn(async move {
             for media in media_list {
-                if let Err(error) = fetcher.download(&media).await {
-                    tracing::warn!(media_ref = %media.media_ref, "yt-dlp prefetch failed: {error}");
-                }
+                fetcher.run(&media, &command_tx).await;
             }
         });
+    }
+
+    async fn run(&self, media: &Media, command_tx: &mpsc::Sender<RoomMessage>) {
+        let Some(cache_name) = cache_name(media) else {
+            return;
+        };
+
+        if self.cache_dir.join(cache_name).exists() {
+            self.report(command_tx, &media.media_ref, MediaFetchStatus::Ready)
+                .await;
+            return;
+        }
+
+        self.report(command_tx, &media.media_ref, MediaFetchStatus::Downloading)
+            .await;
+
+        match self.download(media).await {
+            Ok(()) => {
+                self.report(command_tx, &media.media_ref, MediaFetchStatus::Ready)
+                    .await;
+            }
+            Err(error) => {
+                self.report(
+                    command_tx,
+                    &media.media_ref,
+                    MediaFetchStatus::Failed { message: error },
+                )
+                .await;
+            }
+        }
+    }
+
+    async fn report(
+        &self,
+        command_tx: &mpsc::Sender<RoomMessage>,
+        media_ref: &str,
+        status: MediaFetchStatus,
+    ) {
+        let _ = command_tx
+            .send(RoomMessage::MediaStatus {
+                media_ref: media_ref.to_string(),
+                status,
+            })
+            .await;
     }
 
     async fn download(&self, media: &Media) -> Result<(), String> {

@@ -6,7 +6,7 @@
 //! path anymore since `Rule` targets the floored player; see the note on
 //! `revised_ruling_supersedes_and_refolds_score`.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::{
     game::{
@@ -82,6 +82,7 @@ fn setup(players: &[&str]) -> GameState {
         mode: ModeState::GridQuiz(GridQuizState::build(cells, vec![100, 200])),
         judgment_log: Vec::new(),
         seed: 42,
+        media_status: BTreeMap::new(),
     }
 }
 

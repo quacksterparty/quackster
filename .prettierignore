@@ -10,3 +10,7 @@ bun.lockb
 
 # ts-rs generated
 src/lib/bindings/
+
+# inlang generated
+project.inlang/*
+!project.inlang/settings.json

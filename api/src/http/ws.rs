@@ -162,7 +162,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
                 }
             };
             let json =
-                serde_json::to_string(&ServerMessage::Snapshot(view)).expect("serde infallible");
+                serde_json::to_string(&ServerMessage::Snapshot(Box::new(view))).expect("serde infallible");
             if ws_out.send(Message::Text(json.into())).await.is_err() {
                 break;
             }

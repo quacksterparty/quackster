@@ -93,6 +93,23 @@ hot buzz/timer path.
   `select!`) and **removes its own entry** on exit. No central reaper, no orphan
   tasks.
 
+### Media fetch as a third `RoomMessage` source
+
+The room actor's mpsc carries `RoomMessage` from any source — clients, the
+join handshake, and the **media fetcher**. At room spawn the actor collects
+every `youtube:` ref on the board into `GameState.media_status` (`Pending`),
+hands the board's refs + a clone of its `command_tx` to `MediaFetcher::prefetch`.
+The fetcher task runs `tokio::spawn` and sends `RoomMessage::MediaStatus { ref, status }`
+per transition (`Downloading` → `Ready` / `Failed(stderr)`). The actor updates
+the map and the broadcast carries the new status to all clients — same
+single-owner rule, three independent sources. Cached files short-circuit to
+`Ready` immediately (no `Downloading` ever emitted). Mod retries via
+`Command::RetryMediaFetch` (collected inline in the room loop, not through
+`state.apply`, because it needs the fetcher + `command_tx`); the actor flips
+failed entries to `Pending` and re-kicks the fetcher. `media_status` is
+projected to `Moderate` only — players never see it. No StartGame gate; the
+mod's client renders a confirm dialog from data it already has.
+
 ### Persistence
 
 **None in v1.** Rooms are pure in-memory tokio tasks + channels. A server

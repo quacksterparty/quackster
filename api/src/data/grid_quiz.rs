@@ -98,8 +98,8 @@ fn build_candidates(
         }
     }
 
-    if let Some(diff_tags) = diff_map.get(point) {
-        if !diff_tags.is_empty() {
+    if let Some(diff_tags) = diff_map.get(point)
+        && !diff_tags.is_empty() {
             candidates.retain(|qid| {
                 ds.questions
                     .get(qid)
@@ -112,7 +112,6 @@ fn build_candidates(
                     .unwrap_or(false)
             });
         }
-    }
 
     candidates
 }

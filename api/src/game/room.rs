@@ -11,7 +11,7 @@
 //!
 //! TODO: RoomHandle, spawn_room, the select! loop.
 
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::{BTreeMap, HashSet}, sync::Arc};
 
 use rand::RngExt;
 use tokio::sync::{broadcast, mpsc};
@@ -24,7 +24,7 @@ use crate::{
         state::{GameState, LinearState, ModeState, PlayerSlot, PlayerSlots, Token},
     },
     media::MediaFetcher,
-    protocol::{ConnectionError, RoomMessage},
+    protocol::{Command, ConnectionError, MediaFetchStatus, RoomMessage},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,6 +63,7 @@ pub fn spawn_room(
     let (state_tx, _) = broadcast::channel::<Arc<GameState>>(16);
 
     let state_tx_loop = state_tx.clone();
+    let room_msg_tx_for_task = room_msg_tx.clone();
     tokio::spawn(async move {
         let seed = rand::rng().random::<u64>();
         let mode = match &game_config
@@ -77,11 +78,12 @@ pub fn spawn_room(
                         .into_iter()
                         .map(|row| row.into_iter().map(Cell::from).collect())
                         .collect();
-                prefetch_board_media(&cells, &data, &media_fetcher);
                 ModeState::GridQuiz(GridQuizState::build(cells, game.board.points.clone()))
             }
-            GameMode::Linear(_) => ModeState::Linear(LinearState::default()),
+            GameMode::Linear(_) => ModeState::Linear(LinearState),
         };
+
+        let media_status = collect_youtube_refs(&data, &mode);
 
         let mut state = GameState {
             game_config,
@@ -90,7 +92,15 @@ pub fn spawn_room(
             mode,
             judgment_log: Vec::new(),
             seed,
+            media_status,
         };
+
+        // Kick prefetch after the map is populated so the actor sees
+        // `Pending` first, then `Downloading`/`Ready`/`Failed` as they land.
+        if let ModeState::GridQuiz(grid) = &state.mode {
+            let cells: Vec<Vec<Cell>> = grid.cells.clone();
+            prefetch_board_media(&cells, &data, &media_fetcher, room_msg_tx_for_task.clone());
+        }
 
         while let Some(room_msg) = room_msg_rx.recv().await {
             tracing::info!("room msg {:?}", &room_msg);
@@ -135,10 +145,17 @@ pub fn spawn_room(
                         slot.connected = false;
                     }
                 }
+                RoomMessage::MediaStatus { media_ref, status } => {
+                    state.media_status.insert(media_ref, status);
+                }
                 RoomMessage::Client { token, cmd } => {
                     tracing::info!("command {:?} received in room {}", cmd, &code.0);
 
-                    state.apply(token, cmd);
+                    if matches!(cmd, Command::RetryMediaFetch) {
+                        retry_failed(&mut state, &data, &media_fetcher, room_msg_tx_for_task.clone());
+                    } else {
+                        state.apply(token, cmd);
+                    }
                 }
             }
 
@@ -147,24 +164,95 @@ pub fn spawn_room(
     });
 
     RoomHandle {
-        command_tx: room_msg_tx,
+        command_tx: room_msg_tx.clone(),
         state_tx,
     }
 }
 
-/// Kick off yt-dlp downloads for every youtube prompt media on the board.
-fn prefetch_board_media(cells: &[Vec<Cell>], data: &Dataset, media_fetcher: &Arc<MediaFetcher>) {
-    let to_fetch: Vec<_> = cells
+/// Init map to `Pending` for every `youtube:` ref on the board.
+fn collect_youtube_refs(data: &Dataset, mode: &ModeState) -> BTreeMap<String, MediaFetchStatus> {
+    let question_ids: Vec<&str> = match mode {
+        ModeState::GridQuiz(grid) => grid
+            .cells
+            .iter()
+            .flatten()
+            .filter_map(|cell| match cell {
+                Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+                Cell::Empty => None,
+            })
+            .collect(),
+        // TODO: walk resolved linear question list once Linear runtime lands.
+        ModeState::Linear(_) => return BTreeMap::new(),
+    };
+    let to_fetch = youtube_refs_for_questions(data, &question_ids);
+    to_fetch
+        .into_iter()
+        .map(|media| (media.media_ref, MediaFetchStatus::Pending))
+        .collect()
+}
+
+fn youtube_refs_for_questions(data: &Dataset, question_ids: &[&str]) -> Vec<crate::data::Media> {
+    question_ids
         .iter()
-        .flatten()
-        .filter_map(|cell| match cell {
-            Cell::Open(id) | Cell::Used(id) => data.questions.get(id),
-            Cell::Empty => None,
-        })
+        .filter_map(|id| data.questions.get(*id))
         .filter_map(|entry| entry.item.prompt().media.as_deref())
         .flatten()
         .filter(|media| media.media_ref.starts_with("youtube:"))
         .cloned()
+        .collect()
+}
+
+fn prefetch_board_media(
+    cells: &[Vec<Cell>],
+    data: &Dataset,
+    media_fetcher: &Arc<MediaFetcher>,
+    command_tx: mpsc::Sender<RoomMessage>,
+) {
+    let question_ids: Vec<&str> = cells
+        .iter()
+        .flatten()
+        .filter_map(|cell| match cell {
+            Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+            Cell::Empty => None,
+        })
         .collect();
-    media_fetcher.prefetch(to_fetch);
+    let to_fetch = youtube_refs_for_questions(data, &question_ids);
+    media_fetcher.prefetch(to_fetch, command_tx);
+}
+
+/// Re-kick downloads for every currently-failed ref. Flips them to `Pending`
+/// so the lobby updates immediately, then re-jobs the fetcher.
+fn retry_failed(
+    state: &mut GameState,
+    data: &Dataset,
+    media_fetcher: &Arc<MediaFetcher>,
+    command_tx: mpsc::Sender<RoomMessage>,
+) {
+    let question_ids: Vec<&str> = match &state.mode {
+        ModeState::GridQuiz(grid) => grid
+            .cells
+            .iter()
+            .flatten()
+            .filter_map(|cell| match cell {
+                Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+                Cell::Empty => None,
+            })
+            .collect(),
+        ModeState::Linear(_) => return,
+    };
+    let to_fetch: Vec<_> = youtube_refs_for_questions(data, &question_ids)
+        .into_iter()
+        .filter(|media| {
+            matches!(
+                state.media_status.get(&media.media_ref),
+                Some(MediaFetchStatus::Failed { .. })
+            )
+        })
+        .collect();
+    for media in &to_fetch {
+        state
+            .media_status
+            .insert(media.media_ref.clone(), MediaFetchStatus::Pending);
+    }
+    media_fetcher.prefetch(to_fetch, command_tx);
 }
