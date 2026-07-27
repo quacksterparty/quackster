@@ -49,10 +49,26 @@ can already do some things:
 
 ## Self-hosting
 
-There is no Docker container yet. But if you use Nix you can use our flake:
+The easiest way is Docker. There are two images, both built with Nix and
+published to GHCR:
 
 ```sh
-nix run github:quacksterparty/quackster#default
+# slim image, the core game loop
+docker run -p 3000:3000 ghcr.io/quacksterparty/quackster:latest
+
+# full image, adds yt-dlp for YouTube media questions
+docker run -p 3000:3000 -v quackster-cache:/cache ghcr.io/quacksterparty/quackster:full
+```
+
+Versioned tags will exist too (`X.Y.Z` and `X.Y.Z-full`).
+
+The containers run as `nobody`, nothing in them needs root.
+
+If you use Nix you can skip Docker entirely, the flake has matching packages:
+
+```sh
+nix run github:quacksterparty/quackster        # slim
+nix run github:quacksterparty/quackster#full   # with yt-dlp
 ```
 
 The server listens on `http://localhost:3000`. Open it in your browser, click
@@ -61,7 +77,8 @@ The server listens on `http://localhost:3000`. Open it in your browser, click
 Planned for easy setup:
 
 - [ ] NixOS service module
-- [ ] Docker container + compose file
+- [x] Docker container
+- [ ] Compose file
 
 We want these setups to be as secure as possible. If you find a security
 issue, please report it via GitHub's Security tab (private reporting is
