@@ -6,10 +6,13 @@
 	import QuestionOpen from './QuestionOpen.svelte';
 	import Reveal from './Reveal.svelte';
 	import GameOver from './GameOver.svelte';
+	import MediaStatusPanel from './MediaStatusPanel.svelte';
 
 	let { view }: { view: ClientView } = $props();
 
 	const grid = $derived(view.stage.kind === 'GridQuiz' ? view.stage : null);
+	const media_status = $derived(view.media_status);
+	const show_media_panel = $derived(media_status !== null && grid?.phase === 'lobby');
 </script>
 
 <article class="stage">
@@ -21,7 +24,7 @@
 		{/if}
 
 		{#if grid.phase === 'lobby'}
-			<Lobby players={view.players} />
+			<Lobby players={view.players} {media_status} />
 		{:else if grid.phase === 'board_select'}
 			<BoardSelect view={grid} />
 		{:else if grid.phase === 'question_open'}
@@ -36,10 +39,14 @@
 	{:else}
 		<p class="fallback">{m.mode_not_supported()}</p>
 	{/if}
+	{#if show_media_panel}
+		<MediaStatusPanel media={media_status} />
+	{/if}
 </article>
 
 <style>
 	.stage {
+		position: relative;
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;

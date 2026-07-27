@@ -1,11 +1,17 @@
 <script lang="ts">
-	import type { PlayerView } from '$lib/bindings/Protocol';
+	import type { MediaFetchStatus, PlayerView } from '$lib/bindings/Protocol';
 	import { playerColor, playerInitial } from '$lib/playerUi';
 	import { room, has } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import Button from '$lib/components/Button.svelte';
 
-	let { players }: { players: Record<string, PlayerView> } = $props();
+	let {
+		players,
+		media_status
+	}: {
+		players: Record<string, PlayerView>;
+		media_status?: Record<string, MediaFetchStatus> | null;
+	} = $props();
 
 	const player_entries = $derived(Object.entries(players));
 	const can_start = $derived(
@@ -13,6 +19,19 @@
 	);
 
 	let revealed = $state(false);
+
+	// Used by the StartGame confirm dialog. The visible status panel lives in
+	// GameStage (top-right corner).
+	const media_total = $derived(media_status ? Object.keys(media_status).length : 0);
+	const media_all_ready = $derived(
+		media_total > 0 && Object.values(media_status ?? {}).every((s) => s.kind === 'Ready')
+	);
+
+	function start_game() {
+		if (can_start && (media_all_ready || confirm(m.start_game_confirm()))) {
+			room.send?.({ kind: 'StartGame' });
+		}
+	}
 </script>
 
 <section class="lobby">
@@ -52,7 +71,7 @@
 	</ul>
 
 	{#if has('Moderate')}
-		<Button size="lg" disabled={!can_start} onclick={() => room.send?.({ kind: 'StartGame' })}>
+		<Button size="lg" disabled={!can_start} onclick={start_game}>
 			▶ {m.start_game()}
 		</Button>
 	{:else}

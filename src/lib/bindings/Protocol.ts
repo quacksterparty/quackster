@@ -12,9 +12,13 @@ export type ChoiceView = { id: string, text: string, media: MediaView | null, };
 
 export type ClientMessage = { "kind": "Join", name: string, } | { "kind": "Reconnect", token: string, } | { "kind": "Authed", token: string, cmd: Command, };
 
-export type ClientView = { players: { [key in string]: PlayerView }, stage: GamemodeView, question: QuestionView | null, judgment_log: Array<JudgmentView>, };
+export type ClientView = { players: { [key in string]: PlayerView }, stage: GamemodeView, question: QuestionView | null, judgment_log: Array<JudgmentView>, 
+/**
+ * `Some` only when the viewer has `Moderate`
+ */
+media_status: { [key in string]: MediaFetchStatus } | null, };
 
-export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "RulePlayer", player: string, verdict: Verdict, } | { "kind": "PlayMedia" } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, };
+export type Command = { "kind": "StartGame" } | { "kind": "PickCell", category: number, point: number, } | { "kind": "CloseQuestion" } | { "kind": "Next" } | { "kind": "EndGame" } | { "kind": "Buzz" } | { "kind": "Answer", text: string, } | { "kind": "Rule", verdict: Verdict, } | { "kind": "RulePlayer", player: string, verdict: Verdict, } | { "kind": "PlayMedia" } | { "kind": "Grant", player: string, grants: Array<Grant>, } | { "kind": "ExtendTimer", delta_secs: number, } | { "kind": "Kick", player: string, } | { "kind": "RetryMediaFetch" };
 
 export type CorrectnessView = { "kind": "MultipleChoice", correct_ids: Array<string>, } | { "kind": "Open", accepted: Array<string>, } | { "kind": "TrueFalse", correct: boolean, } | { "kind": "Numeric", value: number, tolerance: number, } | { "kind": "Order", positions: Array<OrderPositionView>, };
 
@@ -44,6 +48,8 @@ points: number,
  * Index of the log entry this supersedes, if revising a prior ruling.
  */
 supersedes: number | null, };
+
+export type MediaFetchStatus = { "kind": "Pending" } | { "kind": "Downloading" } | { "kind": "Ready" } | { "kind": "Failed", message: string, };
 
 /**
  * Per-kind: each variant exposes only the fields valid for that kind — Audio

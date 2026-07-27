@@ -77,5 +77,15 @@
 	"scan_to_join": "Scannen um beizutreten",
 	"copy_link": "Kopieren",
 	"copy_link_success": "Link kopiert",
-	"copy_link_failed": "Link konnte nicht kopiert werden"
+	"copy_link_failed": "Link konnte nicht kopiert werden",
+	"media_status": "Medien ({ready}/{total} bereit)",
+	"media_status_all_ready": "Medien bereit",
+	"media_retry": "Fehler erneut versuchen",
+	"media_retry_all": "Alle Fehler erneut versuchen",
+	"media_ref_short": "{ref}…",
+	"media_state_pending": "Wartet",
+	"media_state_downloading": "Lädt",
+	"media_state_ready": "Bereit",
+	"media_state_failed": "Fehler",
+	"start_game_confirm": "Einige Medien sind noch nicht bereit. Trotzdem starten?"
 }

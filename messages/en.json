@@ -77,5 +77,15 @@
 	"scan_to_join": "Scan to join this room",
 	"copy_link": "Copy",
 	"copy_link_success": "Link copied",
-	"copy_link_failed": "Could not copy link"
+	"copy_link_failed": "Could not copy link",
+	"media_status": "Media ({ready}/{total} ready)",
+	"media_status_all_ready": "Media ready",
+	"media_retry": "Retry failed",
+	"media_retry_all": "Retry all failed",
+	"media_ref_short": "{ref}…",
+	"media_state_pending": "Queued",
+	"media_state_downloading": "Downloading",
+	"media_state_ready": "Ready",
+	"media_state_failed": "Failed",
+	"start_game_confirm": "Some media isn't ready yet. Start anyway?"
 }
