@@ -1,0 +1,75 @@
+name: publish images
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: environment holding CACHIX_AUTH_TOKEN (main or release)
+        required: true
+        type: string
+      tag:
+        description: git tag (vX.Y.Z) for versioned tags; empty = latest/full only
+        required: false
+        type: string
+        default: ""
+
+permissions: {}
+
+jobs:
+  publish:
+    name: push images to ghcr
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read # checkout
+      packages: write # push images to ghcr
+      id-token: write # sigstore signing identity
+      attestations: write # store provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: quackster
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: push to ghcr
+        id: push
+        env:
+          REGISTRY_AUTH: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          image=ghcr.io/$OWNER/quackster
+          slim_tag=latest full_tag=full
+          if [ -n "$TAG" ]; then
+            slim_tag=${TAG#v} full_tag=${TAG#v}-full
+          fi
+          skopeo login ghcr.io -u "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_AUTH"
+          nix build .#docker -o image-slim
+          nix build .#docker-full -o image-full
+          zcat image-slim | skopeo copy --digestfile digest-slim docker-archive:/dev/stdin "docker://$image:$slim_tag"
+          zcat image-full | skopeo copy --digestfile digest-full docker-archive:/dev/stdin "docker://$image:$full_tag"
+          if [ -n "$TAG" ]; then
+            skopeo copy "docker://$image:$slim_tag" "docker://$image:latest"
+            skopeo copy "docker://$image:$full_tag" "docker://$image:full"
+          fi
+          echo "slim=$(cat digest-slim)" >> "$GITHUB_OUTPUT"
+          echo "full=$(cat digest-full)" >> "$GITHUB_OUTPUT"
+
+      - name: attest slim image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/quackster
+          subject-digest: ${{ steps.push.outputs.slim }}
+
+      - name: attest full image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/quackster
+          subject-digest: ${{ steps.push.outputs.full }}

@@ -1,12 +1,12 @@
 { pkgs, perSystem, ... }:
 
 let
-  inherit (pkgs) lib stdenv makeWrapper yt-dlp;
+  inherit (pkgs) lib stdenv makeWrapper;
   pname = "quackster";
 in
 stdenv.mkDerivation {
   inherit pname;
-  version = (builtins.fromJSON (builtins.readFile ../../package.json)).version;
+  version = (builtins.fromTOML (builtins.readFile ../../api/Cargo.toml)).package.version;
 
   dontUnpack = true;
 
@@ -23,8 +23,7 @@ stdenv.mkDerivation {
     cp -r ${../../data} $out/share/${pname}/data
 
     makeWrapper $out/share/${pname}/api/api $out/bin/${pname} \
-      --chdir $out/share/${pname}/api \
-      --prefix PATH : ${lib.makeBinPath [ yt-dlp ]}
+      --chdir $out/share/${pname}/api
 
     runHook postInstall
   '';

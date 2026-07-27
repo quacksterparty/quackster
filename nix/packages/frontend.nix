@@ -12,7 +12,7 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "quackster-frontend";
-  version = (builtins.fromJSON (builtins.readFile ../../package.json)).version;
+  version = (builtins.fromTOML (builtins.readFile ../../api/Cargo.toml)).package.version;
 
   src = lib.fileset.toSource {
     root = ../..;

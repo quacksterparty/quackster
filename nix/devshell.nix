@@ -13,6 +13,7 @@ pkgs.mkShell {
     bacon
 
     tuxedo
+    nix-update
 
     pkg-config
   ];

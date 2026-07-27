@@ -1,0 +1,52 @@
+name: update nix hash
+
+on:
+  pull_request:
+    paths:
+      - pnpm-lock.yaml
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-hash:
+    name: recompute pnpmDeps hash
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout; push uses the app token
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ vars.HASH_UPDATER_APP_ID }}
+          private-key: ${{ secrets.HASH_UPDATER_APP_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+          # deliberate: push step needs the credential; token expires ~1h anyway
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+
+      - name: recompute hash
+        run: nix run nixpkgs#nix-update -- frontend --flake --version=skip
+
+      - name: commit and push
+        run: |
+          if git diff --quiet; then
+            echo "hash unchanged, nothing to push"
+            exit 0
+          fi
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
+          git commit -am "chore: update pnpmDeps hash"
+          git push
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}

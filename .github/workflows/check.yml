@@ -1,0 +1,51 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # cancel superseded PR runs only; cancelling a main run can kill an
+  # in-flight publish after the slim tag is pushed but before the full tag
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+
+      # pull-only: push token lives in the release environment, not repo secrets
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: quackster
+
+      - name: run checks
+        run: nix flake check --print-build-logs
+
+  publish-images:
+    name: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: flake-check
+    permissions:
+      contents: read # checkout
+      packages: write # push images to ghcr
+      id-token: write # sigstore signing identity
+      attestations: write # store provenance
+    uses: ./.github/workflows/publish.yml
+    with:
+      environment: main # main-branch-only env holds CACHIX_AUTH_TOKEN; ungated
+    # env-scoped CACHIX_AUTH_TOKEN only resolves inside the job entering the
+    # environment; explicit passing evaluates caller-side and comes up empty
+    secrets: inherit # zizmor: ignore[secrets-inherit]
