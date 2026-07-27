@@ -11,8 +11,9 @@ pkgs.dockerTools.buildLayeredImage {
 
   config = {
     Cmd = [ "/bin/quackster" ];
+    User = "65534:65534"; # nobody; nothing needs root, port 3000 is unprivileged
     # "::" is dual-stack on Linux (v4-mapped); v4-only bind gets RST when
-    # pasta forwards host ::1 connections as IPv6
+    # podman pasta forwards host ::1 connections as IPv6
     Env = [ "APP_HOST=::" ];
     ExposedPorts."3000/tcp" = { };
     Labels = {

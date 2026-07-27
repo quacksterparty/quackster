@@ -17,6 +17,7 @@ pkgs.dockerTools.buildLayeredImage {
 
   config = {
     Cmd = [ "/bin/quackster" ];
+    User = "65534:65534"; # nobody; writable dirs are 1777, port 3000 is unprivileged
     Env = [
       "APP_HOST=::"
       "APP_YTDLP_ENABLED=true"

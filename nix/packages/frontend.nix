@@ -4,7 +4,7 @@ let
   inherit (pkgs)
     lib
     stdenv
-    nodejs_24
+    nodejs_26
     pnpm_11
     pnpmConfigHook
     fetchPnpmDeps
@@ -12,7 +12,7 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "quackster-frontend";
-  version = (builtins.fromTOML (builtins.readFile ../../api/Cargo.toml)).package.version;
+  version = (lib.importTOML ../../api/Cargo.toml).package.version;
 
   src = lib.fileset.toSource {
     root = ../..;
@@ -32,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   nativeBuildInputs = [
-    nodejs_24
+    nodejs_26
     pnpm_11
     pnpmConfigHook
   ];

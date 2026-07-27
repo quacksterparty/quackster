@@ -6,7 +6,7 @@ let
 in
 stdenv.mkDerivation {
   inherit pname;
-  version = (builtins.fromTOML (builtins.readFile ../../api/Cargo.toml)).package.version;
+  version = (lib.importTOML ../../api/Cargo.toml).package.version;
 
   dontUnpack = true;
 

@@ -63,12 +63,8 @@ jobs:
     permissions:
       contents: write # create github release
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: create github release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --generate-notes
+        run: gh release create "$TAG" -R "$GITHUB_REPOSITORY" --generate-notes

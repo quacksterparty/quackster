@@ -56,8 +56,9 @@ jobs:
           zcat image-slim | skopeo copy --digestfile digest-slim docker-archive:/dev/stdin "docker://$image:$slim_tag"
           zcat image-full | skopeo copy --digestfile digest-full docker-archive:/dev/stdin "docker://$image:$full_tag"
           if [ -n "$TAG" ]; then
-            skopeo copy "docker://$image:$slim_tag" "docker://$image:latest"
-            skopeo copy "docker://$image:$full_tag" "docker://$image:full"
+            # retag by digest: tag could be swapped between push and retag
+            skopeo copy "docker://$image@$(cat digest-slim)" "docker://$image:latest"
+            skopeo copy "docker://$image@$(cat digest-full)" "docker://$image:full"
           fi
           echo "slim=$(cat digest-slim)" >> "$GITHUB_OUTPUT"
           echo "full=$(cat digest-full)" >> "$GITHUB_OUTPUT"

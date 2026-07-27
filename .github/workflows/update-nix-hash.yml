@@ -36,7 +36,8 @@ jobs:
       - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
 
       - name: recompute hash
-        run: nix run nixpkgs#nix-update -- frontend --flake --version=skip
+        # pin nix-update to the flake-locked nixpkgs
+        run: nix run --inputs-from . nixpkgs#nix-update -- frontend --flake --version=skip
 
       - name: commit and push
         run: |
@@ -46,7 +47,7 @@ jobs:
           fi
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
-          git commit -am "chore: update pnpmDeps hash"
+          git commit -m "chore: update pnpmDeps hash" nix/packages/frontend.nix
           git push
         env:
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}

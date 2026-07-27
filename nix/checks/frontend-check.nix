@@ -4,7 +4,7 @@ let
   inherit (pkgs)
     lib
     stdenv
-    nodejs_24
+    nodejs_26
     pnpm_11
     pnpmConfigHook
     ;
@@ -36,7 +36,7 @@ stdenv.mkDerivation {
   };
 
   nativeBuildInputs = [
-    nodejs_24
+    nodejs_26
     pnpm_11
     pnpmConfigHook
   ];
