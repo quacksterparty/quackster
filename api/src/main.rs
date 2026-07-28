@@ -6,6 +6,7 @@ mod media;
 mod protocol;
 mod state;
 
+use std::path::Path;
 use std::sync::Arc;
 use std::{fs, process};
 
@@ -45,7 +46,7 @@ async fn main() {
         fs::create_dir_all(&config.media_cache_dir).expect("failed to create media cache dir");
     }
 
-    let data = data::load("../data").expect("failed to load data");
+    let data = data::load(&config.data_dir).expect("failed to load data");
     if data.issues.is_empty() {
         tracing::info!(
             "dataset loaded: {} questions, {} packs, {} tags, {} games",
@@ -77,12 +78,16 @@ async fn main() {
     });
     let addr = format!("{}:{}", state.config.host, state.config.port);
 
-    let serve_dir =
-        ServeDir::new("../build").not_found_service(ServeFile::new("../build/index.html"));
+    let static_dir = Path::new(&state.config.static_dir);
+    let serve_dir = ServeDir::new(static_dir)
+        .not_found_service(ServeFile::new(static_dir.join("index.html")));
 
     let app = Router::new()
         .nest("/api", rest::router())
-        .nest_service("/media", ServeDir::new("../data/media"))
+        .nest_service(
+            "/media",
+            ServeDir::new(Path::new(&state.config.data_dir).join("media")),
+        )
         .nest_service(
             "/media-cache",
             ServeDir::new(state.config.media_cache_dir.clone()),

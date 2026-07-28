@@ -20,6 +20,12 @@ pub struct AppConfig {
 
     #[serde(default = "default_media_cache_dir")]
     pub media_cache_dir: String,
+
+    #[serde(default = "default_data_dir")]
+    pub data_dir: String,
+
+    #[serde(default = "default_static_dir")]
+    pub static_dir: String,
 }
 
 fn default_host() -> String {
@@ -33,6 +39,12 @@ fn default_ytdlp_path() -> String {
 }
 fn default_media_cache_dir() -> String {
     "./cache/yt".into()
+}
+fn default_data_dir() -> String {
+    "../data".into()
+}
+fn default_static_dir() -> String {
+    "../build".into()
 }
 
 pub fn load() -> Result<AppConfig, ConfigError> {

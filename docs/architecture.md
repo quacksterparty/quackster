@@ -15,7 +15,7 @@ TS data layer). That is **superseded**. The current architecture:
 - **Rust + axum backend** (`api/`) owns everything server-side: content loading,
   validation, pool query, board building, and the live game runtime.
 - **SvelteKit is a pure static frontend** — built with `adapter-static`, served
-  by axum as static files (`axum::serve` over `../build`). No SvelteKit server,
+  by axum as static files (`APP_STATIC_DIR`, defaults to `../build` in dev). No SvelteKit server,
   no SSR, no remote functions.
 - **`ts-rs`** exports Rust types to TypeScript. Rust is the single source of
   truth for all shared types (content + wire protocol); the frontend imports

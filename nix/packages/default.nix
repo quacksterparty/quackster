@@ -1,5 +1,4 @@
 { pkgs, perSystem, ... }:
-
 let
   inherit (pkgs) lib stdenv makeWrapper;
   pname = "quackster";
@@ -12,18 +11,16 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [ makeWrapper ];
 
-  # binary resolves ../build and ../data relative to its cwd,
-  # hence the api/ subdir and the --chdir in the wrapper
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/bin $out/share/${pname}/api
-    ln -s ${perSystem.self.api}/bin/api $out/share/${pname}/api/api
-    ln -s ${perSystem.self.frontend} $out/share/${pname}/build
+    mkdir -p $out/bin $out/share/${pname}
     cp -r ${../../data} $out/share/${pname}/data
+    ln -s ${perSystem.self.frontend} $out/share/${pname}/static
 
-    makeWrapper $out/share/${pname}/api/api $out/bin/${pname} \
-      --chdir $out/share/${pname}/api
+    makeWrapper ${perSystem.self.api}/bin/api $out/bin/${pname} \
+      --set-default APP_STATIC_DIR $out/share/${pname}/static \
+      --set-default APP_DATA_DIR $out/share/${pname}/data
 
     runHook postInstall
   '';
