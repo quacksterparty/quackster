@@ -69,18 +69,20 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
             return;
         };
         match first {
-            ClientMessage::Join { name } => {
+            ClientMessage::Join { name, locale } => {
                 let _ = command_tx
                     .send(RoomMessage::Join {
                         name,
+                        locale,
                         reply: reply_tx,
                     })
                     .await;
             }
-            ClientMessage::Reconnect { token } => {
+            ClientMessage::Reconnect { token, locale } => {
                 let _ = command_tx
                     .send(RoomMessage::Reconnect {
                         token: Token(token),
+                        locale,
                         reply: reply_tx,
                     })
                     .await;
@@ -121,6 +123,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
                 let msg = match e {
                     ConnectionError::NameTaken => "Username is already taken!",
                     ConnectionError::SlotGone => "You are not part of the room!",
+                    ConnectionError::InvalidLocale => "Invalid locale!",
                 };
                 let json = serde_json::to_string(&ServerMessage::Error {
                     message: msg.into(),
@@ -143,11 +146,11 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
 
         let mut joined_seen = false;
         while let Ok(gamestate) = state_rx.recv().await {
-            let grants = gamestate.player_slots.grants_for(&token);
-            let view = match grants {
-                Some(grants) => {
+            let slot = gamestate.player_slots.get(&token);
+            let view = match slot {
+                Some(slot) => {
                     joined_seen = true;
-                    project(&data, &media_fetcher, &gamestate, grants)
+                    project(&data, &media_fetcher, &gamestate, slot)
                 }
                 // snapshot predates our join - skip, own join broadcast is still queued
                 None if !joined_seen => continue,
@@ -161,8 +164,8 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
                     break;
                 }
             };
-            let json =
-                serde_json::to_string(&ServerMessage::Snapshot(Box::new(view))).expect("serde infallible");
+            let json = serde_json::to_string(&ServerMessage::Snapshot(Box::new(view)))
+                .expect("serde infallible");
             if ws_out.send(Message::Text(json.into())).await.is_err() {
                 break;
             }
@@ -266,6 +269,7 @@ mod tests {
             &mut b,
             &ClientMessage::Join {
                 name: "host".into(),
+                locale: "en".into(),
             },
         )
         .await;
@@ -279,6 +283,7 @@ mod tests {
             &mut a,
             &ClientMessage::Join {
                 name: "karl".into(),
+                locale: "en".into(),
             },
         )
         .await;
@@ -304,6 +309,7 @@ mod tests {
             &mut host,
             &ClientMessage::Join {
                 name: "host".into(),
+                locale: "en".into(),
             },
         )
         .await;
@@ -316,6 +322,7 @@ mod tests {
             &mut karl,
             &ClientMessage::Join {
                 name: "karl".into(),
+                locale: "en".into(),
             },
         )
         .await;

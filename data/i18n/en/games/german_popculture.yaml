@@ -1,0 +1,13 @@
+id: game_german_popculture
+title: German Pop Culture
+description: A grid quiz with 24 questions about German music, film and television, internet culture, comedy, stars, and iconic characters.
+games:
+  - title: Round 1
+    board:
+      categories:
+        - name: German Music
+        - name: Film & Television
+        - name: Internet & Memes
+        - name: Comedy
+        - name: Stars
+        - name: Iconic Characters

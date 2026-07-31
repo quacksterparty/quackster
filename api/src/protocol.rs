@@ -35,10 +35,12 @@ use crate::game::{
 pub enum RoomMessage {
     Join {
         name: String,
+        locale: String,
         reply: oneshot::Sender<Result<Token, ConnectionError>>,
     },
     Reconnect {
         token: Token,
+        locale: String,
         reply: oneshot::Sender<Result<Token, ConnectionError>>,
     },
     Client {
@@ -68,14 +70,15 @@ pub enum MediaFetchStatus {
 pub enum ConnectionError {
     NameTaken,
     SlotGone,
+    InvalidLocale,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind")]
 #[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
 pub enum ClientMessage {
-    Join { name: String },
-    Reconnect { token: String },
+    Join { name: String, locale: String },
+    Reconnect { token: String, locale: String },
     Authed { token: String, cmd: Command },
 }
 
@@ -109,6 +112,9 @@ pub enum Command {
         verdict: Verdict,
     },
     // ── controls ──
+    SetLocale {
+        locale: String,
+    },
     /// Mod triggers playback of the current question's prompt media on
     /// Present screens. Replay = send again (bumps the nonce).
     PlayMedia,
@@ -122,7 +128,7 @@ pub enum Command {
     Kick {
         player: String,
     },
-    /// Mod retries all currently-failed media downloads 
+    /// Mod retries all currently-failed media downloads
     RetryMediaFetch,
 }
 
@@ -313,11 +319,16 @@ pub struct OrderItemView {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]
 pub struct AnswerView {
+    /// Locale used for localized accepted answers.
+    pub locale: String,
     pub correctness: CorrectnessView,
+    /// Canonical answer shown to moderators when localized correctness differs.
+    pub canonical_locale: Option<String>,
+    pub canonical_correctness: Option<CorrectnessView>,
     pub explanation: Option<String>,
 }
 
-// TODO: this needs to be translated
+// Correctness text may be locale-resolved while IDs/numeric truth remain canonical.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind")]
 #[cfg_attr(test, derive(ts_rs::TS), ts(export, export_to = "Protocol.ts"))]

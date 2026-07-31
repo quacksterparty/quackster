@@ -5,6 +5,7 @@
 mod error;
 mod grid_quiz;
 mod loader;
+mod localize;
 mod query;
 mod types;
 mod validate;
@@ -15,6 +16,7 @@ mod test_helpers;
 pub use error::LoadError;
 pub use grid_quiz::*;
 pub use loader::load_dataset;
+pub use localize::normalize_locale;
 pub use types::*;
 pub use validate::run_cross_file_checks;
 

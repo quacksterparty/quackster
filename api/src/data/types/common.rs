@@ -98,8 +98,6 @@ static PACK_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^pack_[a-z0-9][a-z0-9_]*$").unwrap());
 static GAME_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^game_[a-z0-9][a-z0-9_]*$").unwrap());
-static LOCALE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-z]{2}(-[A-Z]{2})?$").unwrap());
 
 fn valid_by_regex(value: &str, re: &Regex, kind: &str) -> garde::Result {
     if re.is_match(value) {
@@ -154,7 +152,11 @@ pub fn valid_game_id(value: &str, _ctx: &()) -> garde::Result {
 }
 
 pub fn valid_locale(value: &str, _ctx: &()) -> garde::Result {
-    valid_by_regex(value, &LOCALE_RE, "locale")
+    if crate::data::normalize_locale(value).is_some() {
+        Ok(())
+    } else {
+        Err(garde::Error::new("invalid locale"))
+    }
 }
 
 pub fn valid_opt_locale(value: &Option<String>, _ctx: &()) -> garde::Result {

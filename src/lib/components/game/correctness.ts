@@ -7,7 +7,10 @@ import { m } from '$lib/paraglide/messages';
  * Exhaustive over CorrectnessView: a new kind is a compile error at the `never`.
  */
 export function correctnessText(answer: AnswerView, variant: VariantView): string {
-	const correct: CorrectnessView = answer.correctness;
+	return correctnessValueText(answer.correctness, variant);
+}
+
+export function correctnessValueText(correct: CorrectnessView, variant: VariantView): string {
 	switch (correct.kind) {
 		case 'MultipleChoice': {
 			const choices = variant.kind === 'MultipleChoice' ? variant.choices : [];

@@ -4,7 +4,7 @@
 	import { playerColor, playerInitial, sortedByScore } from '$lib/playerUi';
 	import { room, has } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
-	import { correctnessText } from './correctness';
+	import { correctnessText, correctnessValueText } from './correctness';
 	import QuestionPrompt from './QuestionPrompt.svelte';
 	import Button from '$lib/components/Button.svelte';
 
@@ -20,6 +20,11 @@
 
 	const answerText = $derived(
 		question?.answer ? correctnessText(question.answer, question.variant) : null
+	);
+	const canonicalAnswer = $derived(
+		has('Moderate') && question?.answer?.canonical_correctness
+			? correctnessValueText(question.answer.canonical_correctness, question.variant)
+			: null
 	);
 	// ponytail: flashes only the last log entry. TODO: group judgments by the
 	// current question_id and show every ruling for it (steals, revisions)
@@ -48,8 +53,13 @@
 	{#if answerText}
 		<div class="answer-card">
 			<span class="answer-check">✓</span>
-			<span class="answer-text">{answerText}</span>
+			<span class="answer-text"
+				>{has('Moderate') ? `[${question?.answer?.locale}] ` : ''}{answerText}</span
+			>
 		</div>
+		{#if canonicalAnswer}
+			<p class="muted center">[{question?.answer?.canonical_locale}] {canonicalAnswer}</p>
+		{/if}
 	{/if}
 	{#if question?.answer?.explanation}
 		<p class="muted center">{question.answer.explanation}</p>

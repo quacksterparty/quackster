@@ -8,6 +8,7 @@
 	import Dialog from '$lib/components/Dialog.svelte';
 	import GameStage from '$lib/components/game/GameStage.svelte';
 	import TextInput from '$lib/components/TextInput.svelte';
+	import { currentLocale } from '$lib/i18n.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { clearSession, lastSession, readSession, saveSession } from '$lib/session';
 	import { room, clearRoom } from '$lib/room.svelte';
@@ -50,7 +51,7 @@
 			const stored = readSession(code);
 			if (stored?.token) {
 				room.player = stored.player ?? null;
-				send({ kind: 'Reconnect', token: stored.token });
+				send({ kind: 'Reconnect', token: stored.token, locale: currentLocale() });
 			} else {
 				nameOpen = true;
 			}
@@ -125,7 +126,7 @@
 	}
 
 	function join() {
-		send({ kind: 'Join', name });
+		send({ kind: 'Join', name, locale: currentLocale() });
 	}
 </script>
 

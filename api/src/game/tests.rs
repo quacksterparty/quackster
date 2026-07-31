@@ -63,6 +63,7 @@ fn setup(players: &[&str]) -> GameState {
         token("mod"),
         PlayerSlot {
             name: "mod".into(),
+            locale: "en".into(),
             connected: true,
             grants: HashSet::from([Grant::Moderate]),
         },
@@ -72,6 +73,7 @@ fn setup(players: &[&str]) -> GameState {
             token(p),
             PlayerSlot {
                 name: (*p).into(),
+                locale: "en".into(),
                 connected: true,
                 grants: HashSet::from([Grant::Play]),
             },
@@ -87,7 +89,7 @@ fn setup(players: &[&str]) -> GameState {
         game_config: serde_yaml::from_str(GAME_YAML).expect("fixture parses"),
         current_game_idx: 0,
         player_slots: slots,
-        mode: ModeState::GridQuiz(GridQuizState::build(cells, vec![100, 200])),
+        mode: ModeState::GridQuiz(Box::new(GridQuizState::build(cells, vec![100, 200]))),
         judgment_log: Vec::new(),
         seed: 42,
         media_status: BTreeMap::new(),
@@ -247,14 +249,40 @@ fn pick_used_cell_is_rejected_without_state_change() {
 fn floored_player_answer_lands_as_pending_judgment() {
     let mut state = setup(&["alice", "bob"]);
     let p = start_and_pick(&mut state, 0, 0);
+    state.apply(
+        token(&p),
+        Command::SetLocale {
+            locale: "de-de".into(),
+        },
+    );
     state.apply(token(&p), Command::Answer { text: "42".into() });
+    state.apply(
+        token(&p),
+        Command::SetLocale {
+            locale: "fr".into(),
+        },
+    );
 
     assert_eq!(state.judgment_log.len(), 1);
     let j = &state.judgment_log[0];
     assert_eq!(j.player, token(&p));
     assert_eq!(j.verdict, Verdict::Pending);
     assert_eq!(j.submission.as_deref(), Some("42"));
+    assert_eq!(j.locale, "de-DE");
+    assert_eq!(state.player_slots[&token(&p)].locale, "fr");
     assert_eq!(j.points, 0);
+}
+
+#[test]
+fn invalid_locale_change_keeps_previous_locale() {
+    let mut state = setup(&["alice"]);
+    state.apply(
+        token("alice"),
+        Command::SetLocale {
+            locale: "de_DE".into(),
+        },
+    );
+    assert_eq!(state.player_slots[&token("alice")].locale, "en");
 }
 
 #[test]

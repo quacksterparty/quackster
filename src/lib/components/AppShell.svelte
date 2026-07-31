@@ -71,6 +71,7 @@
 	}
 	function pickLang(loc: Locale) {
 		void setLocale(loc);
+		room.send?.({ kind: 'SetLocale', locale: loc });
 	}
 </script>
 

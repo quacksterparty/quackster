@@ -78,9 +78,10 @@ pub fn parse_youtube_ref(value: &str) -> Result<(&str, YoutubeClip), String> {
             }
         }
         if let (Some(start), Some(end)) = (clip.start_ms, clip.end_ms)
-            && start >= end {
-                return Err("start must be less than end".into());
-            }
+            && start >= end
+        {
+            return Err("start must be less than end".into());
+        }
     }
     Ok((id, clip))
 }

@@ -3,7 +3,7 @@
 	import { playerColor, playerInitial } from '$lib/playerUi';
 	import { room, has } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
-	import { correctnessText } from './correctness';
+	import { correctnessText, correctnessValueText } from './correctness';
 	import Button from '$lib/components/Button.svelte';
 	import QuestionPrompt from './QuestionPrompt.svelte';
 
@@ -14,6 +14,11 @@
 	const amLockedOut = $derived(room.player !== null && view.locked_out.includes(room.player));
 	const modAnswer = $derived(
 		has('Moderate') && question?.answer ? correctnessText(question.answer, question.variant) : null
+	);
+	const canonicalAnswer = $derived(
+		has('Moderate') && question?.answer?.canonical_correctness
+			? correctnessValueText(question.answer.canonical_correctness, question.variant)
+			: null
 	);
 	const playableMedia = $derived(
 		question?.prompt.media != null && question.prompt.media.kind !== 'Image'
@@ -39,7 +44,10 @@
 	{/if}
 
 	{#if modAnswer}
-		<p class="mod-peek">✓ {modAnswer}</p>
+		<p class="mod-peek">✓ [{question?.answer?.locale}] {modAnswer}</p>
+		{#if canonicalAnswer}
+			<p class="mod-peek">✓ [{question?.answer?.canonical_locale}] {canonicalAnswer}</p>
+		{/if}
 	{/if}
 
 	{#if amFloored}

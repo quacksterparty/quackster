@@ -1,6 +1,39 @@
 #+TITLE: Quackster TODOs
 #+TODO: TODO IN_PROGRESS DONE
 
+* DONE Localize live game projection per player locale :p1:runtime:frontend:
+CLOSED: [2026-07-31 Fri 23:27]
+:PROPERTIES:
+:ID:       quackster-31
+:END:
+
+Players currently receive canonical question and board text even though translation overlays load successfully. Locale belongs to reconnectable player slot: Join and Reconnect send normalized BCP 47 locale, SetLocale updates it during play, and reconnect overwrites stale locale. Locale remains server-private.
+
+Resolution is field-level, most-specific to canonical: zh-Hant-TW -> zh-Hant -> zh -> content default language. Tags compare case-insensitively and normalize language lowercase/region uppercase; malformed handshake locales fail, malformed live changes retain previous locale. Choice/order overlays merge by stable ID; media and accepted-answer lists replace as units, including intentional empty lists.
+
+Live scope: translated question prompt, explanation, choices, order items, media, and grid category names. Localized youtube media prefetches on Join/Reconnect/SetLocale for requested fallback chain, not every locale at room creation. Moderator sees question in own locale plus answering player's localized and canonical accepted answers; future Auto judge accepts localized/canonical union through same resolver. Submission captures effective locale so later locale changes do not reinterpret history. Auto judge itself remains quackster-2 scope.
+
+** DONE Add locale normalization/fallback resolver and layered overlay merge tests
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Add locale to Join/Reconnect/PlayerSlot and SetLocale command
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Translate question and grid category projection per viewer slot
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Prefetch localized youtube media when slot locale changes
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Capture submission locale and project localized/canonical accepted answers to moderators
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Send current Paraglide locale on join/reconnect/change; regenerate TS bindings
+CLOSED: [2026-07-31 Fri 23:27]
+
+** DONE Update runtime architecture and run backend/frontend checks
+CLOSED: [2026-07-31 Fri 23:27]
+
 * TODO Implement game runtime: rooms, WebSocket, scoring :p1:runtime:
 :PROPERTIES:
 :ID:       quackster-2

@@ -4,71 +4,68 @@ vi.mock('$lib/paraglide/messages', () => ({
 	m: { answer_true: () => 'True', answer_false: () => 'False' }
 }));
 
+import type { AnswerView } from '$lib/bindings/Protocol';
 import { correctnessText } from './correctness';
+
+function answer(correctness: AnswerView['correctness']): AnswerView {
+	return {
+		locale: 'en',
+		correctness,
+		canonical_locale: null,
+		canonical_correctness: null,
+		explanation: null
+	};
+}
 
 describe('correctnessText', () => {
 	it('MultipleChoice resolves correct ids to choice text', () => {
 		expect(
-			correctnessText(
-				{ correctness: { kind: 'MultipleChoice', correct_ids: ['b', 'c'] }, explanation: null },
-				{
-					kind: 'MultipleChoice',
-					choices: [
-						{ id: 'a', text: 'A', media: null },
-						{ id: 'b', text: 'B', media: null },
-						{ id: 'c', text: 'C', media: null }
-					]
-				}
-			)
+			correctnessText(answer({ kind: 'MultipleChoice', correct_ids: ['b', 'c'] }), {
+				kind: 'MultipleChoice',
+				choices: [
+					{ id: 'a', text: 'A', media: null },
+					{ id: 'b', text: 'B', media: null },
+					{ id: 'c', text: 'C', media: null }
+				]
+			})
 		).toBe('B, C');
 	});
 
 	it('Open joins accepted answers', () => {
 		expect(
-			correctnessText(
-				{ correctness: { kind: 'Open', accepted: ['Paris', 'Lutetia'] }, explanation: null },
-				{ kind: 'Open' }
-			)
+			correctnessText(answer({ kind: 'Open', accepted: ['Paris', 'Lutetia'] }), { kind: 'Open' })
 		).toBe('Paris, Lutetia');
 	});
 
 	it('TrueFalse maps the boolean', () => {
 		expect(
-			correctnessText(
-				{ correctness: { kind: 'TrueFalse', correct: true }, explanation: null },
-				{ kind: 'TrueFalse' }
-			)
+			correctnessText(answer({ kind: 'TrueFalse', correct: true }), { kind: 'TrueFalse' })
 		).toBe('True');
 	});
 
 	it('Numeric shows tolerance only when positive', () => {
 		expect(
-			correctnessText(
-				{ correctness: { kind: 'Numeric', value: 42, tolerance: 0 }, explanation: null },
-				{ kind: 'NumericInput' }
-			)
+			correctnessText(answer({ kind: 'Numeric', value: 42, tolerance: 0 }), {
+				kind: 'NumericInput'
+			})
 		).toBe('42');
 		expect(
-			correctnessText(
-				{ correctness: { kind: 'Numeric', value: 42, tolerance: 2 }, explanation: null },
-				{ kind: 'NumericInput' }
-			)
+			correctnessText(answer({ kind: 'Numeric', value: 42, tolerance: 2 }), {
+				kind: 'NumericInput'
+			})
 		).toBe('42 ± 2');
 	});
 
 	it('Order sorts by position and resolves item text', () => {
 		expect(
 			correctnessText(
-				{
-					correctness: {
-						kind: 'Order',
-						positions: [
-							{ id: 'y', position: 1 },
-							{ id: 'x', position: 0 }
-						]
-					},
-					explanation: null
-				},
+				answer({
+					kind: 'Order',
+					positions: [
+						{ id: 'y', position: 1 },
+						{ id: 'x', position: 0 }
+					]
+				}),
 				{
 					kind: 'Order',
 					items: [

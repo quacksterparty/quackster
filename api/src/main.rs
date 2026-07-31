@@ -79,8 +79,8 @@ async fn main() {
     let addr = format!("{}:{}", state.config.host, state.config.port);
 
     let static_dir = Path::new(&state.config.static_dir);
-    let serve_dir = ServeDir::new(static_dir)
-        .not_found_service(ServeFile::new(static_dir.join("index.html")));
+    let serve_dir =
+        ServeDir::new(static_dir).not_found_service(ServeFile::new(static_dir.join("index.html")));
 
     let app = Router::new()
         .nest("/api", rest::router())

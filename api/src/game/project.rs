@@ -9,11 +9,14 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{
-    data::{Correctness, Dataset, GameMode, Media, MediaKind, Question, VariantName},
+    data::{
+        ContentOverlay, Correctness, Dataset, GameMode, Media, MediaKind, Question, QuestionOverlay,
+        VariantName,
+    },
     game::{
-        grants::{Grant, GrantSet},
+        grants::Grant,
         grid_quiz::{Cell, phase::Phase},
-        state::{GameState, Token},
+        state::{GameState, PlayerSlot, Token},
     },
     media::MediaFetcher,
     protocol::{
@@ -29,8 +32,9 @@ pub fn project(
     data: &Dataset,
     media_fetcher: &MediaFetcher,
     gamestate: &GameState,
-    grants: &GrantSet,
+    viewer: &PlayerSlot,
 ) -> ClientView {
+    let grants = &viewer.grants;
     let superseded: HashSet<usize> = gamestate
         .judgment_log
         .iter()
@@ -117,14 +121,30 @@ pub fn project(
                 categories: board
                     .categories
                     .iter()
-                    .map(|cat| cat.name.clone())
+                    .enumerate()
+                    .map(|(category_idx, cat)| {
+                        data.localized_category_name(
+                            &viewer.locale,
+                            &gamestate.game_config.id,
+                            gamestate.current_game_idx,
+                            category_idx,
+                            &cat.name,
+                        )
+                    })
                     .collect(),
                 points: board.points.clone(),
                 used,
-                current_category: current
-                    .as_ref()
-                    .and_then(|cell| board.categories.get(cell.category))
-                    .map(|category| category.name.clone()),
+                current_category: current.as_ref().and_then(|cell| {
+                    board.categories.get(cell.category).map(|category| {
+                        data.localized_category_name(
+                            &viewer.locale,
+                            &gamestate.game_config.id,
+                            gamestate.current_game_idx,
+                            cell.category,
+                            &category.name,
+                        )
+                    })
+                }),
                 current_points: current
                     .as_ref()
                     .and_then(|cell| board.points.get(cell.point))
@@ -172,8 +192,40 @@ pub fn project(
                         return None;
                     }
                 };
-                // TODO: we need to translate these fields for the locale the user has
-                build_question_view(question, variant, include_answer, media_fetcher)
+                let overlays = data.question_overlays(&viewer.locale, question.id());
+                let answer_locale = if grants.contains(&Grant::Moderate) {
+                    match &grid_quiz.phase {
+                        Phase::QuestionOpen(open) => open
+                            .floored_player()
+                            .and_then(|token| gamestate.player_slots.get(token))
+                            .map(|slot| slot.locale.as_str()),
+                        _ => None,
+                    }
+                    .or_else(|| {
+                        gamestate
+                            .judgment_log
+                            .iter()
+                            .rev()
+                            .find(|judgment| judgment.question_id == question.id())
+                            .map(|judgment| judgment.locale.as_str())
+                    })
+                    .unwrap_or(&viewer.locale)
+                } else {
+                    &viewer.locale
+                };
+                let answer_overlays = data.question_overlays(answer_locale, question.id());
+                build_localized_question_view(
+                    question,
+                    &overlays,
+                    LocalizedAnswer {
+                        overlays: &answer_overlays,
+                        locale: answer_locale,
+                        include_canonical: grants.contains(&Grant::Moderate),
+                    },
+                    variant,
+                    include_answer,
+                    media_fetcher,
+                )
             })
         }
         ModeState::Linear(_) => todo!("Linedar not implemented yet"),
@@ -184,12 +236,54 @@ pub fn project(
         stage,
         question,
         judgment_log,
-        media_status: grants.contains(&Grant::Moderate).then(|| gamestate.media_status.clone()),
+        media_status: grants
+            .contains(&Grant::Moderate)
+            .then(|| gamestate.media_status.clone()),
     }
 }
 
-pub(crate) fn build_question_view(
+fn overlay_lookup<'a, T>(
+    overlays: &'a [&'a QuestionOverlay],
+    f: impl Fn(&'a ContentOverlay) -> Option<T>,
+) -> Option<T> {
+    overlays.iter().find_map(|o| f(&o.content))
+}
+
+fn localized_correctness(
     question: &Question,
+    variant: VariantName,
+    overlays: &[&QuestionOverlay],
+) -> Option<Correctness> {
+    let canonical = question.correctness(variant)?;
+    if !matches!(canonical, Correctness::Open { .. }) {
+        return Some(canonical);
+    }
+    overlays
+        .iter()
+        .find_map(|overlay| {
+            overlay
+                .content
+                .variants
+                .as_ref()?
+                .open
+                .as_ref()?
+                .accepted
+                .clone()
+        })
+        .map(|accepted| Correctness::Open { accepted })
+        .or(Some(canonical))
+}
+
+struct LocalizedAnswer<'a> {
+    overlays: &'a [&'a QuestionOverlay],
+    locale: &'a str,
+    include_canonical: bool,
+}
+
+fn build_localized_question_view(
+    question: &Question,
+    overlays: &[&QuestionOverlay],
+    answer: LocalizedAnswer<'_>,
     variant: VariantName,
     include_answer: bool,
     media_fetcher: &MediaFetcher,
@@ -202,11 +296,25 @@ pub(crate) fn build_question_view(
                 .iter()
                 .map(|item| OrderItemView {
                     id: item.id.clone(),
-                    text: item.text.clone(),
-                    media: item
-                        .media
-                        .as_deref()
-                        .and_then(|ms| project_first_media(ms, media_fetcher)),
+                    text: overlay_lookup(overlays, |c| {
+                        c.items
+                            .as_ref()?
+                            .iter()
+                            .find(|i| i.id == item.id)?
+                            .text
+                            .clone()
+                    })
+                    .unwrap_or_else(|| item.text.clone()),
+                    media: overlay_lookup(overlays, |c| {
+                        c.items
+                            .as_ref()?
+                            .iter()
+                            .find(|i| i.id == item.id)?
+                            .media
+                            .as_deref()
+                    })
+                    .or(item.media.as_deref())
+                    .and_then(|ms| project_first_media(ms, media_fetcher)),
                 })
                 .collect(),
         }
@@ -220,11 +328,31 @@ pub(crate) fn build_question_view(
                         .iter()
                         .map(|choice| ChoiceView {
                             id: choice.id.clone(),
-                            text: choice.text.clone(),
-                            media: choice
-                                .media
-                                .as_deref()
-                                .and_then(|media| project_first_media(media, media_fetcher)),
+                            text: overlay_lookup(overlays, |c| {
+                                c.variants
+                                    .as_ref()?
+                                    .multiple_choice
+                                    .as_ref()?
+                                    .choices
+                                    .iter()
+                                    .find(|ch| ch.id == choice.id)?
+                                    .text
+                                    .clone()
+                            })
+                            .unwrap_or_else(|| choice.text.clone()),
+                            media: overlay_lookup(overlays, |c| {
+                                c.variants
+                                    .as_ref()?
+                                    .multiple_choice
+                                    .as_ref()?
+                                    .choices
+                                    .iter()
+                                    .find(|ch| ch.id == choice.id)?
+                                    .media
+                                    .as_deref()
+                            })
+                            .or(choice.media.as_deref())
+                            .and_then(|media| project_first_media(media, media_fetcher)),
                         })
                         .collect(),
                 }
@@ -244,27 +372,62 @@ pub(crate) fn build_question_view(
     };
 
     let answer = if include_answer {
-        question.correctness(variant).map(|c| AnswerView {
-            correctness: c.into(),
-            explanation: question.explanation().map(str::to_owned),
+        localized_correctness(question, variant, answer.overlays).map(|correctness| {
+            let canonical = question.correctness(variant);
+            let include_canonical = answer.include_canonical
+                && canonical
+                    .as_ref()
+                    .is_some_and(|value| value != &correctness);
+            AnswerView {
+                locale: answer.locale.to_owned(),
+                correctness: correctness.into(),
+                canonical_locale: include_canonical.then(|| question.default_lang().to_owned()),
+                canonical_correctness: include_canonical
+                    .then(|| canonical.map(CorrectnessView::from))
+                    .flatten(),
+                explanation: overlay_lookup(overlays, |c| c.explanation.clone())
+                    .or_else(|| question.explanation().map(str::to_owned)),
+            }
         })
     } else {
         None
     };
 
     let prompt = question.prompt();
+    let prompt_text = overlay_lookup(overlays, |c| c.prompt.as_ref()?.text.clone());
+    let prompt_media = overlay_lookup(overlays, |c| c.prompt.as_ref()?.media.as_deref());
 
     Some(QuestionView {
         prompt: PromptView {
-            text: prompt.text.clone(),
-            media: prompt
-                .media
-                .as_deref()
+            text: prompt_text.unwrap_or_else(|| prompt.text.clone()),
+            media: prompt_media
+                .or(prompt.media.as_deref())
                 .and_then(|ms| project_first_media(ms, media_fetcher)),
         },
         variant: variant_view,
         answer,
     })
+}
+
+#[cfg(test)]
+fn build_question_view(
+    question: &Question,
+    variant: VariantName,
+    include_answer: bool,
+    media_fetcher: &MediaFetcher,
+) -> Option<QuestionView> {
+    build_localized_question_view(
+        question,
+        &[],
+        LocalizedAnswer {
+            overlays: &[],
+            locale: question.default_lang(),
+            include_canonical: false,
+        },
+        variant,
+        include_answer,
+        media_fetcher,
+    )
 }
 
 impl From<Correctness> for CorrectnessView {
@@ -465,6 +628,82 @@ content:
             view.answer.is_none(),
             "Play view leaked answer: {:?}",
             view.answer
+        );
+    }
+
+    #[test]
+    fn layered_overlays_fall_back_per_field_and_item_id() {
+        let q = load_q(TEXT_Q);
+        let base: QuestionOverlay = serde_yaml::from_str(
+            r#"
+id: q_test
+content:
+  explanation: "Erklärung"
+  variants:
+    multiple_choice:
+      choices:
+        - { id: a, text: "Antwort" }
+    open:
+      accepted: ["Antwort"]
+"#,
+        )
+        .unwrap();
+        let exact: QuestionOverlay = serde_yaml::from_str(
+            r#"
+id: q_test
+content:
+  prompt: { text: "Regionale Frage" }
+"#,
+        )
+        .unwrap();
+        let overlays = [&exact, &base];
+        let view = build_localized_question_view(
+            &q,
+            &overlays,
+            LocalizedAnswer {
+                overlays: &overlays,
+                locale: "de-DE",
+                include_canonical: true,
+            },
+            VariantName::Open,
+            true,
+            &MediaFetcher::disabled(),
+        )
+        .unwrap();
+
+        assert_eq!(view.prompt.text, "Regionale Frage");
+        let choice_view = build_localized_question_view(
+            &q,
+            &overlays,
+            LocalizedAnswer {
+                overlays: &overlays,
+                locale: "de-DE",
+                include_canonical: false,
+            },
+            VariantName::MultipleChoice,
+            false,
+            &MediaFetcher::disabled(),
+        )
+        .unwrap();
+        let VariantView::MultipleChoice { choices } = choice_view.variant else {
+            panic!("expected multiple choice");
+        };
+        assert_eq!(choices[0].text, "Antwort");
+        assert_eq!(choices[1].text, "B");
+
+        let answer = view.answer.unwrap();
+        assert_eq!(answer.explanation.as_deref(), Some("Erklärung"));
+        assert_eq!(
+            answer.correctness,
+            CorrectnessView::Open {
+                accepted: vec!["Antwort".into()]
+            }
+        );
+        assert_eq!(
+            answer.canonical_correctness,
+            Some(CorrectnessView::Open {
+                accepted: vec!["A".into()]
+            })
         );
     }
 

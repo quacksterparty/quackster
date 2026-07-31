@@ -16,7 +16,7 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-    data::GameConfig,
+    data::{GameConfig, normalize_locale},
     game::{
         grants::{Grant, GrantSet},
         grid_quiz::GridQuizState,
@@ -72,6 +72,11 @@ impl GameState {
         }
 
         match cmd {
+            Command::SetLocale { locale } => {
+                if self.try_set_locale(&token, &locale).is_none() {
+                    tracing::warn!(?token, ?locale, "invalid locale change rejected");
+                }
+            }
             Command::Kick { player } => {
                 self.player_slots.retain(|_, v| v.name != player);
             }
@@ -97,6 +102,16 @@ impl GameState {
         }
     }
 
+    /// Validate + apply a locale change. Returns the normalized locale on success;
+    /// `None` for malformed input or an unknown token. Caller decides whether to
+    /// follow up (e.g. prefetch locale-specific media).
+    pub fn try_set_locale(&mut self, token: &Token, raw: &str) -> Option<String> {
+        let locale = normalize_locale(raw)?;
+        let slot = self.player_slots.get_mut(token)?;
+        slot.locale = locale.clone();
+        Some(locale)
+    }
+
     fn run_effect(&mut self, effect: Effect) {
         match effect {
             Effect::Submit {
@@ -105,15 +120,23 @@ impl GameState {
                 text,
             } => {
                 if let Some(idx) = self.live_judgment(&player, &question_id)
-                    && self.judgment_log[idx].verdict == Verdict::Pending {
-                        // TODO: maybe we want to allow updating the answer before judgment
-                        tracing::warn!(?player, "answer while pending judgment");
-                        return;
-                    }
+                    && self.judgment_log[idx].verdict == Verdict::Pending
+                {
+                    // TODO: maybe we want to allow updating the answer before judgment
+                    tracing::warn!(?player, "answer while pending judgment");
+                    return;
+                }
 
+                let locale = self
+                    .player_slots
+                    .get(&player)
+                    .expect("Submit effect fires only for existing slots")
+                    .locale
+                    .clone();
                 self.judgment_log.push(Judgment {
                     game_idx: self.current_game_idx,
                     player,
+                    locale,
                     points: 0,
                     verdict: Verdict::Pending,
                     question_id,
@@ -128,8 +151,19 @@ impl GameState {
                 points,
             } => {
                 let pending_idx = self.live_judgment(&target, &question_id);
+                let locale = pending_idx
+                    .and_then(|idx| self.judgment_log.get(idx))
+                    .map(|judgment| judgment.locale.clone())
+                    .unwrap_or_else(|| {
+                        self.player_slots
+                            .get(&target)
+                            .expect("Rule effect fires only for existing targets")
+                            .locale
+                            .clone()
+                    });
                 self.judgment_log.push(Judgment {
                     player: target,
+                    locale,
                     question_id,
                     verdict,
                     points,
@@ -222,6 +256,7 @@ impl Token {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlayerSlot {
     pub name: String,
+    pub locale: String,
     pub connected: bool,
     pub grants: GrantSet,
 }
@@ -242,8 +277,8 @@ pub(crate) enum Effect {
 
 #[derive(Clone, Debug)]
 pub enum ModeState {
-    GridQuiz(GridQuizState),
-    Linear(LinearState),
+    GridQuiz(Box<GridQuizState>),
+    Linear(Box<LinearState>),
 }
 
 impl ModeState {
@@ -256,7 +291,10 @@ impl ModeState {
     ) -> Result<Vec<Effect>, CommandError> {
         match self {
             ModeState::GridQuiz(modestate) => modestate.apply(player_slots, token, cmd, seed),
-            ModeState::Linear(_) => todo!("Linear not implemented yet"),
+            ModeState::Linear(modestate) => {
+                let _ = modestate;
+                todo!("Linear not implemented yet")
+            }
         }
     }
 }
@@ -269,6 +307,9 @@ pub struct Judgment {
     /// Equals `current_game_idx` at append time.
     pub game_idx: usize,
     pub player: Token,
+    /// Normalized locale used when submission/ruling was made. Historical
+    /// review must not change when player later changes language.
+    pub locale: String,
     pub question_id: String,
     /// `None` for spoken answers (moderator verdict stands alone).
     pub submission: Option<String>,

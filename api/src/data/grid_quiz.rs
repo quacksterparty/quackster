@@ -15,7 +15,11 @@ use super::types::*;
 /// Resolved board: `grid[category_idx][point_idx] = Some(QuestionSlot) | None`.
 pub type BoardGrid = Vec<Vec<Option<QuestionSlot>>>;
 
-fn slot_for(ds: &Dataset, qid: &str, variant_override: Option<VariantName>) -> Option<QuestionSlot> {
+fn slot_for(
+    ds: &Dataset,
+    qid: &str,
+    variant_override: Option<VariantName>,
+) -> Option<QuestionSlot> {
     ds.questions
         .get(qid)
         .map(|e| QuestionSlot::resolve(&e.item, variant_override))
@@ -106,19 +110,20 @@ fn build_candidates(
     }
 
     if let Some(diff_tags) = diff_map.get(point)
-        && !diff_tags.is_empty() {
-            candidates.retain(|qid| {
-                ds.questions
-                    .get(qid)
-                    .map(|e| {
-                        e.item
-                            .tags()
-                            .iter()
-                            .any(|qtag| diff_tags.iter().any(|dtag| dtag == qtag))
-                    })
-                    .unwrap_or(false)
-            });
-        }
+        && !diff_tags.is_empty()
+    {
+        candidates.retain(|qid| {
+            ds.questions
+                .get(qid)
+                .map(|e| {
+                    e.item
+                        .tags()
+                        .iter()
+                        .any(|qtag| diff_tags.iter().any(|dtag| dtag == qtag))
+                })
+                .unwrap_or(false)
+        });
+    }
 
     candidates
 }
@@ -154,5 +159,7 @@ pub fn resolve_linear(
         ids.retain(|qid| !has_youtube_media(ds, qid));
     }
     ids.shuffle(&mut rng);
-    ids.iter().filter_map(|qid| slot_for(ds, qid, None)).collect()
+    ids.iter()
+        .filter_map(|qid| slot_for(ds, qid, None))
+        .collect()
 }

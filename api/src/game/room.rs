@@ -11,13 +11,16 @@
 //!
 //! TODO: RoomHandle, spawn_room, the select! loop.
 
-use std::{collections::{BTreeMap, HashSet}, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+};
 
 use rand::RngExt;
 use tokio::sync::{broadcast, mpsc};
 
 use crate::{
-    data::{Dataset, GameConfig, GameMode, build_board},
+    data::{Dataset, GameConfig, GameMode, build_board, normalize_locale},
     game::{
         grants::Grant::{self},
         grid_quiz::{Cell, GridQuizState},
@@ -78,12 +81,19 @@ pub fn spawn_room(
                         .into_iter()
                         .map(|row| row.into_iter().map(Cell::from).collect())
                         .collect();
-                ModeState::GridQuiz(GridQuizState::build(cells, game.board.points.clone()))
+                ModeState::GridQuiz(Box::new(GridQuizState::build(
+                    cells,
+                    game.board.points.clone(),
+                )))
             }
-            GameMode::Linear(_) => ModeState::Linear(LinearState),
+            GameMode::Linear(_) => ModeState::Linear(Box::new(LinearState)),
         };
 
-        let media_status = collect_youtube_refs(&data, &mode);
+        let media_status = match &mode {
+            ModeState::GridQuiz(grid) => collect_youtube_refs(&data, &grid.cells),
+            // TODO: walk resolved linear question list once Linear runtime lands.
+            ModeState::Linear(_) => BTreeMap::new(),
+        };
 
         let mut state = GameState {
             game_config,
@@ -105,7 +115,15 @@ pub fn spawn_room(
         while let Some(room_msg) = room_msg_rx.recv().await {
             tracing::info!("room msg {:?}", &room_msg);
             match room_msg {
-                RoomMessage::Join { name, reply } => {
+                RoomMessage::Join {
+                    name,
+                    locale,
+                    reply,
+                } => {
+                    let Some(locale) = normalize_locale(&locale) else {
+                        let _ = reply.send(Err(ConnectionError::InvalidLocale));
+                        continue;
+                    };
                     let taken = state.player_slots.values().any(|slot| slot.name == name);
                     if taken {
                         let _ = reply.send(Err(ConnectionError::NameTaken));
@@ -119,25 +137,50 @@ pub fn spawn_room(
                     };
 
                     let token = Token::generate();
+                    let media_locale = locale.clone();
                     state.player_slots.insert(
                         token.clone(),
                         PlayerSlot {
                             name,
+                            locale,
                             connected: true,
                             grants,
                         },
                     );
+                    prefetch_locale_media(
+                        &mut state,
+                        &data,
+                        &media_locale,
+                        &media_fetcher,
+                        room_msg_tx_for_task.clone(),
+                    );
 
                     let _ = reply.send(Ok(token));
                 }
-                RoomMessage::Reconnect { token, reply } => {
+                RoomMessage::Reconnect {
+                    token,
+                    locale,
+                    reply,
+                } => {
+                    let Some(locale) = normalize_locale(&locale) else {
+                        let _ = reply.send(Err(ConnectionError::InvalidLocale));
+                        continue;
+                    };
                     let Some(slot) = state.player_slots.get_mut(&token) else {
                         let _ = reply.send(Err(ConnectionError::SlotGone));
                         continue;
                     };
 
+                    slot.locale = locale.clone();
                     slot.connected = true;
 
+                    prefetch_locale_media(
+                        &mut state,
+                        &data,
+                        &locale,
+                        &media_fetcher,
+                        room_msg_tx_for_task.clone(),
+                    );
                     let _ = reply.send(Ok(token));
                 }
                 RoomMessage::Disconnect { token } => {
@@ -151,10 +194,27 @@ pub fn spawn_room(
                 RoomMessage::Client { token, cmd } => {
                     tracing::info!("command {:?} received in room {}", cmd, &code.0);
 
-                    if matches!(cmd, Command::RetryMediaFetch) {
-                        retry_failed(&mut state, &data, &media_fetcher, room_msg_tx_for_task.clone());
-                    } else {
-                        state.apply(token, cmd);
+                    match &cmd {
+                        Command::RetryMediaFetch => {
+                            retry_failed(
+                                &mut state,
+                                &data,
+                                &media_fetcher,
+                                room_msg_tx_for_task.clone(),
+                            );
+                        }
+                        Command::SetLocale { locale } => {
+                            if let Some(normalized) = state.try_set_locale(&token, locale) {
+                                prefetch_locale_media(
+                                    &mut state,
+                                    &data,
+                                    &normalized,
+                                    &media_fetcher,
+                                    room_msg_tx_for_task.clone(),
+                                );
+                            }
+                        }
+                        _ => state.apply(token, cmd),
                     }
                 }
             }
@@ -170,22 +230,8 @@ pub fn spawn_room(
 }
 
 /// Init map to `Pending` for every `youtube:` ref on the board.
-fn collect_youtube_refs(data: &Dataset, mode: &ModeState) -> BTreeMap<String, MediaFetchStatus> {
-    let question_ids: Vec<&str> = match mode {
-        ModeState::GridQuiz(grid) => grid
-            .cells
-            .iter()
-            .flatten()
-            .filter_map(|cell| match cell {
-                Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
-                Cell::Empty => None,
-            })
-            .collect(),
-        // TODO: walk resolved linear question list once Linear runtime lands.
-        ModeState::Linear(_) => return BTreeMap::new(),
-    };
-    let to_fetch = youtube_refs_for_questions(data, &question_ids);
-    to_fetch
+fn collect_youtube_refs(data: &Dataset, cells: &[Vec<Cell>]) -> BTreeMap<String, MediaFetchStatus> {
+    youtube_refs_for_questions(data, &grid_question_ids(cells))
         .into_iter()
         .map(|media| (media.media_ref, MediaFetchStatus::Pending))
         .collect()
@@ -208,16 +254,30 @@ fn prefetch_board_media(
     media_fetcher: &Arc<MediaFetcher>,
     command_tx: mpsc::Sender<RoomMessage>,
 ) {
-    let question_ids: Vec<&str> = cells
-        .iter()
-        .flatten()
-        .filter_map(|cell| match cell {
-            Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
-            Cell::Empty => None,
-        })
-        .collect();
-    let to_fetch = youtube_refs_for_questions(data, &question_ids);
+    let to_fetch = youtube_refs_for_questions(data, &grid_question_ids(cells));
     media_fetcher.prefetch(to_fetch, command_tx);
+}
+
+fn prefetch_locale_media(
+    state: &mut GameState,
+    data: &Dataset,
+    locale: &str,
+    media_fetcher: &Arc<MediaFetcher>,
+    command_tx: mpsc::Sender<RoomMessage>,
+) {
+    let cells = match &state.mode {
+        ModeState::GridQuiz(grid) => &grid.cells,
+        ModeState::Linear(_) => return,
+    };
+
+    let media = data.localized_youtube_media(locale, &grid_question_ids(cells));
+    for item in &media {
+        state
+            .media_status
+            .entry(item.media_ref.clone())
+            .or_insert(MediaFetchStatus::Pending);
+    }
+    media_fetcher.prefetch(media, command_tx);
 }
 
 /// Re-kick downloads for every currently-failed ref. Flips them to `Pending`
@@ -228,18 +288,11 @@ fn retry_failed(
     media_fetcher: &Arc<MediaFetcher>,
     command_tx: mpsc::Sender<RoomMessage>,
 ) {
-    let question_ids: Vec<&str> = match &state.mode {
-        ModeState::GridQuiz(grid) => grid
-            .cells
-            .iter()
-            .flatten()
-            .filter_map(|cell| match cell {
-                Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
-                Cell::Empty => None,
-            })
-            .collect(),
+    let cells = match &state.mode {
+        ModeState::GridQuiz(grid) => &grid.cells,
         ModeState::Linear(_) => return,
     };
+    let question_ids = grid_question_ids(cells);
     let to_fetch: Vec<_> = youtube_refs_for_questions(data, &question_ids)
         .into_iter()
         .filter(|media| {
@@ -255,4 +308,15 @@ fn retry_failed(
             .insert(media.media_ref.clone(), MediaFetchStatus::Pending);
     }
     media_fetcher.prefetch(to_fetch, command_tx);
+}
+
+fn grid_question_ids(cells: &[Vec<Cell>]) -> Vec<&str> {
+    cells
+        .iter()
+        .flatten()
+        .filter_map(|cell| match cell {
+            Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
+            Cell::Empty => None,
+        })
+        .collect()
 }

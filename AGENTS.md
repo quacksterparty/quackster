@@ -138,11 +138,12 @@ export for editor YAML LSP.
 - Tasks live in `TODO.org` at the repo root (Org format, `#+TODO: TODO IN_PROGRESS DONE`).
   Read it at session start. Update it as you go: flip a heading to `IN_PROGRESS`
   when you start a task, mark it `DONE` when the work lands, and add new `* TODO`
-  entries you discover during the work. Priorities are Org tags (`p1`/`p2`/`p3`);
-  projects are tags (`runtime`, `frontend`, `tooling`, `gamemodes`). Each entry
-  keeps an `:ID: quackster-N` property for the `nb` provenance; large items split
-  their work into child `** TODO` / `** DONE` subheadings, completed with the
-  parent. The `quackster` notebook in `nb` is read-only history — do not write
+  entries you discover during the work. When marking DONE, add a `CLOSED: [YYYY-MM-DD Day HH:MM]`
+  line directly under the heading (matches existing entries in the file). Priorities
+  are Org tags (`p1`/`p2`/`p3`); projects are tags (`runtime`, `frontend`, `tooling`,
+  `gamemodes`). Each entry keeps an `:ID: quackster-N` property for the `nb` provenance;
+  large items split their work into child `** TODO` / `** DONE` subheadings, completed
+  with the parent. The `quackster` notebook in `nb` is read-only history — do not write
   to it from the agent.
 
 ## Implementation order (from data-model.md §Implementation order)

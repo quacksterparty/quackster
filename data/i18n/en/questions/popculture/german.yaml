@@ -1,0 +1,252 @@
+- id: q_german_pop_nena_99_luftballons
+  content:
+    prompt:
+      text: 'Which German band released the song “99 Luftballons” in 1983?'
+    answer: Nena
+    explanation: '“99 Luftballons” appeared on the band Nena’s self-titled debut album in 1983.'
+    variants:
+      open:
+        accepted: [Nena]
+
+- id: q_german_pop_tokio_hotel_monsun
+  content:
+    prompt:
+      text: 'Which band scored a number-one hit in Germany with “Durch den Monsun” in 2005?'
+    answer: Tokio Hotel
+    explanation: '“Durch den Monsun” was Tokio Hotel’s debut single and reached number one on the German charts in 2005.'
+    variants:
+      open:
+        accepted: [Tokio Hotel]
+
+- id: q_german_pop_peter_fox_haus_am_see
+  content:
+    prompt:
+      text: 'Which member of the band Seeed released the song “Haus am See” as a solo artist?'
+    answer: Peter Fox
+    explanation: 'Peter Fox is a member of Seeed and released “Haus am See” on his solo album “Stadtaffe” in 2008.'
+    variants:
+      open:
+        accepted: [Peter Fox]
+
+- id: q_german_pop_fehlfarben_monarchie_und_alltag
+  content:
+    prompt:
+      text: 'Which Düsseldorf band released the album “Monarchie und Alltag” in 1980?'
+    answer: Fehlfarben
+    explanation: '“Monarchie und Alltag” is Fehlfarben’s debut album and is considered a classic of German post-punk.'
+    variants:
+      open:
+        accepted: [Fehlfarben]
+
+- id: q_german_pop_wetten_dass_gottschalk
+  content:
+    prompt:
+      text: 'Which entertainer hosted “Wetten, dass..?” for decades and more often than anyone else?'
+    answer: Thomas Gottschalk
+    explanation: 'Thomas Gottschalk shaped “Wetten, dass..?” from his first appearance as host in 1987 onward.'
+    variants:
+      open:
+        accepted: [Thomas Gottschalk, Gottschalk]
+
+- id: q_german_pop_stromberg_schauspieler
+  content:
+    prompt:
+      text: 'Which actor portrays Bernd Stromberg in the TV series “Stromberg”?'
+    answer: Christoph Maria Herbst
+    explanation: 'Christoph Maria Herbst played the title character in all five seasons and the feature film.'
+    variants:
+      open:
+        accepted: [Christoph Maria Herbst, Christoph Herbst]
+
+- id: q_german_pop_dark_netflix_serie
+  content:
+    prompt:
+      text: 'What is the name of the German Netflix mystery series launched in 2017 about time travel in the small town of Winden?'
+    answer: Dark
+    explanation: '“Dark” is set in the fictional town of Winden and was the first German-language Netflix original series.'
+    variants:
+      open:
+        accepted: [Dark]
+
+- id: q_german_pop_leben_der_anderen_regisseur
+  content:
+    prompt:
+      text: 'Who directed the Oscar-winning film “The Lives of Others”?'
+    answer: Florian Henckel von Donnersmarck
+    explanation: 'Florian Henckel von Donnersmarck wrote and directed “The Lives of Others,” which won the Academy Award for Best Foreign Language Film in 2007.'
+    variants:
+      open:
+        accepted:
+          - Florian Henckel von Donnersmarck
+          - Henckel von Donnersmarck
+          - Florian von Donnersmarck
+
+- id: q_german_pop_7_vs_wild_erfinder
+  content:
+    prompt:
+      text: 'Which YouTuber created the survival format “7 vs. Wild” and hosted its first seasons?'
+    answer: Fritz Meinecke
+    explanation: 'Fritz Meinecke created “7 vs. Wild” and participated in its first three seasons.'
+    variants:
+      open:
+        accepted: [Fritz Meinecke, Meinecke]
+
+- id: q_german_pop_gronkh_buergerlicher_name
+  content:
+    prompt:
+      text: 'What is YouTuber Gronkh’s real name?'
+    answer: Erik Range
+    explanation: 'Gronkh is the stage name of German online video producer Erik Range.'
+    variants:
+      open:
+        accepted: [Erik Range, Erik]
+
+- id: q_german_pop_coldmirror_buergerlicher_name
+  content:
+    prompt:
+      text: 'What is the name of the online video creator behind “coldmirror”?'
+    answer: Kathrin Fricke
+    explanation: 'Kathrin Fricke became known as coldmirror through work including her Harry Potter parody dubs.'
+    variants:
+      open:
+        accepted: [Kathrin Fricke, Kaddi, Kaddi Fricke]
+
+- id: q_german_pop_die_lochis_vornamen
+  content:
+    prompt:
+      text: 'What are the names of the twin brothers who became known as the YouTube duo “Die Lochis”?'
+    answer: Heiko and Roman Lochmann
+    explanation: 'Die Lochis consisted of the twin brothers Heiko and Roman Lochmann.'
+    variants:
+      open:
+        accepted:
+          - Heiko and Roman Lochmann
+          - Roman and Heiko Lochmann
+          - Heiko and Roman
+          - Roman and Heiko
+          - Heiko Lochmann and Roman Lochmann
+          - Roman Lochmann and Heiko Lochmann
+
+- id: q_german_pop_loriot_kuenstlername
+  content:
+    prompt:
+      text: 'Under which stage name did Vicco von Bülow become famous?'
+    answer: Loriot
+    explanation: 'Under the name Loriot, Vicco von Bülow shaped German television and comedy culture.'
+    variants:
+      open:
+        accepted: [Loriot]
+
+- id: q_german_pop_horst_schlaemmer
+  content:
+    prompt:
+      text: 'Which comedian created and played the fictional character Horst Schlämmer?'
+    answer: Hape Kerkeling
+    explanation: 'Hape Kerkeling played Horst Schlämmer, a fictional local reporter from Grevenbroich.'
+    variants:
+      open:
+        accepted: [Hape Kerkeling, Hans-Peter Kerkeling, Kerkeling]
+
+- id: q_german_pop_dittsche_schauspieler
+  content:
+    prompt:
+      text: 'Which comedian plays the title character in the improvised TV show “Dittsche”?'
+    answer: Olli Dittrich
+    explanation: 'Olli Dittrich plays Dittsche in a bathrobe and improvises his stories in a Hamburg snack bar.'
+    variants:
+      open:
+        accepted: [Olli Dittrich, Oliver Dittrich, Dittrich]
+
+- id: q_german_pop_die_doofen_mitglieder
+  content:
+    prompt:
+      text: 'Which two comedians formed the musical duo “Die Doofen” in the 1990s?'
+    answer: Wigald Boning and Olli Dittrich
+    explanation: 'Wigald Boning and Olli Dittrich performed together as Die Doofen.'
+    variants:
+      open:
+        accepted:
+          - Wigald Boning and Olli Dittrich
+          - Olli Dittrich and Wigald Boning
+          - Wigald Boning, Olli Dittrich
+          - Olli Dittrich, Wigald Boning
+
+- id: q_german_pop_lena_eurovision_2010
+  content:
+    prompt:
+      text: 'Which singer won the Eurovision Song Contest for Germany with “Satellite” in 2010?'
+    answer: Lena Meyer-Landrut
+    explanation: 'Lena Meyer-Landrut won the 2010 Eurovision Song Contest in Oslo with “Satellite.”'
+    variants:
+      open:
+        accepted: [Lena Meyer-Landrut, Lena Meyer Landrut, Lena]
+
+- id: q_german_pop_lola_rennt_franka_potente
+  content:
+    prompt:
+      text: 'Which actress plays the title role in the film “Run Lola Run”?'
+    answer: Franka Potente
+    explanation: 'Franka Potente plays Lola in Tom Tykwer’s 1998 film “Run Lola Run.”'
+    variants:
+      open:
+        accepted: [Franka Potente, Potente]
+
+- id: q_german_pop_karl_lagerfeld
+  content:
+    prompt:
+      text: 'Which Hamburg-born fashion designer was known for his white ponytail, sunglasses, and high collars?'
+    answer: Karl Lagerfeld
+    explanation: 'Karl Lagerfeld was born in Hamburg and made his distinctive look a trademark.'
+    variants:
+      open:
+        accepted: [Karl Lagerfeld, Lagerfeld]
+
+- id: q_german_pop_winnetou_pierre_brice
+  content:
+    prompt:
+      text: 'Which French actor portrayed Winnetou in the Karl May films of the 1960s?'
+    answer: Pierre Brice
+    explanation: 'Pierre Brice became a star in German-speaking countries through his role as Winnetou.'
+    variants:
+      open:
+        accepted: [Pierre Brice, Brice]
+
+- id: q_german_pop_bernd_das_brot
+  content:
+    prompt:
+      text: 'What is the name of the grumpy loaf of bread from the children’s channel KiKA?'
+    answer: Bernd das Brot
+    explanation: 'Bernd das Brot has been a character on the children’s channel KiKA since 2000.'
+    variants:
+      open:
+        accepted: [Bernd das Brot, Bernd the Bread, Bernd]
+
+- id: q_german_pop_mainzelmaennchen_sender
+  content:
+    prompt:
+      text: 'Which television channel do the Mainzelmännchen belong to?'
+    answer: ZDF
+    explanation: 'The Mainzelmännchen have appeared as advertising-break bumpers on ZDF since the channel launched in 1963.'
+    variants:
+      open:
+        accepted: [ZDF, Zweites Deutsches Fernsehen, Second German Television]
+
+- id: q_german_pop_maus_blauer_begleiter
+  content:
+    prompt:
+      text: 'What kind of animal is the Mouse’s little blue companion in the German children’s show “Die Sendung mit der Maus”?'
+    answer: Elephant
+    explanation: 'The little blue elephant has accompanied the Mouse since 1975.'
+    variants:
+      open:
+        accepted: [Elephant, the elephant, an elephant, blue elephant]
+
+- id: q_german_pop_mainzelmaennchen_schoepfer
+  content:
+    prompt:
+      text: 'Which graphic designer created the Mainzelmännchen?'
+    answer: Wolf Gerlach
+    explanation: 'Graphic designer and set designer Wolf Gerlach created the Mainzelmännchen for ZDF’s launch in 1963.'
+    variants:
+      open:
+        accepted: [Wolf Gerlach, Gerlach]

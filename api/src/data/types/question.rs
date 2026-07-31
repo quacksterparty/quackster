@@ -708,7 +708,10 @@ content:
         // q has only MC and Open; Range override isn't defined → fall through
         // to declared/default path.
         let q = load_q(TEXT_Q_MC_AND_OPEN);
-        assert_eq!(q.resolve_variant(Some(VariantName::Range)), Some(VariantName::Open));
+        assert_eq!(
+            q.resolve_variant(Some(VariantName::Range)),
+            Some(VariantName::Open)
+        );
     }
 
     #[test]

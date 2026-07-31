@@ -161,7 +161,10 @@ Phones sleep and wifi blips mid-quiz, so reconnection is required, not optional.
 - A dropped socket **detaches** but the player stays present-but-disconnected —
   slot, score, and grants persist on the room, keyed by token.
 - The next socket presenting that token **reattaches** to the exact slot.
-  Survives a page refresh too.
+  Survives a page refresh too. Join and reconnect also send the client's
+  normalized BCP 47 locale; reconnect replaces the slot's stale locale.
+- `SetLocale` changes the reconnectable slot's locale during play and triggers
+  a fresh projection without changing grants or public player data.
 - The **player** needs a stable token even though the **room** does not need a
   stable id — different concerns, no conflict with the single-join-code decision.
 
@@ -174,7 +177,7 @@ Phones sleep and wifi blips mid-quiz, so reconnection is required, not optional.
 - **Server → client:** a `ServerMsg` enum (`Snapshot(ClientView)`, `Joined`,
   `Error`, …).
 
-serde `#[serde(tag = "type")]` → clean discriminated unions in TS via `ts-rs`.
+serde `#[serde(tag = "kind")]` → clean discriminated unions in TS via `ts-rs`.
 
 ### Full snapshot, not deltas
 
@@ -203,8 +206,8 @@ union: "player" = `{Play}`, "presenter" = `{Present}`, "host" =
 ### Projection is the trust boundary
 
 The room broadcasts the **full-truth `GameState`** on one channel. Each socket
-runs **one** function `project(&state, &grants) -> ClientView` before `ws.send`.
-`ClientView` is a single `ts-rs`-exported type with **optional sections**
+runs **one** function `project(&data, &state, &viewer_slot) -> ClientView` before
+`ws.send`. `ClientView` is a single `ts-rs`-exported type with **optional sections**
 (`question?`, `buzzer?`, `answer_input?`, `correct_answer?`, `controls?`,
 `scoreboard?`); `project` fills each section only if the grants permit it.
 
@@ -217,8 +220,30 @@ runs **one** function `project(&state, &grants) -> ClientView` before `ws.send`.
   combination — no per-role channels (which would explode combinatorially for
   composite roles).
 
-`ponytail:` full-truth broadcast + `project(state, grants)`; one channel, grants
-compose freely.
+`ponytail:` full-truth broadcast + one viewer-slot projection; one channel,
+grants compose freely.
+
+### Per-player content locale
+
+Locale lives on the reconnectable `PlayerSlot`, not the public `PlayerView`.
+Projection resolves every translatable live field independently through the
+most-specific overlay chain, for example
+`zh-Hant-TW -> zh-Hant -> zh -> canonical`. Locale matching is case-insensitive;
+normalization lowercases language, title-cases script, and uppercases region.
+Choice and order entries merge by stable ID. Media and accepted-answer lists
+replace as units, so an explicit empty list remains meaningful.
+
+Live localization covers question prompt, explanation, choices, order items,
+media, and grid category names. Joining, reconnecting, or changing locale
+prefetches only localized `youtube:` media reachable from that board and locale
+chain; it does not eagerly download every translation.
+
+A submission records the effective player locale. Later language changes cannot
+reinterpret judgment history. Moderator projection keeps the question in the
+moderator's locale but shows accepted answers in the answering player's captured
+locale plus canonical accepted answers when they differ. The future Auto judge
+must accept the union of those localized and canonical answers through the same
+resolver.
 
 ### Granting & authorization (least privilege)
 
