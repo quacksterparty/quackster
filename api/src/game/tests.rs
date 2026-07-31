@@ -9,6 +9,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use crate::{
+    data::QuestionSlot,
     game::{
         grants::Grant,
         grid_quiz::{
@@ -39,13 +40,20 @@ games:
         points: [100, 200]
         categories:
           - name: A
-            question_ids: { 100: q_a1, 200: q_a2 }
+            question_ids: { 100: { id: q_a1 }, 200: { id: q_a2 } }
           - name: B
-            question_ids: { 100: q_b1, 200: q_b2 }
+            question_ids: { 100: { id: q_b1 }, 200: { id: q_b2 } }
 "#;
 
 fn token(name: &str) -> Token {
     Token(format!("tok_{name}"))
+}
+
+fn slot(qid: &str) -> QuestionSlot {
+    QuestionSlot {
+        question_id: qid.into(),
+        variant: None,
+    }
 }
 
 /// 2x2 board (points 100/200), one moderator "mod", given names as players.
@@ -71,8 +79,8 @@ fn setup(players: &[&str]) -> GameState {
     }
 
     let cells = vec![
-        vec![Cell::Open("q_a1".into()), Cell::Open("q_a2".into())],
-        vec![Cell::Open("q_b1".into()), Cell::Open("q_b2".into())],
+        vec![Cell::Open(slot("q_a1")), Cell::Open(slot("q_a2"))],
+        vec![Cell::Open(slot("q_b1")), Cell::Open(slot("q_b2"))],
     ];
 
     GameState {
@@ -194,7 +202,7 @@ fn pick_cell_opens_question_and_floors_the_picker() {
 
     let q = open_question(&state);
     assert_eq!(q.floored_player(), Some(&token(&p)));
-    assert_eq!(q.current().question_id, "q_a1");
+    assert_eq!(q.current().slot.question_id, "q_a1");
     assert_eq!(
         grid(&state).picker_rotation.front(),
         Some(&token(if p == "alice" { "bob" } else { "alice" })),
@@ -279,7 +287,7 @@ fn correct_ruling_awards_cell_value_and_reveals() {
     assert_eq!(score(&state, &p), 100);
     let g = grid(&state);
     assert_eq!(g.phase.kind(), GridQuizPhase::Reveal);
-    assert_eq!(g.cells[0][0], Cell::Used("q_a1".into()));
+    assert_eq!(g.cells[0][0], Cell::Used(slot("q_a1")));
     assert_eq!(
         state.judgment_log[1].supersedes,
         Some(0),
@@ -346,7 +354,7 @@ fn all_players_locked_out_closes_the_question() {
 
     let g = grid(&state);
     assert_eq!(g.phase.kind(), GridQuizPhase::Reveal);
-    assert_eq!(g.cells[0][0], Cell::Used("q_a1".into()));
+    assert_eq!(g.cells[0][0], Cell::Used(slot("q_a1")));
 }
 
 // ── buzzing ──
@@ -438,7 +446,7 @@ fn close_question_marks_cell_used_without_scoring() {
 
     let g = grid(&state);
     assert_eq!(g.phase.kind(), GridQuizPhase::Reveal);
-    assert_eq!(g.cells[0][0], Cell::Used("q_a1".into()));
+    assert_eq!(g.cells[0][0], Cell::Used(slot("q_a1")));
     assert!(state.judgment_log.is_empty());
 }
 
@@ -467,7 +475,7 @@ fn exhausting_the_board_ends_the_game() {
     assert!(
         g.cells
             .iter()
-            .all(|col| col.iter().all(|c| matches!(c, Cell::Used(_)))),
+            .all(|col| col.iter().all(|cell| matches!(cell, Cell::Used(_)))),
         "all cells used"
     );
     assert_eq!(

@@ -1,0 +1,675 @@
+#+TITLE: Quackster TODOs
+#+TODO: TODO IN_PROGRESS DONE
+
+* TODO Implement game runtime: rooms, WebSocket, scoring :p1:runtime:
+:PROPERTIES:
+:ID:       quackster-2
+:END:
+
+
+The live-game runtime. Sits in api/src/game/ (domain, no axum) + api/src/http/ws.rs (socket edge). Much of the scaffolding is ALREADY built; the scoring/judge/timer/projection core is NOT.
+
+ALREADY DONE:
+- Room actor spawn_room(): mpsc in (Command), broadcast out (GameState snapshot). api/src/game/room.rs
+- select! loop racing commands; sole owner of GameState so no locks. api/src/game/room.rs
+- WebSocket edge handle_socket(): split read/write tasks, Join/Reconnect/Authed flow, disconnect cleanup. api/src/http/ws.rs
+- Token + Grant model (Play/Present/Moderate). api/src/game/grants.rs, state.rs
+- Registry: AppState.rooms DashMap<JoinCode, RoomHandle>. api/src/state.rs, main.rs
+- REST: POST /rooms (create, needs admin secret), GET /rooms/{code} (exists check). api/src/http/rest/rooms.rs
+
+REMAINING (the actual work):
+- judge.rs is a doc-comment stub. Need Judge trait + Verdict{Correct,Incorrect,Void,Pending} + Auto + Moderator impls. Auto = static matcher (correct:true / numeric answer+tolerance); Moderator = submission lands Pending, human rules. api/src/game/judge.rs
+- GameState::apply() hits todo!() for Buzz/Answer/ExtendTimer. Need full handling + scoring = fold(judgment log), on_timeout, snapshot(). api/src/game/state.rs
+- ClientView has scoreboard/phase/timer/controls/stage commented out. Flesh out the per-role projection shape. api/src/protocol.rs
+- project() only fills players. Must fill question/buzzer/answer_input/correct_answer/controls/scoreboard per grants, and STRIP correct answer server-side. Missing the {Play}-excludes-correct_answer test (security boundary). api/src/game/project.rs
+- Timer: select! loop must also race sleep_until(deadline) for timeout. Currently only races mpsc recv — no deadline armed. api/src/game/room.rs
+- grid_quiz logic is hardcoded in room.rs (see mod.rs comment). Extract a Gamemode trait only when gamemode #2 lands — couples to todo #3.
+Spec: docs/architecture.md (canonical runtime reference).
+
+** DONE Room actor: spawn_room, mpsc/broadcast channels, select loop (room.rs)
+   CLOSED: [2026-07-31 Fri 19:10]
+
+** DONE WebSocket edge: handle_socket, join/reconnect/authed flow (ws.rs)
+   CLOSED: [2026-07-31 Fri 19:10]
+
+** DONE Registry: AppState.rooms DashMap + REST create/check (state.rs, rooms.rs)
+   CLOSED: [2026-07-31 Fri 19:10]
+
+** TODO Judge: trait + Verdict + Auto + Moderator impls (judge.rs)
+
+** DONE GameState: apply() for Buzz/Answer/ExtendTimer, scoring fold, on_timeout (state.rs)
+   CLOSED: [2026-07-31 Fri 19:10]
+
+** TODO Timer: arm sleep_until(deadline) in the select! loop (room.rs)
+
+** DONE ClientView: define scoreboard/phase/timer/controls/stage fields (protocol.rs)
+   CLOSED: [2026-07-31 Fri 19:10]
+
+** DONE project(): fill per-grant sections + correct-answer strip test (project.rs)
+   CLOSED: [2026-07-31 Fri 19:11]
+
+* TODO Export JSON Schema from Rust for editor YAML LSP :p2:tooling:
+:PROPERTIES:
+:ID:       quackster-3
+:END:
+
+
+Content types live in api/src/data/types/ and are validated by garde at load + runtime. The editor (VS Code YAML LSP) needs JSON Schema files to validate question/pack/board/tag YAML as you type. The old TS-generated schemas/*.json were removed when the data layer moved to Rust — this re-sources them from the Rust types so there's one schema definition everywhere (per data-model.md architectural rules).
+
+Same Rust type definitions must drive both runtime validation and the exported schema — no hand-written schemas that drift.
+Files: api/src/data/types/, api/src/data/validate/
+Open question tracked in docs/data-model.md §Open questions: gamemode schema export.
+
+** TODO Decide: schemars derive (#[derive(JsonSchema)]) vs manual schema builder
+
+** TODO Add JsonSchema across content types, or build one schema per content type
+
+** TODO Export entrypoint (cargo bin or test) writing schemas/{questions,packs,boards,tags}.json
+
+** TODO Wire schemas into editor YAML LSP config (path-to-schema mapping)
+
+* TODO Handle kick on client properly — client unaware it was kicked :p2:frontend:
+:PROPERTIES:
+:ID:       quackster-6
+:END:
+
+
+Server kick WORKS: Command::Kick checks Moderate grant then removes the player from player_slots (api/src/game/state.rs apply()). The kicked player's socket write_task then sees its slot gone and sends ServerMessage::Error{message: "You are no longer in this game."} (api/src/http/ws.rs).
+
+The PROBLEM: the client treats that Error the same as any error — clearSession + clearRoom + reopen the username dialog (src/routes/room/[code]/+page.svelte). So a kicked user just bounces to the username prompt with no idea they were removed, and can immediately rejoin. There is no distinct 'you were kicked' UX and no server signal that distinguishes kick from a generic connection error.
+
+The kick button already exists in AppShell.svelte (sends {kind:'Kick', player}) — that side is fine; only the kicked client's handling is missing.
+Files: api/src/protocol.rs (new server signal), api/src/http/ws.rs (send it), src/routes/room/[code]/+page.svelte (handle it), src/lib/components/AppShell.svelte (kick button, already correct)
+
+** TODO Add a distinct server signal for kick (ServerMessage::Kicked variant, or an error code on Error) — protocol.rs + ws.rs
+
+** TODO Client: handle Kicked separately from generic Error — 'you were removed' toast, no username-dialog reopen — room page
+
+* TODO Handle room-not-existing on client — no heartbeat, can't detect a gone room :p2:runtime:
+:PROPERTIES:
+:ID:       quackster-7
+:END:
+
+
+The client checks room existence exactly ONCE, on mount, via api.room.exists(code) (src/routes/room/[code]/+page.svelte). After that there is no heartbeat or keepalive. If the room dies server-side mid-session (server restart, room evicted, task panic), the client may keep a half-open WebSocket and never receive another snapshot — it never detects the room is gone and just hangs.
+
+Server side also has a gap: when the room task exits, the broadcast sender drops and state_rx.recv() in ws.rs returns Err — the write_task currently just breaks silently. There is no explicit 'room ended/closed' message sent before teardown, so the client has nothing to react to.
+
+Fix is two-sided:
+- Client heartbeat: ping/pong or a no-op interval; if no snapshot/pong within a window, declare the room gone, toast, clearRoom, route home.
+- Server room-gone signal: emit an explicit message before the room task exits so clients get a clean reason rather than a silent stream end.
+Files: src/lib/room.svelte.ts, src/routes/room/[code]/+page.svelte, api/src/game/room.rs, api/src/http/ws.rs
+
+** TODO Server: emit an explicit RoomClosed/Ended message before the room task exits (room.rs + ws.rs)
+
+** TODO Client: WebSocket heartbeat/ping + timeout window detection (room.svelte.ts / room page)
+
+** TODO Client: on room-gone signal, toast + clearRoom + goto home
+
+* TODO Variant resolution model: question-declares, pack-overrides, random-fallback :p2:runtime:gamemodes:
+:PROPERTIES:
+:ID:       quackster-12
+:END:
+
+
+GAP: resolved play slots carry question_id only — no variant. Projection (api/src/game/project.rs) and judge can't know which variant to render/match. BoardGrid (api/src/data/grid_quiz.rs), CurrentCell (api/src/game/state.rs), LinearSource::Questions (api/src/data/types/game.rs) all id-only.
+
+DESIRED MODEL (replaces data-model.md 'first variant gamemode accepts' rule):
+1. Question declares a preferred/default variant (new field on question content — api/src/data/types/question.rs).
+2. Pack may override it (set variant for its questions — api/src/data/types/pack.rs).
+3. Else: pick at random at materialize time (build_board / linear resolve / state init).
+Precedence: pack-override > question-declared > random.
+
+FOR NOW: ship default-only (question-declared, else kind-default) to unblock projection. Random + pack-override later.
+
+TOUCHES: question.rs, pack.rs, grid_quiz.rs (build_board returns QuestionSlot{id,variant}), state.rs (CurrentCell.variant), project.rs (build_question_view reads variant), game.rs (LinearSource items). Update docs/data-model.md §gamemodes (canonical rule change) — maybe ADR in docs/decisions/.
+
+** DONE Add preferred-variant field to question content (question.rs)
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.1
+:END:
+
+** DONE Resolve variant at materialize: build_board + linear resolve return (id, variant)
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.2
+:END:
+
+** DONE Store variant in CurrentCell + LinearState current
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.3
+:END:
+
+** DONE Board-cell variant override (per-cell on BoardCategory::question_ids)
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.4
+:END:
+
+** TODO Pack override field (pack.rs)
+:PROPERTIES:
+:ID:       quackster-12.5
+:END:
+
+** TODO Random fallback at materialize when no declared/override
+:PROPERTIES:
+:ID:       quackster-12.6
+:END:
+
+** DONE build_question_view in project.rs using resolved variant
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.7
+:END:
+
+** DONE Update docs/data-model.md §gamemodes variant rule
+CLOSED: [2026-07-31 Fri 22:10]
+:PROPERTIES:
+:ID:       quackster-12.8
+:END:
+
+* TODO Implement floor/steal strategy support in grid_quiz apply() :p2:runtime:
+:PROPERTIES:
+:ID:       quackster-18
+:END:
+
+
+Rule enums exist in api/src/data/types/game.rs (BuzzPolicy: OpenFloor/TurnOrder/Broadcast, StealPolicy: None/OpenFloor/RoundLimited, plus LockoutPolicy/ScoringMode) but api/src/game/state.rs apply() hardcodes one combination: on Pick the floor goes straight to the picker (TurnOrder — see TODO around line 308: 'this should respect different flooring strategies like OpenBuzz or TurnBased'), and stealing is only possible via Command::Buzz once floored_player is None (open-buzz steal). The configured Rules are never consulted.
+
+Wire the policies into apply(): initial floor per BuzzPolicy (OpenFloor = nobody floored, buzz race; TurnOrder = picker floored; Broadcast = everyone answers), and post-wrong-answer reopen per StealPolicy. Files: api/src/game/state.rs (Pick, Buzz, judgment/wrong-answer path), api/src/data/types/game.rs (rules already defined).
+
+** TODO Pick: set floored_player per BuzzPolicy instead of hardcoded picker
+
+** TODO Wrong answer: reopen floor per StealPolicy instead of implicit open buzz
+
+** TODO Broadcast policy: allow all non-locked-out players to answer
+
+** TODO Remove the hardcoded-strategy TODO comment in state.rs once wired
+
+* TODO Player drawer not scrollable on mobile :p2:frontend:
+:PROPERTIES:
+:ID:       quackster-21
+:END:
+
+
+Drawer.svelte renders children directly into .drawer (fixed, flex column) with no scroll container — no overflow-y: auto and no min-height: 0 on the content area. When the player list / scoreboard in AppShell.svelte exceeds viewport height (mobile), overflow is clipped and can't scroll. Fix in Drawer.svelte so all drawer content (settings drawer too) scrolls: wrap children in a flex:1; min-height:0; overflow-y:auto container. Files: src/lib/components/Drawer.svelte (root cause), src/lib/components/AppShell.svelte (symptom location).
+
+** TODO Add scrollable content wrapper in Drawer.svelte (flex:1, min-height:0, overflow-y:auto)
+
+** TODO Verify both drawers (settings, players/scoreboard) scroll on small viewports
+
+* TODO Build browser quiz curation/editor workflow :p2:frontend:runtime:tooling:
+:PROPERTIES:
+:ID:       quackster-26
+:END:
+
+
+Browser-first curation for self-host admins and quiz hosts. Existing Svelte /curate UI talks to Rust API; canonical YAML remains source of truth. A saved quiz is one game_<slug> GameConfig with one grid_quiz board. Drafts are backend-memory QuizDrafts with random URL IDs, incomplete state, debounced autosave, revision checks, TTL/cap cleanup, and do_not_delete protection; drafts vanish on restart and cannot be played. Save all validates the candidate, saves staged media and changed question files before the game file, keeps independently saved questions if game save fails, reloads the dataset, and leaves existing rooms on their old snapshot. Full question reads stay public under trusted-instance model; mutations use admin_secret when configured and are open when it is not. Board eligibility depends on current open-variant runtime behavior; variant resolution is tracked separately in quackster:12 and is not part of this feature. No pack-first UX, TUI, raw YAML editor, accounts, or translation editor in first version.
+
+** TODO Define serialized DTOs and REST contracts for public question/game/tag/media reads, QuizDrafts, revisions, grouped validation errors, Save all, uploads, and reload
+
+** TODO Add writable content service for managed YAML files: preserve existing file, create new content under data/questions/managed/ and data/games/managed/, reject ID collisions, scan references before delete, and keep loaded data valid
+
+** TODO Add dataset snapshot handle and automatic reload after successful Save all; existing rooms retain their captured dataset while new rooms see reloaded content
+
+** TODO Implement backend QuizDraft registry with random IDs, incomplete drafts, debounced-update endpoint support, TTL plus hard cap, do_not_delete exemption, restart loss, and optimistic revision checks
+
+** TODO Implement staged local-media uploads under draft storage, generated safe filenames under data/media/uploads/, promotion during Save all, and abandoned staged-file cleanup
+
+** TODO Implement candidate validation and Save all ordering: grouped blocking field/cross-file errors, nonblocking source/license warnings, media then questions then game, partial-save recovery status, and automatic reload
+
+** TODO Implement public question discovery API with case-insensitive search across prompt/answer/explanation/choices/items plus kind/tag/variant/media filters
+
+** TODO Build Svelte /curate question editor for text/numeric/order and current variants, media upload/ref fields, existing-tag pickers, immutable IDs, clone-for-kind-change, canonical-language editing, reference-impact warnings, and preview
+
+** TODO Build Svelte quiz editor with custom board dimensions, 4x4 defaults, editable categories/points, explicit question placement, current-playability filtering, rule presets plus advanced overrides, board/question preview, and draft status
+
+** TODO Connect saved-game listing, Save all, partial-save recovery, and room launch; reject launch for unsaved drafts and surface grouped validation/media errors
+
+** TODO Add backend and frontend tests for draft lifecycle, revisions, TTL/cap/protection, staged media, reference checks, partial saves, reload snapshots, board validation, public search, and saved-only launch
+
+*** Related
+- [[id:quackster-12]]
+- [[id:quackster-5]]
+
+* TODO Add second gamemode to validate gamemode-agnostic claim :p3:gamemodes:
+:PROPERTIES:
+:ID:       quackster-4
+:END:
+
+
+Only grid_quiz exists today (gamemodes/grid_quiz/manifest.yaml + boards/). The architecture claims the content pool + board/query layers are gamemode-agnostic — adding #2 proves it. It ALSO forces the Gamemode trait extraction: game/mod.rs explicitly says 'Extract a Gamemode trait only when gamemode #2 lands. One impl != a trait.' Today grid_quiz logic is hardcoded inside the room loop.
+
+Candidate gamemodes (from project README): classic, battle royale, survival, music quiz, quiz duel/jeopardy, who wants to be a millionaire, higher or lower. Pick the one that best stress-tests a DIFFERENT axis than grid_quiz (grid_quiz = board + MC + buzz). E.g. classic quiz exercises plain sequential MC without the board; numeric_input/range exercises non-MC kinds.
+Files: gamemodes/, api/src/game/mod.rs, api/src/game/room.rs
+
+** TODO Pick gamemode #2 (recommend classic quiz — simplest, exercises sequential MC without board complexity)
+
+** TODO Extract Gamemode trait out of the hardcoded grid_quiz logic in room.rs
+
+** TODO Author manifest.yaml + boards for #2 under gamemodes/<slug>/
+
+** TODO Verify accepts/requires filters + content query feed it correctly
+
+* TODO new-question scaffolding script :p3:tooling:
+:PROPERTIES:
+:ID:       quackster-5
+:END:
+
+
+No scaffolding exists. Adding a question by hand means remembering ID format (q_<slug>), required fields, correct: true markers, SPDX license from allowlist, tag refs (category:slug), media ref shape (prefix:value). A scaffold script reduces friction and enforces conventions.
+
+Per data-model.md: IDs are public API — no rename/delete without a deprecation marker. So the slug picked at creation time is permanent; the script should validate uniqueness + format up front.
+Files: data/questions/ (output), data/i18n/<lang>/ (optional overlay stub)
+
+** TODO Choose runner: cargo binary vs shell script vs pnpm script
+
+** TODO Generate data/questions/q_<slug>.yaml with required-field template
+
+** TODO Validate slug uniqueness across data/questions/ + ID format (q_<slug>)
+
+** TODO Optional: i18n overlay stub under data/i18n/<lang>/ (translatable fields only)
+
+* TODO Add room persistence so rooms survive server restart :p3:runtime:
+:PROPERTIES:
+:ID:       quackster-8
+:END:
+
+
+Rooms are purely in-memory: AppState.rooms is a DashMap<JoinCode, RoomHandle> where each RoomHandle wraps a tokio task owning a GameState (api/src/state.rs, api/src/game/room.rs). On server restart every room is lost — join codes go 404, reconnect tokens are invalid, all scores gone. Players cannot recover.
+
+Need to persist enough that (a) reconnect by token still works after a restart and (b) the room resumes or at least cleanly notifies. Reconnect tokens currently live only in-memory player_slots, so persistence must cover GameState including the token->PlayerSlot map and grants.
+Files: api/src/game/room.rs, state.rs, grants.rs, project.rs; api/src/state.rs
+Spec: docs/architecture.md (concurrency model — persistence must respect the per-room-actor ownership rule).
+
+** TODO Decide store: SQLite (rusqlite, queryable reconnect) vs JSON snapshot vs sled — recommend SQLite
+
+** TODO Persist GameState on mutation (room task writes through; respect single-owner rule)
+
+** TODO Restore rooms + re-spawn actor tasks on boot
+
+** TODO Reconnect-by-token must survive restart (persist token->PlayerSlot map + grants)
+
+* TODO Game chaining — play multiple games sequentially in a room :p3:runtime:
+:PROPERTIES:
+:ID:       quackster-9
+:END:
+
+
+create_room takes a single game_id (api/src/http/rest/rooms.rs), so a room plays one game and then has nothing to transition to. Want a queue/playlist: a room holds an ordered list of games and advances to the next on game-end, broadcasting the new phase.
+
+Games are listed by GET /games (api/src/http/rest/games.rs) — that already exposes id/title/description/modes. The room model (api/src/game/state.rs) currently holds one GameConfig; it needs to hold a queue + current index, and the room loop (room.rs) needs an on-game-end transition. Moderator controls (advance/skip) belong in the Command enum (protocol.rs).
+Files: api/src/game/state.rs, api/src/game/room.rs, api/src/http/rest/rooms.rs, api/src/protocol.rs
+
+** TODO Model: room holds ordered game queue + current index (state.rs)
+
+** TODO Transition: on game-end advance to next + broadcast new phase (room.rs)
+
+** TODO REST: create_room accepts a list of game_ids (rooms.rs)
+
+** TODO Controls: moderator Advance/Skip command in Command enum (protocol.rs)
+
+* TODO Parallelize YAML data loading with rayon :p3:runtime:
+:PROPERTIES:
+:ID:       quackster-11
+:END:
+
+
+Loading is fully sequential today. Two parallelism surfaces in api/src/data/loader/mod.rs:
+
+1. Per-file parse: load_yaml_dir does `files.iter().map(parse_file).collect()` — each file is read_to_string + serde_yaml::from_str independently. rayon par_iter drops in here cleanly. Biggest win: file IO + YAML decode are the expensive parts, and parse_file already returns Parsed<T> without touching shared state.
+
+2. The 5 kind loads (questions, packs, tags, games, overlays) in load_dataset are independent of each other and could run concurrently too, but the per-file win dominates since most kinds have many files.
+
+On the "parse into a Vec instead of a HashMap to parallelize" idea: collect_registry already folds a Vec<Parsed<T>> into the HashMap sequentially, so this is structurally already true here — the registry/dedup step is the sequential tail, rayon parallelizes the parse step that feeds it. No need to restructure the registry into a Vec; the dedup-by-id pass must stay sequential anyway (it needs the map to detect duplicates).
+
+Caveat: dataset is ~20 questions now, perf irrelevant at this scale. Worth doing only if/when content grows (hundreds+ files) or boot latency shows up. Profile before optimizing.
+
+Files: api/src/data/loader/mod.rs (load_yaml_dir, load_dataset, parse_file)
+Spec: docs/data-model.md §Validation (runs at server start).
+Dep: rayon (add to api/Cargo.toml).
+
+** TODO Profile current boot load time before optimizing
+
+** TODO Add rayon dep + parallelize per-file parse in load_yaml_dir (par_iter over files)
+
+** TODO Benchmark before/after to confirm the win
+
+** TODO Consider parallelizing the 5 kind loads in load_dataset if per-file win insufficient
+
+* TODO Disclaimer: turn-based grid_quiz rounds can be unfair for some player counts :p3:frontend:
+:PROPERTIES:
+:ID:       quackster-19
+:END:
+
+
+With TurnOrder/rotation (picker_rotation in api/src/game/state.rs, PickerMode::Rotate in api/src/data/types/game.rs), a board whose cell count is not divisible by the player count gives some players more picks/floors than others — e.g. 20 cells with 3 players. Show a disclaimer to the host when the selected board size and player count don't divide evenly under a turn-based strategy, so unfair setups are a conscious choice.
+
+Depends on quackbox:18 (strategy support) — the warning should trigger on the actual configured strategy, not the current hardcoded behavior. Files: frontend host/lobby view (src/lib/components/AppShell.svelte or room page), board/rules data available from ClientView.
+
+** TODO Compute cells % players for the configured board when strategy is turn-based
+
+** TODO Show non-blocking disclaimer in host lobby/setup UI when uneven
+
+* TODO Grid quiz tiles too narrow, category titles wrap ugly :p3:frontend:gamemodes:p2:
+:PROPERTIES:
+:ID:       quackster-20
+:END:
+
+
+BoardSelect.svelte: .grid caps at width: min(80rem, 100%) with minmax(0,1fr) columns; .col-head uses overflow-wrap: break-word + hyphens: auto, so long category names hyphen-break mid-word at awkward points and cells end up narrow on mid-size screens. Wanted: wider tiles and no ugly title wrapping — e.g. larger min column width with horizontal scroll fallback, or text-wrap: balance / ellipsis + title tooltip for col-heads instead of hyphenation. File: src/lib/components/game/BoardSelect.svelte (styles ~lines 84–140).
+
+
+Drawer.svelte renders children directly into .drawer (fixed, flex column) with no scroll container — no overflow-y: auto and no min-height: 0 on the content area. When the player list / scoreboard in AppShell.svelte exceeds viewport height (mobile), overflow is clipped and can't scroll. Fix in Drawer.svelte so all drawer content (settings drawer too) scrolls: wrap children in a flex:1; min-height:0; overflow-y:auto container. Files: src/lib/components/Drawer.svelte (root cause), src/lib/components/AppShell.svelte (symptom location).
+
+** TODO Add scrollable content wrapper in Drawer.svelte (flex:1, min-height:0, overflow-y:auto)
+
+** TODO Verify both drawers (settings, players/scoreboard) scroll on small viewports
+
+* TODO Add browser YAML editor for power admins :p3:frontend:tooling:
+:PROPERTIES:
+:ID:       quackster-27
+:END:
+
+
+Future power-admin workflow, after structured curation editor. Raw YAML editing remains an advanced path, not the primary host UX. Keep Rust loader/validation as source of truth; never bypass candidate validation, file safety, revision checks, dependency warnings, or automatic dataset reload. Restrict browser file access to known content files and managed directories; no arbitrary paths. Coordinate with JSON Schema/LSP work where useful.
+
+** TODO Define safe content-file browsing and editing scope for existing YAML files and managed directories
+
+** TODO Add raw YAML draft state with syntax highlighting, parse errors, schema/cross-file validation, and revision conflict handling
+
+** TODO Add dry-run candidate load with grouped field/reference errors and nonblocking provenance warnings before write
+
+** TODO Commit validated YAML atomically per file, preserve delete/reference safeguards, and reload dataset without disturbing active room snapshots
+
+** TODO Build Svelte power-admin route with file navigation, editor, diff/preview, validation output, and explicit save controls
+
+** TODO Add tests for malformed YAML, schema errors, path traversal, stale revisions, invalid references, successful reload, and active-room snapshot isolation
+
+*** Related
+- [[id:quackster-3]]
+
+* TODO Add translation editor workflow :p3:frontend:tooling:runtime:
+:PROPERTIES:
+:ID:       quackster-28
+:END:
+
+
+Future locale/overlay editor for questions and other translatable content. Canonical content stays authoritative; editor writes mirrored data/i18n/<locale>/ overlays only. Preserve correctness, numeric answers, positions, variant configuration, IDs, tags, licenses, sources, and other non-translatable fields. Show fallback/completeness clearly and validate overlays through Rust before reload.
+
+** TODO Define translatable-field rules and overlay DTOs for questions, games, packs, tags, and localized media
+
+** TODO Build locale/catalog and translation-status API with canonical text, current overlay, fallback source, and missing-field reporting
+
+** TODO Build Svelte translation route with locale selection, canonical read-only context, editable overlay fields, and non-translatable-field guards
+
+** TODO Support mirrored overlay file creation/update under data/i18n/<locale>/ with generated safe paths, ID/reference checks, revisions, and staged media
+
+** TODO Preview translated question/board content with locale fallback and clearly mark untranslated canonical text
+
+** TODO Validate overlay candidates, report schema/merge/reference errors, reload dataset after save, and preserve active-room snapshots
+
+** TODO Add tests for overlay restrictions, partial translations, fallback, locale media replacement, stale edits, invalid IDs, and save/reload behavior
+
+* TODO Add inline media trimming :p3:frontend:runtime:tooling:
+:PROPERTIES:
+:ID:       quackster-29
+:END:
+
+
+When admins upload local audio/video media through the curation UI, they can currently only set a trim by editing raw fields. Add an in-browser trimmer that selects start/end timestamps, previews playback, and writes clip bounds on save. Backend still owns final clip encoding/transcoding (yt-dlp for YouTube, ffmpeg or browser-recorded MP4 for uploads). Do not bypass loader media validation, size caps, or local file safety.
+
+** TODO Define trim metadata (start/end seconds, kind) for local audio/video uploads and store alongside staged files
+
+** TODO Build browser waveform/playhead picker for upload preview with start/end handles and playback controls
+
+** TODO Send trim bounds during draft media promotion and persist on upload before validation
+
+** TODO Encode/transcode trimmed asset server-side via ffmpeg and swap canonical file path with the generated filename
+
+** TODO Reject trim bounds outside asset duration, return validation errors in grouped save flow
+
+** TODO Add tests for trim metadata, server-side encoding, oversized uploads, persistence, and reuse across drafts
+
+*** Related
+- [[id:quackster-26]]
+
+* TODO Add YouTube video selection :p3:frontend:tooling:
+:PROPERTIES:
+:ID:       quackster-30
+:END:
+
+
+Let admins pick a YouTube clip during question authoring by pasting a URL, previewing it in-browser, dragging clip handles, and saving as a youtube: ref with start/end bounds. Backend uses existing yt-dlp pipeline to fetch only the segment. Do not bypass media validation, ref grammar (start/end only, no pasted tracking junk), or staged upload discipline.
+
+** TODO Add YouTube URL parser that extracts video ID and rejects tracking junk
+
+** TODO Build browser preview with iframe playback and draggable start/end handles
+
+** TODO Translate handles to youtube: ref with start/end query bounds during Save all
+
+** TODO Preview the resolved clip path, server-side yt-dlp status, and surfaced failures
+
+** TODO Restrict to kind:audio|video; reject kind:image and refs that violate start<end
+
+** TODO Add tests for URL parsing, handle bounds, ref grammar, kind restrictions, and yt-dlp trigger
+
+*** Related
+- [[id:quackster-26]]
+- [[id:quackster-25]]
+
+* DONE Expose locked_out in GridQuizView projection :runtime:p1:
+:PROPERTIES:
+:ID:       quackster-14
+:END:
+
+
+Add locked_out: Vec<String> (player names) to GridQuizView in api/src/protocol.rs, populate in api/src/game/project.rs from grid_quiz.locked_out (map Token->name like active_picker/floored already do). Regenerate ts-rs bindings. Needed by QuestionOpen frontend: client must know if self is locked out to hide buzzer / show locked message instead of hammering a dead button. Decided in game-loop grill (option 1: public locked_out list).
+
+* DONE Project judgment log into ClientView :runtime:p1:
+:PROPERTIES:
+:ID:       quackster-15
+:END:
+
+
+Add a projected judgment log to ClientView (api/src/protocol.rs + api/src/game/project.rs). Each entry maps server Judgment -> { game_idx, player (name), question_id, submission (string|null), verdict, points, supersedes (number|null) }. Public to all grants (no leak in spoken slice: submission None, verdicts/points already public via scores + Reveal). Enables: Reveal verdict narrative, green/red flash on latest verdict, mod overrule/revisie UI in the mod-actions drawer. Full log, not just latest (history needed for overrule). Regenerate ts-rs bindings. Decided in game-loop grill.
+
+* DONE Frontend: game-loop shell (drawers, helpers, navbar) :frontend:p1:
+:PROPERTIES:
+:ID:       quackster-16
+:END:
+
+
+Frontend-only shell work, no backend dependency. Lands before phase components.
+
+Decisions (from game-loop grill):
+- Pure render (Q1=B): no optimistic pending; click -> toast-on-send + click-disable (c-lite) until snapshot arrives.
+- Grants (Q-grants): derived has() helper on room state; section composition not role views.
+- Per-phase components in src/lib/components/game/; room page owns WS + phase switch (Q2=a).
+- Inline mod actions per phase + GLOBAL mod-actions drawer for EndGame/overrule/grants (Q4 refined).
+- Drawer component: header snippet API (always pass header), all slide from right.
+- Tabbed data drawer: Players/Scoreboard tabs; scoreboard ALWAYS visible with 'game not started' empty state; sticky tab default (no contextual switching).
+- Three navbar buttons: data(players+scoreboard tabs), mod(Moderate-gated), settings(burger).
+- Kick stays in players drawer (per-row); GameOver = standings only.
+- GridQuiz only (Linear bindings empty).
+
+Files: src/lib/components/AppShell.svelte (refactor), src/lib/room.svelte.ts (has helper), src/lib/components/Drawer.svelte (new), src/lib/components/game/ (new dir).
+
+** DONE Extract has() grant helper to room.svelte.ts + player-list helpers (playerColor, initial) to shared util
+
+** DONE <Drawer> component (header snippet API, all slide right); refactor existing settings + players drawers onto it
+
+** DONE Tabbed data drawer: Players/Scoreboard tabs, scoreboard always visible with 'game not started' empty state, sticky tab
+
+** DONE Mod-actions drawer shell (Moderate-gated): EndGame button now; overrule/grants slots when #15 lands
+
+* DONE Frontend: phase components (tandem with backend apply()) :frontend:p1:
+:PROPERTIES:
+:ID:       quackster-17
+:END:
+
+
+Phase-by-phase, one component at a time, paired with backend apply() implementation (user drives Rust, I drive Svelte). Spoken-answer Jeopardy slice: buzz + Rule{verdict} + Next. Deferred from slice: typed Answer, Auto judge, timers, Pending state, Grant UI.
+
+Decisions per phase (from grill):
+- Lobby: center player list (reuse helpers), StartGame (mod, inline), 'waiting for host' msg (non-mod), disconnected grayed.
+- BoardSelect: grid (categories=cols, points=rows), picker banner ('Your turn' vs '[X] is choosing'), canPick = has(Moderate)||active_picker===self, per-cell pending disable on PickCell click.
+- QuestionOpen (buzz slice): render by priority (floored=self / floored=other / buzz-open+self / buzz-open+locked-out / buzz-open+no-Play / Moderate sees answer+Rule). No answer input (spoken). DEPENDS on #14 (locked_out field) for locked-out UX.
+- Reveal: correct answer to all (server populates in Reveal), explanation, standings, inline Next (mod). DEPENDS on #15 (judgment log) for verdict narrative + green/red flash (keyed CSS animation on latest judgment index).
+- GameOver: final sorted standings, no actions.
+
+Flash green/red mechanic: pure-render compatible via CSS animation keyed on latest judgment index (element remount triggers animation). Wire at build time.
+
+Files: src/lib/components/game/{Lobby,BoardSelect,QuestionOpen,Reveal,GameOver}.svelte (new), src/routes/room/[code]/+page.svelte (phase switch).
+
+** DONE Lobby component (center player list, StartGame mod-inline, waiting msg non-mod, disconnected grayed)
+
+** DONE BoardSelect component (grid, picker banner, per-cell pending disable on PickCell)
+
+** DONE QuestionOpen component (buzz slice: floored/buzz/locked-out states, inline Rule for mod) - needs #14
+
+** DONE Reveal component (answer to all, standings, inline Next for mod, green/red flash) - needs #15
+
+** DONE GameOver component (final sorted standings, no actions)
+
+* DONE Media playback: yt-dlp segments + mod-controlled playback :p1:runtime:frontend:
+:PROPERTIES:
+:ID:       quackster-24
+:END:
+
+
+Client never sees youtube refs. Server downloads segments via yt-dlp (feature-flagged), serves like local media. Mod triggers playback on Present screens via nonce in view state. Decisions: no autoplay; play/replay only (no pause/seek); flag off -> boards with youtube refs filtered from BoardSelect; download fail -> media None + warn log; choice/order media skipped (unused in data); cache eviction skipped. Files: api/src/config.rs, api/src/protocol.rs, api/src/main.rs, api/src/game/, src/lib/components/game/MediaDisplay.svelte, src/lib/bindings/Protocol.ts (regen via cargo test).
+
+** DONE Protocol: delete MediaSrc, MediaView src: String; add Command::PlayMedia (Moderate); media_play_count nonce in GridQuizView; regen bindings
+
+** DONE Config: APP_YTDLP_ENABLED, APP_YTDLP_PATH (optional, default PATH lookup), APP_MEDIA_CACHE_DIR (default ./cache/yt); hard-fail startup if enabled + binary missing
+
+** DONE yt-dlp fetcher: disk cache videoid_start_end.ext, audio extract vs mp4, --download-sections; static route for cache dir; async prefetch on board select; not-ready -> media None + warn
+
+** DONE Board filtering: flag off -> drop boards containing youtube refs from board select, startup log
+
+** DONE Frontend MediaDisplay: rewrite for tagged MediaView, drop youtube/iframe path, #t= start + timeupdate end guard
+
+** DONE Frontend mod play/replay button during question_open -> PlayMedia
+
+** DONE Frontend Present reaction: effect on nonce bump -> seek start + play().catch()
+
+* DONE Clip bounds youtube-only: move start/end into ref query, drop dead media fields :p1:runtime:frontend:
+:PROPERTIES:
+:ID:       quackster-25
+:END:
+
+
+Decided (grilled): clip bounds live in ref as youtube:<id>?start=<s>&end=<s> (decimal seconds, only start/end params, non-negative, start<end, one-sided OK), normalized to ms internally. Media loses start_ms/end_ms/duration_ms (duration_ms consumed nowhere). kind:image + youtube: ref = validation error. MediaView drops the 3 fields (always None after rule: yt segments pre-cut, local/url forbidden); client clip path (#t= fragment + timeupdate) dies. Local/url clipping dead forever — future web editor trims at creation time. Files: api/src/data/types/media.rs, api/src/media.rs, api/src/protocol.rs, api/src/game/project.rs, src/lib/components/game/MediaDisplay.svelte, data/questions/music/youtube_hits.yaml, docs/data-model.md
+
+** DONE types/media.rs: drop start_ms/end_ms/duration_ms; parse+validate ?start/?end on youtube refs; reject image+youtube
+
+** DONE api/src/media.rs: derive bounds from ref; cache_name from normalized ms; drop Image download arm; update tests
+
+** DONE protocol.rs + game/project.rs: drop fields from MediaView, remove clipped logic; regen ts-rs bindings
+
+** DONE MediaDisplay.svelte: remove startS/endS/fragment/onTimeUpdate; PlayMedia seeks to 0
+
+** DONE migrate youtube_hits.yaml refs to ?start=&end= seconds
+
+** DONE docs/data-model.md: document query param rules, drop duration_ms example, note image+youtube invalid
+
+* DONE Redesign AnswerView: per-variant correctness tagged enum + domain accessors :p2:runtime:
+:PROPERTIES:
+:ID:       quackster-13
+:END:
+
+
+Redesign the reveal path so correctness is one-variant-per-question (not a flat Option soup), with domain extraction on Question and pure translation in projection.
+
+Resolved design (grilled 2026-07-12):
+- Wire: AnswerView { correctness: CorrectnessView, explanation }, CorrectnessView tagged enum (MC/Open/TrueFalse/Numeric/Order arms). OrderPositionView named struct.
+- Domain: Correctness enum (no serde) + Question::correctness(variant) -> Option<Correctness>. CorrectnessView: From<Correctness>.
+- Fix gap: TrueFalseVariant was empty {}, no field stored correct answer. Add correct: bool.
+- Accessors on Question mirroring prompt(): explanation(), default_lang(), mc_choices(), range(), order_items().
+- project.rs becomes pure translation; delete build_answer/mc_choices/range_field helpers.
+- Choice.correct: Option<bool> stays in data (derives correct_ids).
+- Order arm present in shape now; variant resolution wiring is todo 12.
+
+Files: api/src/data/types/question.rs, api/src/protocol.rs, api/src/game/project.rs, docs/data-model.md
+
+** DONE Fix TrueFalseVariant: add correct: bool field (was empty {})
+
+** DONE Add domain Correctness enum + Question::correctness(variant) -> Option<Correctness>
+
+** DONE Add Question accessors: explanation(), default_lang(), mc_choices(), range(), order_items()
+
+** DONE protocol.rs: replace flat AnswerView with wrapper struct + CorrectnessView tagged enum + OrderPositionView
+
+** DONE impl From<Correctness> for CorrectnessView
+
+** DONE project.rs: rewrite build_question_view against accessors + From; delete build_answer/mc_choices/range_field helpers
+
+** DONE docs/data-model.md: document true_false.correct field
+
+** DONE Tests: TrueFalse correctness round-trip (data->Correctness->CorrectnessView)
+
+** DONE Tests: TrueFalse strip-when-disabled (extends project.rs trust-boundary suite)
+
+** DONE Tests: accessor coverage per kind (correctness + explanation + default_lang)
+
+* DONE Rejoin broken: new room, same player name — joins, visible, then immediate 'You are no longer in this game.' :p2:frontend:runtime:
+:PROPERTIES:
+:ID:       quackster-22
+:END:
+
+
+Observed repro: player joins first game fine. Afterwards, NEW rooms joined with the same player name: connect succeeds, player shows up in the room, then immediate disconnect with 'You are no longer in this game.'
+
+Code analysis so far:
+- That exact message comes from the write_task snapshot loop in api/src/http/ws.rs (~line 148): a snapshot arrived whose player_slots has no entry for this connection's token.
+- Slots are only ever REMOVED by Command::Kick; RoomMessage::Disconnect just sets connected=false (api/src/game/room.rs ~128). So either the write_task got a token the room never issued, or the slot was created and then vanished.
+- Suspicion (user): frontend token save logic in src/lib/session.ts / src/routes/room/[code]/+page.svelte. Note localStorage uses a single 'room' key — two tabs in the same browser (host + player, common in testing) overwrite each other's session, and a stale token can leak into Reconnect/Authed.
+- Related earlier finding: after a failed Reconnect the server closes the socket and client onclose does goto('/'), masking the real error flow.
+
+Files: src/lib/session.ts, src/routes/room/[code]/+page.svelte, api/src/http/ws.rs, api/src/game/room.rs
+
+** TODO Reproduce: join game, finish, create new room, rejoin with same name; log token sent vs token in Joined
+
+** TODO Audit session save/clear flow on room change (onMount saveSession, Joined handler, Error handler)
+
+** TODO Consider keying session storage per room code (multi-tab host+player overwrites single 'room' key)
+
+** TODO Fix onclose goto('/') masking auth errors (keep dialog flow on same page)
+
+* DONE Load issues for broken game YAMLs not surfaced / one case produced no issue at all :p2:runtime:
+:PROPERTIES:
+:ID:       quackster-23
+:END:
+
+
+Loader turns YAML parse/validation failures into LoadIssues and drops the file from the registry (api/src/data/loader/mod.rs parse_file → Parsed::Err, collect_registry). main.rs tracing::warn!s each issue and starts anyway — broken game just vanishes from the list.
+
+Decision: NO hard fail (user). Instead surface issues visibly, and investigate the unreproduced silent case.
+
+Repro attempts (2026-07-20, data/games/zz_broken_test.yaml): unknown field → warned (deny_unknown_fields IS set on GameConfig and nested types in api/src/data/types/game.rs); missing required field → warned; multi-document '---' file → warned ('more than one document is not supported'). So the reported case (file with '---', not schema compliant, zero issues) did NOT reproduce — need the original broken file, or the issue was only invisible because warnings live in server logs nobody watches.
+
+** TODO Get/recreate the original broken game YAML that produced zero issues; find why it slipped through
+
+** TODO Surface load issues beyond startup logs — e.g. /api endpoint exposing dataset.issues + frontend indicator
+
+** TODO Make skipped-file consequence explicit in the warning (e.g. 'game_x skipped — not available in game list')
+
+* DONE Add QR code in frontend for room join :p3:frontend:
+:PROPERTIES:
+:ID:       quackster-10
+:END:
+
+
+The room join page (src/routes/room/[code]/+page.svelte) should show a QR encoding the join URL (or just the code) so players can scan in from the big screen. No QR library is installed yet — this needs a new dependency.
+
+A pure-JS lib that renders to SVG is the lightest fit (no canvas, scales cleanly). Encode the full join URL so a phone camera lands directly on the room page; the moderator/host view is the natural place to show it.
+Files: src/routes/room/[code]/+page.svelte (new dep in package.json)
+
+** TODO Add dep: qrcode (npm) — pure JS, SVG output, no canvas needed
+
+** TODO Encode the join URL (or code) into a QR on the room page
+
+** TODO Show on host/moderator view (big-screen scan-in)

@@ -700,51 +700,71 @@ questions are playable — it does **not** choose which variant is played. That 
 
 ### Variant resolution
 
-The play variant is declared at the **game definition** (board / pack / filter),
-never on the question — the question is a raw fact; how it is played is a
-presentation choice (three-layer rule). Each resolved question-slot carries one
-`VariantName`, stored alongside the question id (board grid, linear question
-list, live `CurrentCell`).
+A question may declare a `preferred_variant` — the variant it should play as
+by default. A board cell may override that on a per-question basis. If
+neither applies (or the chosen variant isn't defined on the question), the
+kind default is used. The choice is made at **materialize time** (board
+build, linear resolve, room state init) and stored alongside the question id
+as a `QuestionSlot` (board grid, linear question list, live `CurrentCell`).
 
-The variant is chosen at **materialize time** (board build, linear resolve,
-room state init) by source:
+**Precedence (top wins):**
 
-- **Explicit `question_ids`** — variant is **required** per entry. Hand-picking
-  a question means stating how to play it.
-- **`pack_ref`** — the pack may declare a pack-general `variant`; optional.
-- **`filter`** — the filter may declare a `variant`; optional.
-- **None declared** — uniform random pick among the question's variants that
-  pass the gamemode's `accepts` gate.
+1. **Board cell override** — a `BoardCell` with an explicit `variant` (and
+   that variant defined on the question) wins over every other source.
+2. **Question declared** — `preferred_variant` on the question, if defined.
+3. **Kind default** — the kind's default variant (`open` for text, not
+   applicable for numeric yet, `none` for order which has no variant
+   dimension).
+4. **Fallback** — if the kind default isn't defined on the question (e.g.
+   a numeric question with no `open` variant), pick the first available
+   variant in deterministic order (`multiple_choice`, `true_false`,
+   `numeric_input`, `range`).
 
-The chosen variant must be defined on the question and in `accepts.variants`.
-For explicit slots a missing or incompatible variant is a config error; for
-pack/filter/random sources resolution picks only from accepted variants.
+`Order` questions carry `variant = None` — they have no variant dimension.
+
+**Planned (not yet implemented):** pack-level `variant` override on
+`pack_ref`/`filter` sources, then uniform random fallback as the final
+layer. Precedence will be pack-override > board-cell > question-declared
+> random.
 
 ```yaml
-# board category — explicit question_ids carry a required variant per point
+# question — author declares the default play variant
+id: q_atom_nucleus
+kind: text
+preferred_variant: open  # optional; falls back to kind default if absent
+tags: [subject:chemistry]
+content:
+  default_lang: en
+  prompt: { text: 'What is the charge of an electron?' }
+  answer: 'negative'
+  variants:
+    multiple_choice:
+      choices:
+        - { id: neg, text: 'negative', correct: true }
+        - { id: pos, text: 'positive' }
+    open:
+      accepted: ['negative', '-']
+```
+
+```yaml
+# board cell — explicit question + optional variant override per cell
 categories:
   - name: Chemistry
     question_ids:
-      100: { id: q_atom_nucleus, variant: multiple_choice }
-      200: { id: q_acid_base, variant: open }
+      100: { id: q_atom_nucleus, variant: open }       # board override
+      200: { id: q_acid_base, variant: numeric_input } # board override
+      300: { id: q_chemical_oxygen_ozone }            # no override → default
+      500: { id: q_periodic_helium }                  # no override → default
 ```
 
-```yaml
-# pack — optional pack-general play variant (applies to every resolved question)
-id: pack_school_trivia
-variant: multiple_choice
-questions: […]
-```
+A board cell's override must reference a variant the question defines;
+cross-file validation flags a dead override as a load issue.
 
-```yaml
-# filter — optional play variant for the questions it resolves
-filter:
-  tags_any: [subject:capitals]
-  variant: open
-```
-
-The full pool-building algorithm (pack filter evaluation, dedup, shuffle, and
-seeding) is defined in the loader section once that exists.
+Resolution rule lives in `api/src/data/types/question.rs`
+(`Question::resolve_variant`) and is invoked by `build_board` /
+`resolve_linear` at materialize time. The chosen variant flows into the
+`QuestionSlot` carried by the live `CurrentCell`, which is what projection
+and judgment read.
 
 Gamemodes that care about difficulty consume it via tags (e.g. Survival could
 request `tags_any: [difficulty:easy, difficulty:general]` for the first round,

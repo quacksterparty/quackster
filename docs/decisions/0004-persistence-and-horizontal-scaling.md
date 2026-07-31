@@ -107,8 +107,9 @@ confirm renewals), not a dumb `200`, or the fast gate is lost.
 ## Storage: `Store` trait — SQLite self-host, Postgres cluster
 
 One `Store` trait, narrow surface (`snapshot_room`, `load_room`,
-`list_rooms_for_recovery`, plus Postgres-only lease `claim`/`renew`/`reclaim`).
-The fork falls exactly on the line where the _problem_ forks:
+`list_rooms_for_recovery`, `persist_history`, `sweep_stale_rooms`, plus
+Postgres-only lease `claim`/`renew`/`reclaim`). The fork falls exactly on the
+line where the _problem_ forks:
 
 - **`SqliteStore` (self-host)** — snapshot/load only. One file, offline-perfect,
   keeps `docs/decisions/0003` honest (no Postgres in the offline path). Single
@@ -125,6 +126,96 @@ complexity. Chosen over Postgres-everywhere (one code path, but a heavier
 two-container self-host that breaks the single-binary-plus-a-file instinct) and
 over SQLite-shared-via-LiteFS (single-writer; serializes every lease CAS through
 one node, reintroducing the SPOF HA removes).
+
+### The room snapshot is an opaque blob, never normalized
+
+A live room is **one JSON blob in one `TEXT` column**, keyed by join code. It is
+not shredded into `players`/`judgments`/`cells` tables, and the schema never
+grows a column to describe gamestate. `GameState` is a document with a single
+owner, no cross-room queries, no joins — SQL is used here for the key-value
+store and (in the cluster) the fence CAS, nothing else. **SQL models results,
+not gamestate.**
+
+- **Self-contained.** The blob holds the whole `GameState`, resolved
+  `GameConfig` (board, questions, correct answers) included. Restore is
+  byte-identical to what players saw — no re-resolution from YAML, so a content
+  edit mid-game, or two pods running images with different `data/`, cannot swap
+  the board under a live room. Costs a few KB per room; buys the removal of an
+  entire failure mode.
+- **Timer deadlines are wall-clock epoch millis**, never `Instant` — `Instant`
+  is neither serializable nor meaningful in another process.
+
+### No versioning, no migrations for `rooms` — strict serde instead
+
+A snapshot's useful life is **one quiz session (~40 min)**. Migration machinery
+for data that never outlives an afternoon is museum code, so `load_room` returns
+`Option<GameState>`: a decode failure is a **dead room**, not a fatal error — log
+`warn!`, `DELETE` the row, return `None`, and the client dialing that code gets
+"room gone."
+
+That only stays safe if a schema change can never decode _successfully but
+wrongly_. Rename `locked_out` → `lockouts` with a `#[serde(default)]` and the
+room resumes with nobody locked out — silent corruption, and a
+`schema_version` column would only guard it by human discipline (remember to
+bump). Close the class mechanically instead: **`#[serde(deny_unknown_fields)]`
+on every persisted type and no `#[serde(default)]` anywhere in them.** Missing
+fields already error; `deny_unknown_fields` covers removals. Every shape change —
+additive, removal, rename — becomes the loud decode error the drop path already
+handles. (Consequence: no `#[serde(flatten)]` in these types, it is incompatible
+with `deny_unknown_fields`.)
+
+If a deploy during a live game ever becomes unacceptable (public instance, long
+tournaments), the upgrade is `ALTER TABLE rooms ADD COLUMN schema_version
+INTEGER NOT NULL DEFAULT 1` plus **migrate-on-read**: `load_room` sees an older
+version, applies untyped `serde_json::Value` patches, then decodes. Adding the
+column early buys nothing — it is a one-line retrofit.
+
+Explicitly **not** a batch "migrate all rooms before booting the new binary":
+ADR-0004's rolling update keeps old pods serving during the upgrade, and the old
+pod's next per-transition snapshot is a _validly fenced_ write that clobbers the
+migration. Making batch safe requires stop-the-world (`Recreate`, scale to 0),
+which discards the HA this ADR exists to buy. Migrate on read, where the room's
+single owner is the only writer, or not at all.
+
+## History and stats: the durable dataset, one crossing point
+
+Post-game history and question stats live in the **same DB and pool** as `rooms`
+(the engine is already there, so a separate store would be a second thing to
+operate for nothing) but under the **opposite policy**:
+
+|               | `rooms` (ephemeral)          | history/stats (durable)           |
+| ------------- | ---------------------------- | --------------------------------- |
+| shape         | one opaque JSON blob per row | real columns, indexed             |
+| lifetime      | ~40 min                      | forever                           |
+| schema change | **drop rows**, no migration  | `sqlx::migrate!`, real migrations |
+| write rate    | per state transition         | once per finished game            |
+
+Written down because the two policies are contradictory on purpose; a migration
+for the `rooms` table is a bug, not thoroughness.
+
+The two datasets meet in **exactly one place**: `persist_history(&GameState)`,
+called on game end, one transaction — project `judgment_log` into
+`games(id, gamemode, board_id, started_at, ended_at)` /
+`game_players(game_id, name, final_score)` /
+`answers(game_id, question_id, player, verdict, points)` with superseded entries
+folded out (history holds **live** rulings only, matching
+`docs/decisions/0002`), then `DELETE FROM rooms`. Chosen over archiving the final
+blob ("hardest question" would mean JSON-digging thousands of documents — SQL
+bolted on later anyway) and over dual-writing relational rows during play (two
+write paths for one fact, and the ephemeral/durable line blurs). The runtime is
+unchanged: the room task is still the single writer.
+
+- **Idempotent** — a crash between the insert and the room delete must not
+  double-count a game: `games.id` = join code + `started_at`, insert
+  `ON CONFLICT DO NOTHING`.
+- **Abandoned rooms never reach game end** (host closes the tab), so a sweeper
+  is required, not optional: rooms untouched beyond a TTL are
+  history-projected-then-deleted, or plain deleted if no question was ever
+  answered. Without it `rooms` grows forever _and_ stats silently omit every
+  rage-quit game.
+
+Deferred: live cross-game stats (the only goal that would justify dual-writing
+during play), and the sweeper's TTL value.
 
 ### sqlx: runtime queries, not the checked macros
 

@@ -1,5 +1,6 @@
 - id: q_atom_nucleus
   kind: text
+  preferred_variant: open
   tags: [subject:chemistry, subject:school, difficulty:easy, region:global]
   content:
     default_lang: en
@@ -56,6 +57,7 @@
 
 - id: q_acid_base
   kind: numeric
+  preferred_variant: numeric_input
   tags: [subject:chemistry, subject:school, difficulty:easy, region:global]
   content:
     default_lang: en

@@ -177,7 +177,7 @@ fn collect_youtube_refs(data: &Dataset, mode: &ModeState) -> BTreeMap<String, Me
             .iter()
             .flatten()
             .filter_map(|cell| match cell {
-                Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+                Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
                 Cell::Empty => None,
             })
             .collect(),
@@ -212,7 +212,7 @@ fn prefetch_board_media(
         .iter()
         .flatten()
         .filter_map(|cell| match cell {
-            Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+            Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
             Cell::Empty => None,
         })
         .collect();
@@ -234,7 +234,7 @@ fn retry_failed(
             .iter()
             .flatten()
             .filter_map(|cell| match cell {
-                Cell::Open(id) | Cell::Used(id) => Some(id.as_str()),
+                Cell::Open(slot) | Cell::Used(slot) => Some(slot.question_id.as_str()),
                 Cell::Empty => None,
             })
             .collect(),

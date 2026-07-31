@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, mem};
 
 use crate::{
+    data::QuestionSlot,
     game::{
         grants::Grant,
         grid_quiz::phase::{BoardStatus, BuzzOutcome, Lobby, Phase, Resolution},
@@ -85,14 +86,14 @@ impl GridQuizState {
                     .get(category)
                     .and_then(|column| column.get(point));
 
-                let Some(Cell::Open(question_id)) = raw_cell else {
+                let Some(Cell::Open(slot)) = raw_cell else {
                     return Err(CommandError::WrongCellType);
                 };
 
                 let cell = CurrentCell {
                     category,
                     point,
-                    question_id: question_id.clone(),
+                    slot: slot.clone(),
                 };
 
                 // TODO: this should respect different flooring strategies like OpenBuzz or
@@ -126,7 +127,7 @@ impl GridQuizState {
                 // could even allow or prevent updating your answer
                 return Ok(vec![Effect::Submit {
                     player: token,
-                    question_id: question_open.current().question_id.clone(),
+                    question_id: question_open.current().slot.question_id.clone(),
                     text,
                 }]);
             }
@@ -135,7 +136,7 @@ impl GridQuizState {
                     return Err(CommandError::WrongPhase(self.phase.kind()));
                 };
 
-                let question_id = question_open.current().question_id.clone();
+                let question_id = question_open.current().slot.question_id.clone();
                 let value = *self
                     .points
                     .get(question_open.current().point)
@@ -262,7 +263,7 @@ impl GridQuizState {
     }
 
     pub(crate) fn mark_used(&mut self, cell: &CurrentCell) {
-        self.cells[cell.category][cell.point] = Cell::Used(cell.question_id.clone());
+        self.cells[cell.category][cell.point] = Cell::Used(cell.slot.clone());
     }
 
     pub(crate) fn has_open_cells(&self) -> bool {
@@ -274,25 +275,25 @@ impl GridQuizState {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Cell {
-    Open(String),
-    Used(String),
+    Open(QuestionSlot),
+    Used(QuestionSlot),
     Empty,
 }
 
-impl From<Option<String>> for Cell {
-    fn from(opt: Option<String>) -> Self {
+impl From<Option<QuestionSlot>> for Cell {
+    fn from(opt: Option<QuestionSlot>) -> Self {
         match opt {
-            Some(id) => Cell::Open(id),
+            Some(slot) => Cell::Open(slot),
             None => Cell::Empty,
         }
     }
 }
 
-/// The cell in play + its resolved question id. Question content itself lives
-/// in the `Dataset`; projection looks it up by id.
+/// The cell in play + its resolved question slot. Question content itself
+/// lives in the `Dataset`; projection looks it up by slot.question_id.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CurrentCell {
     pub category: usize,
     pub point: usize,
-    pub question_id: String,
+    pub slot: QuestionSlot,
 }

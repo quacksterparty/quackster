@@ -20,13 +20,13 @@ games:
         categories:
           - name: Nur Hören
             question_ids:
-              100: q_music_yt_take_on_me
-              200: q_music_yt_teen_spirit
-              300: q_music_yt_africa
-              500: q_music_yt_hello
+              100: { id: q_music_yt_take_on_me }
+              200: { id: q_music_yt_teen_spirit }
+              300: { id: q_music_yt_africa }
+              500: { id: q_music_yt_hello }
           - name: Musikvideo
             question_ids:
-              100: q_music_yt_gangnam_style
-              200: q_music_yt_never_gonna
-              300: q_music_yt_billie_jean
-              500: q_music_yt_despacito
+              100: { id: q_music_yt_gangnam_style }
+              200: { id: q_music_yt_never_gonna }
+              300: { id: q_music_yt_billie_jean }
+              500: { id: q_music_yt_despacito }

@@ -24,7 +24,7 @@ games:
           - name: Missing pack
             pack_ref: pack_missing
           - name: Missing question
-            question_ids: { 100: q_missing_1, 200: q_missing_2 }
+            question_ids: { 100: { id: q_missing_1 }, 200: { id: q_missing_2 } }
 "#,
     )]));
     assert!(ds.issues.iter().any(|i| i.message.contains("unknown pack")));

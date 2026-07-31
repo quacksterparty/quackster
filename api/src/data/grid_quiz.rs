@@ -1,7 +1,7 @@
-//! Board builder — resolve a board definition into a 2D grid of question IDs.
+//! Board builder — resolve a board definition into a 2D grid of question slots.
 //!
 //! Explicit IDs win, then pack refs, then filters. Deterministic shuffle via
-//! seeded RNG.
+//! seeded RNG. Variant resolved per slot via `Question::resolve_variant`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -12,8 +12,14 @@ use rand::seq::IndexedRandom;
 use super::query::{PackCache, query_pool, resolve_pack};
 use super::types::*;
 
-/// Resolved board: `grid[category_idx][point_idx] = Some(question_id) | None`.
-pub type BoardGrid = Vec<Vec<Option<String>>>;
+/// Resolved board: `grid[category_idx][point_idx] = Some(QuestionSlot) | None`.
+pub type BoardGrid = Vec<Vec<Option<QuestionSlot>>>;
+
+fn slot_for(ds: &Dataset, qid: &str, variant_override: Option<VariantName>) -> Option<QuestionSlot> {
+    ds.questions
+        .get(qid)
+        .map(|e| QuestionSlot::resolve(&e.item, variant_override))
+}
 
 /// Build a resolved NxM board grid. Unresolvable slots are `None`.
 ///
@@ -37,17 +43,18 @@ pub fn build_board(ds: &Dataset, board: &Board, seed: u64, allow_youtube: bool) 
         let mut row = Vec::new();
         for point in &board.points {
             // 1. Explicit question_ids override
-            if let Some(qid) = cat.question_ids.as_ref().and_then(|m| m.get(point)) {
-                if !allow_youtube && has_youtube_media(ds, qid) {
+            if let Some(cell) = cat.question_ids.as_ref().and_then(|m| m.get(point)) {
+                if !allow_youtube && has_youtube_media(ds, cell.id()) {
                     tracing::warn!(
-                        question_id = %qid,
+                        question_id = %cell.id(),
                         "explicit board cell needs yt-dlp (disabled); leaving cell empty"
                     );
                     row.push(None);
                     continue;
                 }
+                let qid = cell.id().to_owned();
                 used.insert(qid.clone());
-                row.push(Some(qid.clone()));
+                row.push(slot_for(ds, &qid, cell.variant));
                 continue;
             }
 
@@ -65,7 +72,7 @@ pub fn build_board(ds: &Dataset, board: &Board, seed: u64, allow_youtube: bool) 
 
             if let Some(&picked) = pool.choose(&mut rng) {
                 used.insert(picked.clone());
-                row.push(Some(picked.clone()));
+                row.push(slot_for(ds, picked, None));
             } else {
                 row.push(None);
             }
@@ -121,4 +128,31 @@ fn has_youtube_media(ds: &Dataset, qid: &str) -> bool {
         .get(qid)
         .and_then(|entry| entry.item.prompt().media.as_deref())
         .is_some_and(|media| media.iter().any(|m| m.media_ref.starts_with("youtube:")))
+}
+
+/// Resolve a `LinearSource` into a slot list (variant resolved per
+/// question). Pack/Filter results shuffle with the seed for reproducibility.
+/// Unknown ids silently drop — caller decides whether to error.
+#[allow(dead_code)] // TODO: consumed once the linear runtime lands
+pub fn resolve_linear(
+    ds: &Dataset,
+    source: &LinearSource,
+    seed: u64,
+    allow_youtube: bool,
+) -> Vec<QuestionSlot> {
+    use rand::seq::SliceRandom;
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut ids: Vec<String> = match source {
+        LinearSource::Questions { question_ids } => question_ids.clone(),
+        LinearSource::Pack { pack_id } => {
+            let mut cache = PackCache::new();
+            resolve_pack(ds, &mut cache, pack_id)
+        }
+        LinearSource::Filter { filter } => query_pool(ds, filter),
+    };
+    if !allow_youtube {
+        ids.retain(|qid| !has_youtube_media(ds, qid));
+    }
+    ids.shuffle(&mut rng);
+    ids.iter().filter_map(|qid| slot_for(ds, qid, None)).collect()
 }

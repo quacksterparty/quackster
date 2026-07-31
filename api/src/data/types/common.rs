@@ -47,6 +47,15 @@ pub enum QuestionKind {
     Order,
 }
 
+impl QuestionKind {
+    /// Default play variant per kind. Used when a question has no
+    /// `preferred_variant` declared. Only `Text`/`Numeric` have variants;
+    /// `Order` callers must not reach this.
+    pub fn default_variant(self) -> VariantName {
+        VariantName::Open
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum VariantName {

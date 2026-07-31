@@ -1,5 +1,5 @@
 use crate::data::test_helpers::*;
-use crate::data::{BuzzPolicy, GameMode, LinearSource, ScoringMode, StealPolicy};
+use crate::data::{BoardCell, BuzzPolicy, GameMode, LinearSource, ScoringMode, StealPolicy};
 
 use super::fixtures::*;
 
@@ -187,8 +187,8 @@ fn loads_board_with_explicit_question_ids() {
         GameMode::GridQuiz(g) => {
             let flags = &g.board.categories[1];
             let ids = flags.question_ids.as_ref().unwrap();
-            assert_eq!(ids.get(&100), Some(&"q_alpha_one".to_string()));
-            assert_eq!(ids.get(&200), Some(&"q_alpha_two".to_string()));
+            assert_eq!(ids.get(&100).map(BoardCell::id), Some("q_alpha_one"));
+            assert_eq!(ids.get(&200).map(BoardCell::id), Some("q_alpha_two"));
         }
         _ => panic!("expected GridQuiz"),
     }
@@ -375,7 +375,7 @@ games:
         points: [100, 200]
         categories:
           - name: Geo
-            question_ids: { 300: q_alpha_one }
+            question_ids: { 300: { id: q_alpha_one } }
           - name: History
             filter: { tags_any: [subject:history] }
 "#,
@@ -411,9 +411,9 @@ games:
         points: [100, 200]
         categories:
           - name: Geo
-            question_ids: { 100: q_alpha_one }
+            question_ids: { 100: { id: q_alpha_one } }
           - name: History
-            question_ids: { 200: q_alpha_one }
+            question_ids: { 200: { id: q_alpha_one } }
 "#,
         ),
     ]));

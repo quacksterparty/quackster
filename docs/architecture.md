@@ -122,6 +122,13 @@ its state, so it can snapshot per state-transition without locks, and boot
 restores the DashMap from rows. Persist timer **deadline timestamps**, not
 remaining seconds, so clocks survive wall-clock gaps.
 
+When it lands, a room is **one opaque JSON blob** — gamestate is never normalized
+into tables — and an undecodable blob is a dropped room, not a migration (strict
+serde makes every shape change fail loudly). Durable **history/stats** share the
+same DB under the opposite policy, and the two datasets meet at exactly one call:
+`persist_history(&GameState)` on game end, projecting `judgment_log` into
+relational rows, then deleting the room. SQL models results, not gamestate.
+
 The full design for durable persistence and a highly available multi-pod
 Kubernetes deployment (a `Store` trait — SQLite self-host / Postgres cluster —
 plus room-affinity registry, redirect routing, and lease/fence failover) is
@@ -451,7 +458,7 @@ The room task's `select!` races `mpsc recv` against `sleep_until(deadline)`.
 | Transport           | REST (cold content) + WS (hot state)                                | —                                                             |
 | Concurrency         | actor-per-room: owning task + mpsc in + broadcast out               | —                                                             |
 | Room registry       | `DashMap<JoinCode, RoomHandle>`, self-reaping                       | —                                                             |
-| Persistence         | in-memory only                                                      | SQLite snapshot/restore for crash recovery                    |
+| Persistence         | in-memory only                                                      | SQLite: room = opaque blob, history = tables (ADR 0004)       |
 | Room identity       | single 6-char join code, regen on collision                         | opaque id only if needed                                      |
 | Auth gates          | creation secret (config), optional join password (UI)               | entry throttling                                              |
 | Reconnect           | opaque token in localStorage, slot persists                         | —                                                             |

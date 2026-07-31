@@ -18,8 +18,8 @@ use crate::{
     media::MediaFetcher,
     protocol::{
         AnswerView, ChoiceView, ClientView, CorrectnessView, GamemodeView, GridQuizPhase,
-        GridQuizView, JudgmentView, MediaView, OrderPositionView, PlayerView, PromptView,
-        QuestionView, VariantView,
+        GridQuizView, JudgmentView, MediaView, OrderItemView, OrderPositionView, PlayerView,
+        PromptView, QuestionView, VariantView,
     },
 };
 
@@ -152,19 +152,28 @@ pub fn project(
             grid_quiz.phase.current_cell().as_ref().and_then(|cell| {
                 let include_answer = grants.contains(&Grant::Moderate)
                     || matches!(grid_quiz.phase.kind(), GridQuizPhase::Reveal);
-                let question = match data.questions.get(&cell.question_id) {
+                let question = match data.questions.get(&cell.slot.question_id) {
                     Some(entry) => &entry.item,
                     None => {
                         tracing::warn!(
-                            question_id = %cell.question_id,
+                            question_id = %cell.slot.question_id,
                             "cell references unknown question id; projecting without question"
                         );
                         return None;
                     }
                 };
-                // TODO: we currently default to the open variant, needs to be fixed when todo 12 lands
+                let variant = match cell.slot.variant {
+                    Some(v) => v,
+                    None => {
+                        tracing::warn!(
+                            question_id = %cell.slot.question_id,
+                            "slot has no resolved variant; projecting without question"
+                        );
+                        return None;
+                    }
+                };
                 // TODO: we need to translate these fields for the locale the user has
-                build_question_view(question, VariantName::Open, include_answer, media_fetcher)
+                build_question_view(question, variant, include_answer, media_fetcher)
             })
         }
         ModeState::Linear(_) => todo!("Linedar not implemented yet"),
@@ -185,33 +194,51 @@ pub(crate) fn build_question_view(
     include_answer: bool,
     media_fetcher: &MediaFetcher,
 ) -> Option<QuestionView> {
-    let variant_view = match variant {
-        VariantName::MultipleChoice => {
-            let mc = question.mc_choices()?;
-            VariantView::MultipleChoice {
-                choices: mc
-                    .choices
-                    .iter()
-                    .map(|c| ChoiceView {
-                        id: c.id.clone(),
-                        text: c.text.clone(),
-                        media: c
-                            .media
-                            .as_deref()
-                            .and_then(|ms| project_first_media(ms, media_fetcher)),
-                    })
-                    .collect(),
-            }
+    // Order ignores `variant`
+    let variant_view = if let Question::Order { content, .. } = question {
+        VariantView::Order {
+            items: content
+                .items
+                .iter()
+                .map(|item| OrderItemView {
+                    id: item.id.clone(),
+                    text: item.text.clone(),
+                    media: item
+                        .media
+                        .as_deref()
+                        .and_then(|ms| project_first_media(ms, media_fetcher)),
+                })
+                .collect(),
         }
-        VariantName::Open => VariantView::Open,
-        VariantName::TrueFalse => VariantView::TrueFalse,
-        VariantName::NumericInput => VariantView::NumericInput,
-        VariantName::Range => {
-            let r = question.range()?;
-            VariantView::Range {
-                min: r.min,
-                max: r.max,
-                step: r.step,
+    } else {
+        match variant {
+            VariantName::MultipleChoice => {
+                let multiple_choice = question.mc_choices()?;
+                VariantView::MultipleChoice {
+                    choices: multiple_choice
+                        .choices
+                        .iter()
+                        .map(|choice| ChoiceView {
+                            id: choice.id.clone(),
+                            text: choice.text.clone(),
+                            media: choice
+                                .media
+                                .as_deref()
+                                .and_then(|media| project_first_media(media, media_fetcher)),
+                        })
+                        .collect(),
+                }
+            }
+            VariantName::Open => VariantView::Open,
+            VariantName::TrueFalse => VariantView::TrueFalse,
+            VariantName::NumericInput => VariantView::NumericInput,
+            VariantName::Range => {
+                let range = question.range()?;
+                VariantView::Range {
+                    min: range.min,
+                    max: range.max,
+                    step: range.step,
+                }
             }
         }
     };

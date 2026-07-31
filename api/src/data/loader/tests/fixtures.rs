@@ -21,7 +21,7 @@ games:
             filter:
               tags_any: [subject:geo]
           - name: Flags
-            question_ids: { 100: q_alpha_one, 200: q_alpha_two }
+            question_ids: { 100: { id: q_alpha_one }, 200: { id: q_alpha_two } }
 "#;
 
 pub(super) const VALID_LINEAR_GAME: &str = r#"

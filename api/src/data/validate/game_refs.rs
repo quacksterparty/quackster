@@ -18,11 +18,23 @@ pub(super) fn check_game_refs(ds: &Dataset, issues: &mut Vec<LoadIssue>) {
                             ));
                         }
 
-                        for qid in cat.question_ids.iter().flat_map(|map| map.values()) {
+                        for cell in cat.question_ids.iter().flat_map(|map| map.values()) {
+                            let qid = cell.id();
                             if !ds.questions.contains_key(qid) {
                                 issues.push(LoadIssue::msg(
                                     &entry.file,
                                     format!("{ctx} references unknown question '{qid}'"),
+                                ));
+                                continue;
+                            }
+                            if let Some(variant) = cell.variant
+                                && !ds.questions[qid].item.variant_names().contains(&variant)
+                            {
+                                issues.push(LoadIssue::msg(
+                                    &entry.file,
+                                    format!(
+                                        "{ctx} overrides variant '{variant:?}' on question '{qid}' but the question does not declare that variant"
+                                    ),
                                 ));
                             }
                         }

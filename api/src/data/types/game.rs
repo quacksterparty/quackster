@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
-use crate::data::{PackFilter, valid_game_id};
+use crate::data::{PackFilter, Question, VariantName, valid_game_id};
 
 /// Top-level game config, parsed from `data/games/*.yaml`.
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -110,11 +110,25 @@ pub struct Board {
 pub struct BoardCategory {
     pub name: String,
     #[serde(default)]
-    pub question_ids: Option<HashMap<u32, String>>,
+    pub question_ids: Option<HashMap<u32, BoardCell>>,
     #[serde(default)]
     pub pack_ref: Option<String>,
     #[serde(default)]
     pub filter: Option<PackFilter>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+pub struct BoardCell {
+    pub id: String,
+    #[serde(default)]
+    pub variant: Option<VariantName>,
+}
+
+impl BoardCell {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 /// Linear quiz: resolved question list.
@@ -133,6 +147,22 @@ pub enum LinearSource {
     Pack { pack_id: String },
     /// Dynamic filter.
     Filter { filter: PackFilter },
+}
+
+/// `variant` is `None` for `Order` questions (no variant dimension).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct QuestionSlot {
+    pub question_id: String,
+    pub variant: Option<VariantName>,
+}
+
+impl QuestionSlot {
+    pub fn resolve(question: &Question, variant_override: Option<VariantName>) -> Self {
+        Self {
+            question_id: question.id().to_owned(),
+            variant: question.resolve_variant(variant_override),
+        }
+    }
 }
 
 /// Per-entry game rules. Complete, no merging with defaults.
@@ -345,8 +375,8 @@ fn validate_grid_quiz(g: &GridQuizGame) -> garde::Result {
                     )));
                 }
             }
-            for qid in question_ids.values() {
-                if !explicit_qids.insert(qid.as_str()) {
+            for qid in question_ids.values().map(BoardCell::id) {
+                if !explicit_qids.insert(qid) {
                     return Err(garde::Error::new(format!(
                         "grid_quiz explicit question id '{qid}' is duplicated across board"
                     )));

@@ -256,6 +256,11 @@ pub struct QuestionBase {
     pub license: Option<License>,
     #[garde(dive)]
     pub sources: Option<Vec<Source>>,
+    /// If defined on the question's variants wins at materialize time
+    /// otherwise the kind's default is used.
+    /// `Order` questions ignore this — they have no variant dimension.
+    #[serde(default)]
+    pub preferred_variant: Option<VariantName>,
 }
 
 /// Discriminated union over `kind: text | numeric | order`.
@@ -321,6 +326,40 @@ impl Question {
             Self::Numeric { .. } => QuestionKind::Numeric,
             Self::Order { .. } => QuestionKind::Order,
         }
+    }
+
+    /// Resolution rule per `docs/data-model.md` §Variant resolution
+    /// TODO: pack-override + random fallback land later.
+    pub fn resolve_variant(&self, board_override: Option<VariantName>) -> Option<VariantName> {
+        if matches!(self, Self::Order { .. }) {
+            return None;
+        }
+        let names = self.variant_names();
+        if let Some(variant) = board_override
+            && names.contains(&variant)
+        {
+            return Some(variant);
+        }
+        if let Some(variant) = self.base().preferred_variant
+            && names.contains(&variant)
+        {
+            return Some(variant);
+        }
+        let default = self.kind().default_variant();
+        if names.contains(&default) {
+            return Some(default);
+        }
+
+        // Kind default not defined on this question (e.g. Numeric has no
+        // Open variant). Fall back to MC for deterministic behavior, else
+        // any variant the question declares.
+        const FALLBACK_ORDER: &[VariantName] = &[
+            VariantName::MultipleChoice,
+            VariantName::TrueFalse,
+            VariantName::NumericInput,
+            VariantName::Range,
+        ];
+        FALLBACK_ORDER.iter().copied().find(|v| names.contains(v))
     }
 
     pub fn base(&self) -> &QuestionBase {
@@ -630,5 +669,52 @@ content:
         assert!(order.order_items().is_some());
         assert!(order.mc_choices().is_none());
         assert!(order.range().is_none());
+    }
+
+    const TEXT_Q_MC_AND_OPEN: &str = r#"
+kind: text
+id: q_dual
+tags: []
+content:
+  default_lang: en
+  prompt: { text: "?" }
+  answer: a
+  variants:
+    multiple_choice:
+      choices:
+        - { id: a, text: A, correct: true }
+        - { id: b, text: B }
+    open:
+      accepted: ["a"]
+"#;
+
+    #[test]
+    fn resolve_variant_no_override_uses_kind_default_for_text() {
+        let q = load_q(TEXT_Q_MC_AND_OPEN);
+        assert_eq!(q.resolve_variant(None), Some(VariantName::Open));
+    }
+
+    #[test]
+    fn resolve_variant_board_override_beats_kind_default() {
+        let q = load_q(TEXT_Q_MC_AND_OPEN);
+        assert_eq!(
+            q.resolve_variant(Some(VariantName::MultipleChoice)),
+            Some(VariantName::MultipleChoice),
+        );
+    }
+
+    #[test]
+    fn resolve_variant_board_override_falls_through_when_undefined() {
+        // q has only MC and Open; Range override isn't defined → fall through
+        // to declared/default path.
+        let q = load_q(TEXT_Q_MC_AND_OPEN);
+        assert_eq!(q.resolve_variant(Some(VariantName::Range)), Some(VariantName::Open));
+    }
+
+    #[test]
+    fn resolve_variant_order_always_none() {
+        let q = load_q(ORDER_Q);
+        assert_eq!(q.resolve_variant(None), None);
+        assert_eq!(q.resolve_variant(Some(VariantName::MultipleChoice)), None);
     }
 }

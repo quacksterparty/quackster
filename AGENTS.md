@@ -135,12 +135,15 @@ export for editor YAML LSP.
 - Rust code uses `Result` / `thiserror` idiomatically for fallible paths.
 - No comments restating what code does; comment only non-obvious _why_.
 - Don't edit `src/lib/paraglide/**` — generated.
-- Read the task list at session start from the `quackster` notebook in `nb`:
-  `nb todos quackster:`. Priorities are tags (`p1`/`p2`/`p3`), projects are tags
-  (`runtime`, `frontend`, `tooling`, `gamemodes`). Each todo body holds
-  context + file refs; large items carry `--task` subtasks (see them with
-  `nb todos quackster:tasks <id>`). Complete with `nb todo do quackster:<id>`
-  (or `nb todo do quackster:<id> <task#>` for one subtask).
+- Tasks live in `TODO.org` at the repo root (Org format, `#+TODO: TODO IN_PROGRESS DONE`).
+  Read it at session start. Update it as you go: flip a heading to `IN_PROGRESS`
+  when you start a task, mark it `DONE` when the work lands, and add new `* TODO`
+  entries you discover during the work. Priorities are Org tags (`p1`/`p2`/`p3`);
+  projects are tags (`runtime`, `frontend`, `tooling`, `gamemodes`). Each entry
+  keeps an `:ID: quackster-N` property for the `nb` provenance; large items split
+  their work into child `** TODO` / `** DONE` subheadings, completed with the
+  parent. The `quackster` notebook in `nb` is read-only history — do not write
+  to it from the agent.
 
 ## Implementation order (from data-model.md §Implementation order)
 

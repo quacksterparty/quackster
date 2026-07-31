@@ -27,10 +27,10 @@ games:
               tags_any: [subject:flags]
           - name: Chemistry
             question_ids:
-              100: q_atom_nucleus
-              200: q_acid_base
-              300: q_chemical_oxygen_ozone
-              500: q_periodic_helium
+              100: { id: q_atom_nucleus }
+              200: { id: q_acid_base }
+              300: { id: q_chemical_oxygen_ozone, variant: multiple_choice }
+              500: { id: q_periodic_helium, variant: open }
           - name: Math & Physics
             pack_ref: pack_school_trivia
             filter:
