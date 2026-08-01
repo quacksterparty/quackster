@@ -469,6 +469,55 @@ When admins upload local audio/video media through the curation UI, they can cur
 *** Related
 - [[id:quackster-26]]
 
+** DONE Prototype curate UI + scalable game-select — 3 variants each
+CLOSED: [2026-07-31 Fri 23:55]
+:PROPERTIES:
+:ID:       quackster-26.0
+:END:
+
+Throwaway UI prototypes under /prototype/curate and /prototype/game-select,
+?variant=a|b|c, shared dev-only PrototypeSwitcher. 250 games + 4 drafts mocked
+in src/lib/components/prototype/fixtures.ts. Notes in src/routes/prototype/NOTES.md.
+Game-select variants: A=filter-rail+grid, B=spotlight+browse, C=command-palette.
+Curate variants: A=three-column editor, B=wizard stepper, C=board-first canvas.
+Verdict pending user review; will fold winning variant into real pages and
+delete the rest.
+
+** DONE Absorb A variants + question-as-independent-entity model
+CLOSED: [2026-08-01 Sat 00:35]
+:PROPERTIES:
+:ID:       quackster-26.1
+:END:
+
+Locked in variant A for both surfaces. Game-select A absorbed into
+src/routes/room/+page.svelte (filter rail + grid + dock). Curate A
+became the new /curate route with a refactored data model: questions
+are first-class entities (own id q_<slug>), drafts reference by id,
+not inline. New /questions route = read-only browse of the pool.
+Pool store at src/lib/data/pool.svelte.ts (singleton rune state),
+seed in src/lib/data/seed.ts (250 questions, 4 drafts, 250 games).
+New question: minted as q_draft_<rand6>, auto-renames to q_<slug>
+once prompt has text and the question is unreferenced. previousIds
+preserved. QuestionPicker drawer opens when a board cell is empty.
+
+Deleted: src/lib/components/prototype/, src/routes/prototype/.
+
+Pending backend wiring: pool/draft mutations need to hit the real
+QuizDrafts + content service per quackster-26 spec. For now: in-memory
+mock; Save all toasts a mock success.
+
+** TODO Wire pool/draft mutations to backend (QuizDrafts + content service)
+:PROPERTIES:
+:ID:       quackster-26.2
+:END:
+
+In src/lib/data/pool.svelte.ts every mutation is currently in-memory
+only. Spec (quackster-26) needs: debounced autosave, revision checks,
+TTL/cap cleanup, do_not_delete protection, restart-loss semantics, and
+the Save all ordering (media → questions → game). The Tauri-style
+QuestionPicker drawer + curate editor are the UI; this child entry is
+the backend contract.
+
 * TODO Add YouTube video selection :p3:frontend:tooling:
 :PROPERTIES:
 :ID:       quackster-30
@@ -706,3 +755,33 @@ Files: src/routes/room/[code]/+page.svelte (new dep in package.json)
 ** TODO Encode the join URL (or code) into a QR on the room page
 
 ** TODO Show on host/moderator view (big-screen scan-in)
+
+* TODO Add typed answer submission to QuestionOpen (frontend slice) :p2:frontend:runtime:
+:PROPERTIES:
+:ID:       quackster-32
+:END:
+
+
+The floored player currently has NO way to submit an answer from the client. QuestionOpen.svelte only renders the buzz button + moderator Rule buttons (spoken-answer Jeopardy slice, quackster-17). Backend already accepts Command::Answer { text } and tests exercise it (api/src/game/state.rs apply(), api/src/game/grid_quiz/mod.rs line 115, api/src/game/tests.rs). The half is built; the wire is missing.
+
+For the floored player only, show a variant-aware input that constructs Command::Answer and sends it through room.send?. Click-to-submit on lock, click-disable + pending state until next snapshot (matches the pure-render rule from quackster-16). For numeric/range/mc/true_false/order, the input shape is dictated by the question variant (text input for open/numeric, clickable choices for MC, two-pill for T/F, drop-list for order). Placeholder per variant.
+
+Disabled while: not floored, already submitted, locked out. Re-enable on snapshot floor change (effect on floored, same pattern as buzzed).
+
+Files: src/lib/components/game/QuestionOpen.svelte (input + send), src/lib/room.svelte.ts (n/a — send already generic), api/src/protocol.rs (n/a — Command::Answer exists).
+
+** TODO Render variant-aware answer input for the floored player (text/choices/pills/order)
+
+** TODO Send Command::Answer on submit; click-disable + pending until next snapshot
+
+** TODO Re-enable input on floor change via $effect on floored
+
+** TODO Empty-submit guard (open text needs non-empty; mc/tf/order auto-populate)
+
+** TODO Add paraglide strings: submit_answer, your_answer, pending_submission
+
+** TODO e2e: floored player types, submits, snapshot reflects Pending/Incorrect
+
+*** Related
+- [[id:quackster-17]]
+- [[id:quackster-2]]

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('$lib/paraglide/messages', () => ({
-	m: { answer_true: () => 'True', answer_false: () => 'False' }
+	m: { game_answer_true: () => 'True', game_answer_false: () => 'False' }
 }));
 
 import type { AnswerView } from '$lib/bindings/Protocol';

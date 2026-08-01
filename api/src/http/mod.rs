@@ -5,6 +5,7 @@
 //! (`rest`), the WebSocket route (`ws`), the static `build/` fallback, and the
 //! `/api/health` ops route. `main.rs` calls this and serves the result.
 
+pub mod auth;
 pub mod rest;
 pub mod ws;
 

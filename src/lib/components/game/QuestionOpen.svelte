@@ -51,25 +51,25 @@
 	{/if}
 
 	{#if amFloored}
-		<div class="floor-you">🎯 {m.you_have_floor()}</div>
+		<div class="floor-you">🎯 {m.game_you_have_floor()}</div>
 	{:else if floored}
 		<div class="floor-other">
 			<span class="avatar" style:background={playerColor(floored)}>{playerInitial(floored)}</span>
-			<strong>{m.player_answering({ name: floored })}</strong>
+			<strong>{m.game_player_answering({ name: floored })}</strong>
 		</div>
 	{:else if amLockedOut}
-		<p class="muted center">{m.locked_out_wait()}</p>
+		<p class="muted center">{m.game_locked_out_wait()}</p>
 	{:else if has('Play')}
 		<button class="buzz" disabled={buzzed} onclick={buzz}>
-			{buzzed ? m.buzzing() : m.buzz()}
+			{buzzed ? m.game_buzzing() : m.game_buzz()}
 		</button>
 	{:else}
-		<p class="muted center">{m.waiting_for_buzz()}</p>
+		<p class="muted center">{m.game_waiting_for_buzz()}</p>
 	{/if}
 
 	{#if has('Moderate') && playableMedia}
 		<Button variant="ghost" onclick={() => room.send?.({ kind: 'PlayMedia' })}>
-			▶ {view.media_play_count > 0 ? m.replay_media() : m.play_media()}
+			▶ {view.media_play_count > 0 ? m.game_replay_media() : m.game_play_media()}
 		</Button>
 	{/if}
 
@@ -80,18 +80,18 @@
 					variant="danger"
 					onclick={() => room.send?.({ kind: 'Rule', verdict: 'incorrect' })}
 				>
-					✗ {m.rule_wrong()}
+					✗ {m.game_rule_wrong()}
 				</Button>
 				<Button variant="ghost" onclick={() => room.send?.({ kind: 'Rule', verdict: 'void' })}>
-					⊘ {m.rule_void()}
+					⊘ {m.game_rule_void()}
 				</Button>
 				<Button variant="primary" onclick={() => room.send?.({ kind: 'Rule', verdict: 'correct' })}>
-					✓ {m.rule_right()}
+					✓ {m.game_rule_right()}
 				</Button>
 			</div>
 		{:else}
 			<Button variant="ghost" onclick={() => room.send?.({ kind: 'CloseQuestion' })}>
-				{m.close_question()}
+				{m.game_close_question()}
 			</Button>
 		{/if}
 	{/if}

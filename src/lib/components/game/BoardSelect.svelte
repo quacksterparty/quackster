@@ -28,10 +28,10 @@
 <section class="board">
 	<div class="banner">
 		{#if isMyTurn}
-			🎯 <strong>{m.your_turn_pick()}</strong>
+			🎯 <strong>{m.game_your_turn_pick()}</strong>
 		{:else if activePicker}
 			🎯 <strong style:color={playerColor(activePicker)}
-				>{m.player_choosing({ name: activePicker })}</strong
+				>{m.game_player_choosing({ name: activePicker })}</strong
 			>
 		{/if}
 	</div>

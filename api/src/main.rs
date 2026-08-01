@@ -10,13 +10,15 @@ use std::path::Path;
 use std::sync::Arc;
 use std::{fs, process};
 
-use axum::Router;
+use axum::middleware;
+use axum::{Router, routing::get};
 use dashmap::DashMap;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::load;
+use crate::http::auth::auth;
 use crate::http::{rest, ws};
 use crate::state::AppState;
 
@@ -83,7 +85,11 @@ async fn main() {
         ServeDir::new(static_dir).not_found_service(ServeFile::new(static_dir.join("index.html")));
 
     let app = Router::new()
-        .nest("/api", rest::router())
+        .route("/api/health", get(rest::health))
+        .nest(
+            "/api",
+            rest::router().layer(middleware::from_fn_with_state(state.clone(), auth)),
+        )
         .nest_service(
             "/media",
             ServeDir::new(Path::new(&state.config.data_dir).join("media")),

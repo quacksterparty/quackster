@@ -1,0 +1,17 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"lobby_label": "Lobby",
+	"lobby_players_joined": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Spieler beigetreten",
+				"countPlural=other": "{count} Spieler beigetreten"
+			}
+		}
+	],
+	"lobby_start": "Spiel starten",
+	"lobby_waiting_for_host": "Warte auf Host zum Starten…",
+	"lobby_start_confirm": "Einige Medien sind noch nicht bereit. Trotzdem starten?"
+}

@@ -28,7 +28,7 @@
 	);
 
 	function start_game() {
-		if (can_start && (media_all_ready || confirm(m.start_game_confirm()))) {
+		if (can_start && (media_all_ready || confirm(m.lobby_start_confirm()))) {
 			room.send?.({ kind: 'StartGame' });
 		}
 	}
@@ -36,15 +36,15 @@
 
 <section class="lobby">
 	<header class="head">
-		<h1>{m.lobby()}</h1>
-		<p class="muted">{m.players_joined({ count: player_entries.length })}</p>
+		<h1>{m.lobby_label()}</h1>
+		<p class="muted">{m.lobby_players_joined({ count: player_entries.length })}</p>
 		{#if room.code}
 			<button
 				class="code"
 				type="button"
 				onclick={() => (revealed = !revealed)}
 				aria-pressed={revealed}
-				aria-label={revealed ? m.hide_code() : m.show_code()}
+				aria-label={revealed ? m.room_hide_code() : m.room_show_code()}
 			>
 				<span class="code-label">{m.room_code()}:</span>
 				<span class="code-value" aria-hidden="true">{revealed ? room.code : '••••••'}</span>
@@ -58,12 +58,12 @@
 				<span class="avatar" style:background={playerColor(name)}>{playerInitial(name)}</span>
 				<span class="name">
 					{name}
-					{#if name === room.player}<em>({m.you()})</em>{/if}
+					{#if name === room.player}<em>({m.common_you()})</em>{/if}
 				</span>
 				{#if p.grants.includes('Moderate')}
 					<span class="tag">
 						🛡️{p.grants.includes('Play') ? '🎮' : ''}
-						{m.mod_actions()}
+						{m.room_mod_actions()}
 					</span>
 				{/if}
 			</li>
@@ -72,10 +72,10 @@
 
 	{#if has('Moderate')}
 		<Button size="lg" disabled={!can_start} onclick={start_game}>
-			▶ {m.start_game()}
+			▶ {m.lobby_start()}
 		</Button>
 	{:else}
-		<p class="muted center">{m.waiting_for_host()}</p>
+		<p class="muted center">{m.lobby_waiting_for_host()}</p>
 	{/if}
 </section>
 

@@ -23,7 +23,7 @@ export function correctnessValueText(correct: CorrectnessView, variant: VariantV
 		case 'Open':
 			return correct.accepted.join(', ');
 		case 'TrueFalse':
-			return correct.correct ? m.answer_true() : m.answer_false();
+			return correct.correct ? m.game_answer_true() : m.game_answer_false();
 		case 'Numeric':
 			return correct.tolerance > 0
 				? `${correct.value} ± ${correct.tolerance}`

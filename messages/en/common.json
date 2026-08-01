@@ -1,0 +1,23 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"common_tagline": "Multi-gamemode quiz platform",
+	"common_join_game": "Join game",
+	"common_enter_join_code": "Enter join code",
+	"common_join": "Join",
+	"common_rejoin": "Rejoin",
+	"common_room_not_found": "Room does not exist!",
+	"common_error_generic": "Something went wrong!",
+	"common_host": "Host",
+	"common_create": "Create",
+	"common_create_room": "Create Room",
+	"common_games": "Games",
+	"common_no_game_selected": "No game selected!",
+	"common_players": "Players",
+	"common_settings": "Settings",
+	"common_close": "Close",
+	"common_language": "Language",
+	"common_quack": "Quack",
+	"common_you": "You",
+	"common_scoreboard": "Scoreboard",
+	"common_players_and_scoreboard": "Players & Scoreboard"
+}

@@ -39,9 +39,9 @@
 
 	const allGrants: Grant[] = ['Play', 'Present', 'Moderate'];
 	const grantLabels: Record<Grant, () => string> = {
-		Play: m.grant_play,
-		Present: m.grant_present,
-		Moderate: m.grant_moderate
+		Play: m.room_grant_play,
+		Present: m.room_grant_present,
+		Moderate: m.room_grant_moderate
 	};
 
 	function kick(player: string) {
@@ -53,7 +53,7 @@
 	}
 	function endGame() {
 		room.send?.({ kind: 'EndGame' });
-		toast.success(m.end_game_sent());
+		toast.success(m.room_end_game_sent());
 		modOpen = false;
 	}
 	let theme = $state<ThemeId>(getTheme());
@@ -85,7 +85,7 @@
 				<RoomQR />
 				<button
 					class="icon-btn players-toggle"
-					aria-label={m.players_and_scoreboard()}
+					aria-label={m.common_players_and_scoreboard()}
 					aria-expanded={playersOpen}
 					onclick={() => (playersOpen = !playersOpen)}
 				>
@@ -112,7 +112,7 @@
 			{#if room.code && has('Moderate')}
 				<button
 					class="icon-btn"
-					aria-label={m.mod_actions()}
+					aria-label={m.room_mod_actions()}
 					aria-expanded={modOpen}
 					onclick={() => (modOpen = !modOpen)}
 				>
@@ -132,7 +132,7 @@
 			{/if}
 			<button
 				class="icon-btn"
-				aria-label={m.settings()}
+				aria-label={m.common_settings()}
 				aria-expanded={open}
 				onclick={() => (open = !open)}
 			>
@@ -164,9 +164,9 @@
 	</main>
 </div>
 
-<Drawer bind:open title={m.settings()}>
+<Drawer bind:open title={m.common_settings()}>
 	<div class="drawer-section">
-		<h3 class="section-label">🎨 {m.theme()}</h3>
+		<h3 class="section-label">🎨 {m.theme_label()}</h3>
 		<div class="chip-row">
 			<button
 				class="chip"
@@ -194,7 +194,7 @@
 	</div>
 
 	<div class="drawer-section">
-		<h3 class="section-label">🌐 {m.language()}</h3>
+		<h3 class="section-label">🌐 {m.common_language()}</h3>
 		<div class="chip-row">
 			{#each locales as loc (loc)}
 				<button
@@ -211,7 +211,7 @@
 	</div>
 </Drawer>
 
-<Drawer bind:open={playersOpen} title={m.players_and_scoreboard()}>
+<Drawer bind:open={playersOpen} title={m.common_players_and_scoreboard()}>
 	{#snippet header()}
 		<div class="tabs" role="tablist">
 			<button
@@ -219,14 +219,14 @@
 				role="tab"
 				aria-selected={tab === 'players'}
 				class:tab-active={tab === 'players'}
-				onclick={() => (tab = 'players')}>{m.players()}</button
+				onclick={() => (tab = 'players')}>{m.common_players()}</button
 			>
 			<button
 				class="tab"
 				role="tab"
 				aria-selected={tab === 'scoreboard'}
 				class:tab-active={tab === 'scoreboard'}
-				onclick={() => (tab = 'scoreboard')}>{m.scoreboard()}</button
+				onclick={() => (tab = 'scoreboard')}>{m.common_scoreboard()}</button
 			>
 		</div>
 	{/snippet}
@@ -242,7 +242,7 @@
 						<span class="player-name">
 							{player}
 							{#if room.player === player}
-								<span class="player-you">({m.you()})</span>
+								<span class="player-you">({m.common_you()})</span>
 							{/if}
 						</span>
 						{#if view.grants.includes('Moderate')}
@@ -252,8 +252,8 @@
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger
 									class="player-menu-btn"
-									aria-label={m.player_actions({ name: player })}
-									title={m.player_actions({ name: player })}
+									aria-label={m.room_player_actions({ name: player })}
+									title={m.room_player_actions({ name: player })}
 								>
 									<svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 										<circle cx="5" cy="12" r="2" />
@@ -284,7 +284,7 @@
 												}}
 											>
 												<span class="menu-check">✕</span>
-												{m.kick_player({ name: player })}
+												{m.room_kick_player({ name: player })}
 											</DropdownMenu.Item>
 										{/if}
 									</DropdownMenu.Content>
@@ -298,7 +298,7 @@
 	{:else}
 		<div class="drawer-section">
 			{#if phase === 'lobby'}
-				<p class="empty-state">{m.game_not_started()}</p>
+				<p class="empty-state">{m.room_game_not_started()}</p>
 			{:else}
 				<ul class="player-list">
 					{#each sortedPlayers as [player, view], i (player)}
@@ -310,7 +310,7 @@
 							<span class="player-name">
 								{player}
 								{#if room.player === player}
-									<span class="player-you">({m.you()})</span>
+									<span class="player-you">({m.common_you()})</span>
 								{/if}
 							</span>
 							<span class="score">{view.score}</span>
@@ -322,9 +322,9 @@
 	{/if}
 </Drawer>
 
-<Drawer bind:open={modOpen} title={m.mod_actions()}>
+<Drawer bind:open={modOpen} title={m.room_mod_actions()}>
 	<div class="drawer-section">
-		<Button variant="danger" onclick={endGame}>{m.end_game()}</Button>
+		<Button variant="danger" onclick={endGame}>{m.room_end_game()}</Button>
 	</div>
 	<!-- overrule/revisie judgments + grant management slots land when #15 is wired -->
 </Drawer>

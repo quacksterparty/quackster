@@ -1,0 +1,14 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"theme_label": "Theme",
+	"theme_system": "System",
+	"theme_modern": "Modern",
+	"theme_modern_dark": "Modern Dark",
+	"theme_retro": "Retro",
+	"theme_medieval": "Medieval",
+	"theme_neon": "Neon",
+	"theme_chalkboard": "Chalkboard",
+	"theme_kawaii": "Kawaii",
+	"theme_western": "Western",
+	"theme_wizard": "Wizard"
+}

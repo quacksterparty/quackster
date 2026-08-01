@@ -1,0 +1,20 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"room_code": "Raum-Code",
+	"room_show_code": "Raum-Code anzeigen",
+	"room_hide_code": "Raum-Code verbergen",
+	"room_share": "Raum teilen",
+	"room_scan_to_join": "Scannen um beizutreten",
+	"room_copy_link": "Kopieren",
+	"room_copy_link_success": "Link kopiert",
+	"room_copy_link_failed": "Link konnte nicht kopiert werden",
+	"room_kick_player": "{name} kicken",
+	"room_player_actions": "Aktionen für {name}",
+	"room_grant_play": "Spielen",
+	"room_grant_present": "Präsentieren",
+	"room_grant_moderate": "Moderieren",
+	"room_mod_actions": "Moderation",
+	"room_game_not_started": "Spiel hat noch nicht begonnen",
+	"room_end_game": "Spiel beenden",
+	"room_end_game_sent": "Spiel wird beendet..."
+}

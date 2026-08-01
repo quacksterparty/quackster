@@ -35,11 +35,11 @@
 	function verdictLabel(verdict: Exclude<Verdict, 'pending'>): string {
 		switch (verdict) {
 			case 'correct':
-				return m.verdict_correct();
+				return m.game_verdict_correct();
 			case 'incorrect':
-				return m.verdict_incorrect();
+				return m.game_verdict_incorrect();
 			case 'void':
-				return m.verdict_void();
+				return m.game_verdict_void();
 			default:
 				return verdict satisfies never;
 		}
@@ -84,9 +84,9 @@
 	</ol>
 
 	{#if has('Moderate')}
-		<Button onclick={() => room.send?.({ kind: 'Next' })}>{m.next()} →</Button>
+		<Button onclick={() => room.send?.({ kind: 'Next' })}>{m.game_next()} →</Button>
 	{:else}
-		<p class="muted center">{m.host_will_advance()}</p>
+		<p class="muted center">{m.game_host_will_advance()}</p>
 	{/if}
 </section>
 

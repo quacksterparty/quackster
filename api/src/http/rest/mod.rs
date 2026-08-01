@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use axum::{Router, extract::State, routing::get};
+use axum::{Router, extract::State};
 
 use crate::state::AppState;
 
@@ -12,16 +12,11 @@ pub mod packs;
 pub mod rooms;
 pub mod stats;
 
-// TODO: pub fn router(state: Arc<AppState>) -> Router  (merge boards/packs/stats)
-
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/health", get(health_check))
-        .merge(rooms::router())
-        .merge(games::router())
+    Router::new().merge(rooms::router()).merge(games::router())
 }
 
-async fn health_check(State(state): State<Arc<AppState>>) -> String {
+pub async fn health(State(state): State<Arc<AppState>>) -> String {
     format!(
         "ok, with dataset: {} questions, {} packs, {} tags, {} games and {} open rooms",
         state.data.questions.len(),

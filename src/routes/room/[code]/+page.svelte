@@ -32,12 +32,12 @@
 		const result = await api.room.exists(code);
 
 		if (!result.ok) {
-			toast.error(m.error_generic());
+			toast.error(m.common_error_generic());
 			await goto(resolve('/', {}));
 			return;
 		}
 		if (!result.value) {
-			toast.error(m.room_not_found());
+			toast.error(m.common_room_not_found());
 			await goto(resolve('/', {}));
 			return;
 		}
@@ -94,7 +94,7 @@
 			}
 		};
 		ws.onerror = () => {
-			toast.error(m.error_generic());
+			toast.error(m.common_error_generic());
 		};
 		ws.onclose = () => {
 			if (serverError) {
@@ -103,7 +103,7 @@
 				void handleWebsocket();
 				return;
 			}
-			toast.error(m.error_generic());
+			toast.error(m.common_error_generic());
 			void goto(resolve('/', {}));
 		};
 	}
@@ -142,6 +142,6 @@
 		}}
 	>
 		<TextInput bind:value={name} placeholder="Karl" />
-		<Button disabled={!name}>{m.join()}</Button>
+		<Button disabled={!name}>{m.common_join()}</Button>
 	</form>
 </Dialog>

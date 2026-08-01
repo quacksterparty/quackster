@@ -21,11 +21,11 @@
 		const result = await api.room.exists(joinCode);
 
 		if (!result.ok) {
-			toast.error(m.error_generic());
+			toast.error(m.common_error_generic());
 			return;
 		}
 		if (!result.value) {
-			toast.error(m.room_not_found());
+			toast.error(m.common_room_not_found());
 			return;
 		}
 
@@ -47,21 +47,21 @@
 
 <section class="hero">
 	<Logo size="lg" stacked />
-	<p class="tagline">{m.tagline()}</p>
+	<p class="tagline">{m.common_tagline()}</p>
 
 	<div class="actions">
-		<Button size="xl" onclick={() => (joinOpen = true)}>{m.join_game()}</Button>
-		<Button variant="secondary" size="xl" onclick={room}>{m.host()}</Button>
+		<Button size="xl" onclick={() => (joinOpen = true)}>{m.common_join_game()}</Button>
+		<Button variant="secondary" size="xl" onclick={room}>{m.common_host()}</Button>
 	</div>
 </section>
 
-<Dialog bind:open={joinOpen} title={m.join_game()} description={m.enter_join_code()}>
+<Dialog bind:open={joinOpen} title={m.common_join_game()} description={m.common_enter_join_code()}>
 	<CodeInput bind:value={joinCode} onComplete={join} />
 	<Button disabled={joinCode.length !== 6} onclick={join}>
-		{m.join()}
+		{m.common_join()}
 	</Button>
 	{#if recentSession}
-		<Button variant="secondary" onclick={rejoin}>{m.rejoin()} {recentSession.room}</Button>
+		<Button variant="secondary" onclick={rejoin}>{m.common_rejoin()} {recentSession.room}</Button>
 	{/if}
 </Dialog>
 

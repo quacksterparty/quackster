@@ -28,7 +28,7 @@
 			{/each}
 		</ol>
 	{:else if variant.kind === 'TrueFalse'}
-		<p class="hint">{m.answer_true()} / {m.answer_false()}</p>
+		<p class="hint">{m.game_answer_true()} / {m.game_answer_false()}</p>
 	{:else if variant.kind === 'Range'}
 		<p class="hint">{variant.min} – {variant.max}</p>
 	{/if}

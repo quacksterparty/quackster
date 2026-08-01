@@ -1,0 +1,12 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"media_status": "Medien ({ready}/{total} bereit)",
+	"media_status_all_ready": "Medien bereit",
+	"media_retry": "Fehler erneut versuchen",
+	"media_retry_all": "Alle Fehler erneut versuchen",
+	"media_ref_short": "{ref}…",
+	"media_state_pending": "Wartet",
+	"media_state_downloading": "Lädt",
+	"media_state_ready": "Bereit",
+	"media_state_failed": "Fehler"
+}

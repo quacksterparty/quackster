@@ -40,7 +40,7 @@
 		class="logo-duck-frame"
 		class:is-quacking={quacking}
 		onclick={quack}
-		aria-label={m.quack()}
+		aria-label={m.common_quack()}
 	>
 		<img class="logo-duck" src={duck} alt="" />
 		<img class="logo-duck logo-duck-retro" src={duckRetro} alt="" />

@@ -19,7 +19,7 @@
 	{#if grid}
 		{#if (grid.phase === 'question_open' || grid.phase === 'reveal') && grid.current_category !== null && grid.current_points !== null}
 			<p class="question-context">
-				{m.question_cell({ category: grid.current_category, points: grid.current_points })}
+				{m.game_question_cell({ category: grid.current_category, points: grid.current_points })}
 			</p>
 		{/if}
 
@@ -37,7 +37,7 @@
 			{grid.phase satisfies never}
 		{/if}
 	{:else}
-		<p class="fallback">{m.mode_not_supported()}</p>
+		<p class="fallback">{m.game_mode_not_supported()}</p>
 	{/if}
 	{#if show_media_panel}
 		<MediaStatusPanel media={media_status} />

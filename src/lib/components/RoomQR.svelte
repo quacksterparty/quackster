@@ -28,16 +28,16 @@
 	async function copy() {
 		try {
 			await navigator.clipboard.writeText(url);
-			toast.success(m.copy_link_success());
+			toast.success(m.room_copy_link_success());
 		} catch {
-			toast.error(m.copy_link_failed());
+			toast.error(m.room_copy_link_failed());
 		}
 	}
 </script>
 
 {#if code}
 	<Popover.Root>
-		<Popover.Trigger class="icon-btn" aria-label={m.share_room()}>
+		<Popover.Trigger class="icon-btn" aria-label={m.room_share()}>
 			<svg
 				class="icon"
 				viewBox="0 0 24 24"
@@ -61,8 +61,8 @@
 		<Popover.Portal>
 			<Popover.Content class="qr-popover" sideOffset={8} align="end">
 				<div class="qr-header">
-					<h4 class="qr-title">{m.share_room()} {code}</h4>
-					<p class="qr-sub">{m.scan_to_join()}</p>
+					<h4 class="qr-title">{m.room_share()} {code}</h4>
+					<p class="qr-sub">{m.room_scan_to_join()}</p>
 				</div>
 				<div class="qr-code">
 					{#if svg}
@@ -72,7 +72,7 @@
 				</div>
 				<div class="qr-url-row">
 					<code class="qr-url">{url}</code>
-					<button class="qr-copy" type="button" onclick={copy}>{m.copy_link()}</button>
+					<button class="qr-copy" type="button" onclick={copy}>{m.room_copy_link()}</button>
 				</div>
 			</Popover.Content>
 		</Popover.Portal>

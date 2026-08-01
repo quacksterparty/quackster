@@ -14,8 +14,8 @@
 	todo (chaining exists, #9), not a phase component. -->
 <section class="over">
 	<header class="head">
-		<h1>{m.game_over()}</h1>
-		{#if winner}<p class="muted">🏆 {m.winner_wins({ name: winner })}</p>{/if}
+		<h1>{m.game_game_over()}</h1>
+		{#if winner}<p class="muted">🏆 {m.game_winner_wins({ name: winner })}</p>{/if}
 	</header>
 
 	<ol class="standings">
