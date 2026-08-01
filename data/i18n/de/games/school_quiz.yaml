@@ -1,0 +1,11 @@
+id: game_school_quiz
+title: Schul-Quiz
+description: Ein Grid-Quiz mit Hauptstädten, Flaggen, Chemie, Mathe und Physik.
+games:
+  - title: Runde 1 — Brett-Quiz
+    board:
+      categories:
+        - name: Hauptstädte
+        - name: Flaggen
+        - name: Chemie
+        - name: Mathe & Physik

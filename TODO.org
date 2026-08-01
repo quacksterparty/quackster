@@ -785,3 +785,21 @@ Files: src/lib/components/game/QuestionOpen.svelte (input + send), src/lib/room.
 *** Related
 - [[id:quackster-17]]
 - [[id:quackster-2]]
+
+* DONE Reshape GET /games + room browse to real data :p2:runtime:frontend:
+CLOSED: [2026-08-01 Sat 22:55]
+:PROPERTIES:
+:ID:       quackster-33
+:END:
+
+The /games endpoint and the /room browse page were stubbed against a 250-game mock seed with fake fields (plays, rating, updated, audience, region, license, top-level category). Reshape to the real data layer.
+
+Decisions (grilled 2026-08-01):
+- Response: flat per-game DTO, one item per GameConfig. Top-level union fields (modes, subjects, question_count) AND per-entry detail (entries[]) on the same item.
+- Derivation: from GameConfig structure only. Subjects = filter.tags_any|tags_all + tags from explicit question_ids. Skip pack_ref/linear-Pack/Filter (would need resolution). question_count = points*categories for grid; explicit-list len for linear; None for linear Pack/Filter. Languages dropped for now.
+- Chain: entries[] always exposed; GameConfig.games (chain) is core. Top-level question_count is sum of known entry counts (None for any entry makes top-level None).
+- Scope: backend + frontend. Room page now consumes api.games.list() against the real backend. Seed.ts drops GAMES, GameSeed, formatPlays. formatRelative kept (curate + questions pages use it).
+
+Files: api/src/http/rest/games.rs (Game + GameEntry ts-rs structs, derivation helpers, test), src/lib/bindings/Games.ts (regen), src/lib/data/seed.ts (drop GAMES), src/routes/room/+page.svelte (load + subjects filter + drop fake facets).
+
+Skipped (ponytail, add when asked): backend filter query params, pagination, languages per game, top-level category field, per-entry rules on the list endpoint, question count range filter.

@@ -14,7 +14,13 @@
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
-	const points = $derived(draft ? Object.keys(draft.board.categories[0]?.questions ?? {}).map(Number).sort((a, b) => a - b) : []);
+	const points = $derived(
+		draft
+			? Object.keys(draft.board.categories[0]?.questions ?? {})
+					.map(Number)
+					.sort((a, b) => a - b)
+			: []
+	);
 </script>
 
 <aside class="rail" aria-label="Drafts and board">

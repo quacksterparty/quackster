@@ -42,7 +42,9 @@
 			{:else}
 				<h2 class="drawer-title">{title}</h2>
 			{/if}
-			<button class="drawer-close" aria-label={m.common_close()} onclick={() => (open = false)}>✕</button>
+			<button class="drawer-close" aria-label={m.common_close()} onclick={() => (open = false)}
+				>✕</button
+			>
 		</div>
 		{@render children()}
 	</div>

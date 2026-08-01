@@ -1,0 +1,13 @@
+id: game_german_popculture
+title: Deutsche Popkultur
+description: Ein Grid-Quiz mit 24 Fragen zu deutscher Musik, Film und Fernsehen, Internetkultur, Comedy, Stars und Kultfiguren.
+games:
+  - title: Runde 1
+    board:
+      categories:
+        - name: Deutsche Musik
+        - name: Film & Fernsehen
+        - name: Internet & Memes
+        - name: Comedy
+        - name: Stars
+        - name: Kultfiguren

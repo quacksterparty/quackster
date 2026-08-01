@@ -18,3 +18,21 @@
 
 - id: subject:school
   label: Schule
+
+- id: subject:popculture
+  label: Popkultur
+
+- id: subject:politics
+  label: Politik
+
+- id: subject:gaming
+  label: Gaming
+
+- id: subject:music
+  label: Musik
+
+- id: subject:kids_shows
+  label: Kinderserien
+
+- id: subject:2010s
+  label: 2010er

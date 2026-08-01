@@ -95,12 +95,7 @@
 </div>
 
 {#if activeCell}
-	<QuestionPicker
-		bind:open={pickerOpen}
-		{activeDraftId}
-		{activeCell}
-		{onPicked}
-	/>
+	<QuestionPicker bind:open={pickerOpen} {activeDraftId} {activeCell} {onPicked} />
 {/if}
 
 <style>

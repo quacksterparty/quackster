@@ -6,13 +6,13 @@
 	],
 	"plugin.inlang.messageFormat": {
 		"pathPattern": [
-		"./messages/{locale}/common.json",
-		"./messages/{locale}/theme.json",
-		"./messages/{locale}/room.json",
-		"./messages/{locale}/lobby.json",
-		"./messages/{locale}/game.json",
-		"./messages/{locale}/media.json"
-	]
+			"./messages/{locale}/common.json",
+			"./messages/{locale}/theme.json",
+			"./messages/{locale}/room.json",
+			"./messages/{locale}/lobby.json",
+			"./messages/{locale}/game.json",
+			"./messages/{locale}/media.json"
+		]
 	},
 	"baseLocale": "en",
 	"locales": ["en", "de"]

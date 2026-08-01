@@ -121,15 +121,24 @@
 					<Button size="sm" onclick={editInCurate}>Edit in curate →</Button>
 				</header>
 				<dl>
-					<dt>Prompt</dt><dd>{selected.prompt || '(empty)'}</dd>
-					<dt>Answer</dt><dd>{selected.answer || '(none)'}</dd>
-					<dt>Kind</dt><dd>{selected.kind}</dd>
-					<dt>Lang</dt><dd>{selected.defaultLang}</dd>
-					<dt>License</dt><dd>{selected.license}</dd>
-					<dt>Tags</dt><dd>{selected.tags.length ? selected.tags.join(', ') : '(none)'}</dd>
-					<dt>Variants</dt><dd>{selected.variants.join(', ') || '(none)'}</dd>
-					<dt>Status</dt><dd>{selected.status}</dd>
-					<dt>Created</dt><dd>{formatRelative(selected.createdAt)}</dd>
+					<dt>Prompt</dt>
+					<dd>{selected.prompt || '(empty)'}</dd>
+					<dt>Answer</dt>
+					<dd>{selected.answer || '(none)'}</dd>
+					<dt>Kind</dt>
+					<dd>{selected.kind}</dd>
+					<dt>Lang</dt>
+					<dd>{selected.defaultLang}</dd>
+					<dt>License</dt>
+					<dd>{selected.license}</dd>
+					<dt>Tags</dt>
+					<dd>{selected.tags.length ? selected.tags.join(', ') : '(none)'}</dd>
+					<dt>Variants</dt>
+					<dd>{selected.variants.join(', ') || '(none)'}</dd>
+					<dt>Status</dt>
+					<dd>{selected.status}</dd>
+					<dt>Created</dt>
+					<dd>{formatRelative(selected.createdAt)}</dd>
 					{#if selected.previousIds?.length}
 						<dt>Renamed from</dt>
 						<dd>

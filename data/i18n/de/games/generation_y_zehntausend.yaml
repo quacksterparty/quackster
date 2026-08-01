@@ -1,0 +1,13 @@
+id: game_generation_y_zehntausend
+title: Generation Y — Allgemeinwissen & 2010er
+description: Ein Grid-Quiz mit 24 Fragen aus Gaming, Kinderserien, den 2010ern, Schulallgemeinwissen, Musik und Politik — alles Allgemeinwissen oder nach 2000.
+games:
+  - title: Runde 1
+    board:
+      categories:
+        - name: Gaming
+        - name: Kinderserien
+        - name: 2010er
+        - name: Schulallgemeinwissen
+        - name: Musik
+        - name: Politik

@@ -26,7 +26,7 @@ pub async fn auth(
                 .as_ref()
                 .is_none_or(|secret| secret == token)
         });
-    if ok.unwrap_or(false) {
+    if state.config.admin_secret.is_none() || ok.unwrap_or(false) {
         Ok(next.run(req).await)
     } else {
         Err(StatusCode::UNAUTHORIZED)

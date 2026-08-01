@@ -1,82 +1,81 @@
 <script lang="ts">
-	import { GAMES, formatPlays, formatRelative, type GameSeed } from '$lib/data/seed';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ScrollArea } from 'bits-ui';
 	import { api } from '$lib/api';
+	import type { Game } from '$lib/bindings/Games';
 	import Button from '$lib/components/Button.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
-	import TextInput from '$lib/components/TextInput.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { toast } from '$lib/toast.svelte';
 
+	let games = $state<Game[]>([]);
+	let loading = $state(true);
+	let loadError = $state<string | null>(null);
 	let query = $state('');
-	let sort: 'popular' | 'recent' | 'rating' | 'title' = $state('popular');
 	let density: 'comfy' | 'compact' = $state('comfy');
 	let modeFilter = $state<string | null>(null);
-	let categoryFilter = $state<string | null>(null);
-	let audienceFilter = $state<string | null>(null);
-	let regionFilter = $state<string | null>(null);
-	let licenseFilter = $state<string | null>(null);
-	let selectedTags = $state<string[]>([]);
+	let selectedSubjects = $state<string[]>([]);
 	let selectedGame = $state<string | null>(null);
 
 	let hostOpen = $state(false);
-	let secret = $state('');
 
-	const ALL_MODES = Array.from(new Set(GAMES.flatMap((g) => g.modes))).sort();
-	const ALL_CATEGORIES = Array.from(new Set(GAMES.map((g) => g.category))).sort();
-	const ALL_AUDIENCES = ['kids', 'family', 'adult', 'expert'] as const;
-	const ALL_REGIONS = ['de', 'us', 'uk', 'global'] as const;
-	const ALL_LICENSES = Array.from(new Set(GAMES.map((g) => g.license))).sort();
-	const ALL_TAGS = Array.from(new Set(GAMES.flatMap((g) => g.tags))).sort();
+	$effect(() => {
+		void (async () => {
+			const result = await api.games.list();
+			if (!result.ok) {
+				loadError = m.common_error_generic();
+				loading = false;
+				return;
+			}
+			games = result.value;
+			loading = false;
+		})();
+	});
 
-	const counts = {
-		mode: (m: string) => GAMES.filter((g) => g.modes.includes(m)).length,
-		cat: (c: string) => GAMES.filter((g) => g.category === c).length,
-		aud: (a: string) => GAMES.filter((g) => g.audience === a).length,
-		reg: (r: string) => GAMES.filter((g) => g.region === r).length,
-		lic: (l: string) => GAMES.filter((g) => g.license === l).length
-	};
+	const allModes = $derived(Array.from(new Set(games.flatMap((g) => g.modes))).sort());
+	const allTags = $derived(
+		Array.from(
+			new Map(
+				games.flatMap((g) => g.tags).map((t) => [t.id, t.label] as const)
+			).entries()
+		)
+			.map(([id, label]) => ({ id, label }))
+			.sort((a, b) => a.label.localeCompare(b.label))
+	);
+	const counts = $derived({
+		mode: (mode: string) => games.filter((g) => g.modes.includes(mode)).length,
+		tag: (id: string) => games.filter((g) => g.tags.some((t) => t.id === id)).length
+	});
 
 	const filtered = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		let out: GameSeed[] = GAMES.filter((g) => {
-			if (q && !`${g.title} ${g.description} ${g.category}`.toLowerCase().includes(q)) return false;
-			if (modeFilter && !g.modes.includes(modeFilter)) return false;
-			if (categoryFilter && g.category !== categoryFilter) return false;
-			if (audienceFilter && g.audience !== audienceFilter) return false;
-			if (regionFilter && g.region !== regionFilter) return false;
-			if (licenseFilter && g.license !== licenseFilter) return false;
-			if (selectedTags.length && !selectedTags.every((t) => g.tags.includes(t))) return false;
-			return true;
-		});
-		out = [...out];
-		if (sort === 'popular') out.sort((a, b) => b.plays - a.plays);
-		else if (sort === 'recent') out.sort((a, b) => +new Date(b.updated) - +new Date(a.updated));
-		else if (sort === 'rating') out.sort((a, b) => b.rating - a.rating);
-		else out.sort((a, b) => a.title.localeCompare(b.title));
+		const out = games
+			.filter((g) => {
+				if (q && !`${g.title} ${g.description}`.toLowerCase().includes(q)) return false;
+				if (modeFilter && !g.modes.includes(modeFilter)) return false;
+				if (
+					selectedSubjects.length &&
+					!selectedSubjects.every((id) => g.tags.some((t) => t.id === id))
+				)
+					return false;
+				return true;
+			})
+			.sort((a, b) => a.title.localeCompare(b.title));
 		return out;
 	});
 
-	const activeFilterCount = $derived(
-		[modeFilter, categoryFilter, audienceFilter, regionFilter, licenseFilter].filter(Boolean).length +
-			selectedTags.length
-	);
+	const activeFilterCount = $derived((modeFilter ? 1 : 0) + selectedSubjects.length);
 
-	function toggleTag(t: string) {
-		selectedTags = selectedTags.includes(t)
-			? selectedTags.filter((x) => x !== t)
-			: [...selectedTags, t];
+	function toggleSubject(id: string) {
+		selectedSubjects = selectedSubjects.includes(id)
+			? selectedSubjects.filter((x) => x !== id)
+			: [...selectedSubjects, id];
 	}
 	function resetFilters() {
 		query = '';
 		modeFilter = null;
-		categoryFilter = null;
-		audienceFilter = null;
-		regionFilter = null;
-		licenseFilter = null;
-		selectedTags = [];
+		selectedSubjects = [];
 	}
 
 	async function create() {
@@ -84,7 +83,7 @@
 			toast.error(m.common_no_game_selected());
 			return;
 		}
-		const result = await api.room.create({ secret, game_id: selectedGame });
+		const result = await api.room.create({ game_id: selectedGame });
 		if (!result.ok) {
 			toast.error(m.common_error_generic());
 			return;
@@ -99,20 +98,14 @@
 		<div class="head-right">
 			<label class="search">
 				<span class="sr">Search games</span>
-				<input bind:value={query} placeholder="Search 250 games…" />
-			</label>
-			<label class="sort">
-				Sort
-				<select bind:value={sort}>
-					<option value="popular">Most played</option>
-					<option value="recent">Recently updated</option>
-					<option value="rating">Highest rated</option>
-					<option value="title">Title A–Z</option>
-				</select>
+				<input bind:value={query} placeholder="Search games…" />
 			</label>
 			<div class="density" role="group" aria-label="Density">
-				<button class:active={density === 'comfy'} onclick={() => (density = 'comfy')}>Comfy</button>
-				<button class:active={density === 'compact'} onclick={() => (density = 'compact')}>Compact</button>
+				<button class:active={density === 'comfy'} onclick={() => (density = 'comfy')}>Comfy</button
+				>
+				<button class:active={density === 'compact'} onclick={() => (density = 'compact')}
+					>Compact</button
+				>
 			</div>
 			<Button variant="primary" size="sm" onclick={() => goto(resolve('/curate', {}))}>
 				+ Create game
@@ -133,70 +126,28 @@
 				<ul>
 					<li>
 						<button class:active={!modeFilter} onclick={() => (modeFilter = null)}>
-							<span>All</span><span class="ct">{GAMES.length}</span>
+							<span>All</span><span class="ct">{games.length}</span>
 						</button>
 					</li>
-					{#each ALL_MODES as m (m)}
+					{#each allModes as mode (mode)}
 						<li>
-							<button class:active={modeFilter === m} onclick={() => (modeFilter = m)}>
-								<span>{m.replace('_', ' ')}</span><span class="ct">{counts.mode(m)}</span>
+			<button class:active={modeFilter === mode} onclick={() => (modeFilter = mode)}>
+								<span>{mode.replace('_', ' ')}</span><span class="ct">{counts.mode(mode)}</span>
 							</button>
 						</li>
 					{/each}
 				</ul>
 			</section>
 			<section class="facet">
-				<h3>Category</h3>
-				<select bind:value={categoryFilter}>
-					<option value={null}>All categories</option>
-					{#each ALL_CATEGORIES as c (c)}
-						<option value={c}>{c} ({counts.cat(c)})</option>
-					{/each}
-				</select>
-			</section>
-			<section class="facet">
-				<h3>Audience</h3>
-				<div class="chips">
-					{#each ALL_AUDIENCES as a (a)}
-						<button
-							class="chip"
-							class:active={audienceFilter === a}
-							onclick={() => (audienceFilter = audienceFilter === a ? null : a)}
-						>
-							{a} <span class="ct-sm">{counts.aud(a)}</span>
-						</button>
-					{/each}
-				</div>
-			</section>
-			<section class="facet">
-				<h3>Region</h3>
-				<div class="chips">
-					{#each ALL_REGIONS as r (r)}
-						<button
-							class="chip"
-							class:active={regionFilter === r}
-							onclick={() => (regionFilter = regionFilter === r ? null : r)}
-						>
-							{r.toUpperCase()} <span class="ct-sm">{counts.reg(r)}</span>
-						</button>
-					{/each}
-				</div>
-			</section>
-			<section class="facet">
-				<h3>License</h3>
-				<select bind:value={licenseFilter}>
-					<option value={null}>Any license</option>
-					{#each ALL_LICENSES as l (l)}
-						<option value={l}>{l} ({counts.lic(l)})</option>
-					{/each}
-				</select>
-			</section>
-			<section class="facet">
 				<h3>Tags</h3>
 				<div class="tag-cloud">
-					{#each ALL_TAGS as t (t)}
-						<button class="tag" class:active={selectedTags.includes(t)} onclick={() => toggleTag(t)}>
-							{t}
+					{#each allTags as t (t.id)}
+						<button
+							class="tag"
+							class:active={selectedSubjects.includes(t.id)}
+							onclick={() => toggleSubject(t.id)}
+						>
+							{t.label}
 						</button>
 					{/each}
 				</div>
@@ -206,37 +157,45 @@
 		<ScrollArea.Root class="games-scroll" type="hover">
 			<ScrollArea.Viewport class="games-viewport">
 				<div class="meta-row">
-					<span><strong>{filtered.length}</strong> games</span>
-					{#if activeFilterCount}<span>· {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}</span>{/if}
+					<span><strong>{filtered.length}</strong> game{filtered.length === 1 ? '' : 's'}</span>
+					{#if activeFilterCount}<span
+							>· {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}</span
+						>{/if}
 				</div>
-				<div class="grid" class:compact={density === 'compact'}>
-					{#each filtered as g (g.id)}
-						<button
-							class="tile"
-							class:selected={selectedGame === g.id}
-							onclick={() => (selectedGame = g.id)}
-							aria-pressed={selectedGame === g.id}
-						>
-							<div class="t-head">
+				{#if loading}
+					<p class="empty">Loading…</p>
+				{:else if loadError}
+					<p class="empty">{loadError}</p>
+				{:else if filtered.length === 0}
+					<p class="empty">No games match.</p>
+				{:else}
+					<div class="grid" class:compact={density === 'compact'}>
+						{#each filtered as g (g.id)}
+							<button
+								class="tile"
+								class:selected={selectedGame === g.id}
+								onclick={() => (selectedGame = g.id)}
+								aria-pressed={selectedGame === g.id}
+							>
 								<div class="t-title">{g.title}</div>
-								<div class="t-cat">{g.category}</div>
-							</div>
-							<p class="t-desc">{g.description}</p>
-							<div class="t-meta">
-								<span class="m">{(g.modes[0] ?? '').replace('_', ' ')}{#if g.modes.length > 1} +{g.modes.length - 1}{/if}</span>
-								<span class="dot">·</span>
-								<span class="m">{g.questions}q</span>
-								<span class="dot">·</span>
-								<span class="m">{formatPlays(g.plays)} plays</span>
-							</div>
-							<div class="t-tags">
-								{#each g.tags.slice(0, 3) as t (t)}
-									<span class="t-tag">{t}</span>
-								{/each}
-							</div>
-						</button>
-					{/each}
-				</div>
+								<p class="t-desc">{g.description}</p>
+								<div class="t-meta">
+									<span class="m"
+										>{(g.modes[0] ?? '').replace('_', ' ')}{#if g.modes.length > 1}
+											+{g.modes.length - 1}{/if}</span
+									>
+									<span class="dot">·</span>
+									<span class="m">{g.question_count ?? '?'}q</span>
+								</div>
+								<div class="t-tags">
+									{#each g.tags.slice(0, 3) as t (t.id)}
+										<span class="t-tag">{t.label}</span>
+									{/each}
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</ScrollArea.Viewport>
 			<ScrollArea.Scrollbar orientation="vertical" class="games-bar">
 				<ScrollArea.Thumb class="games-thumb" />
@@ -245,11 +204,12 @@
 	</div>
 
 	{#if selectedGame}
-		{@const g = GAMES.find((x) => x.id === selectedGame)}
+		{@const g = games.find((x) => x.id === selectedGame)}
 		{#if g}
 			<footer class="dock">
 				<div>
-					<strong>{g.title}</strong> · {g.modes.map((m) => m.replace('_', ' ')).join(', ')} · {g.questions} questions · updated {formatRelative(g.updated)}
+					<strong>{g.title}</strong> · {g.modes.map((m) => m.replace('_', ' ')).join(', ')} ·
+					{g.question_count ?? '?'} questions
 				</div>
 				<Button size="lg" onclick={() => (hostOpen = true)}>{m.common_host()}</Button>
 			</footer>
@@ -258,14 +218,7 @@
 </section>
 
 <Dialog bind:open={hostOpen} title={m.common_host()}>
-	<form
-		onsubmit={(e) => {
-			e.preventDefault();
-			void create();
-		}}
-	>
-		<TextInput bind:value={secret} placeholder="Secret" />
-	</form>
+	<p class="hint">Admin secret is sent automatically from your saved session.</p>
 	<Button size="lg" onclick={create}>{m.common_create_room()}</Button>
 </Dialog>
 
@@ -312,20 +265,6 @@
 		color: var(--color-text);
 		font-family: var(--font-body);
 		font-size: calc(0.9rem * var(--font-scale));
-	}
-	.sort {
-		display: flex;
-		gap: var(--space-1);
-		align-items: center;
-		font-size: calc(0.8rem * var(--font-scale));
-		color: var(--color-text-muted);
-	}
-	.sort select {
-		padding: var(--space-1) var(--space-2);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		background: var(--bg-surface);
-		color: var(--color-text);
 	}
 	.density {
 		display: flex;
@@ -399,7 +338,7 @@
 		flex-direction: column;
 		gap: 2px;
 	}
-	.facet button:not(.chip):not(.tag) {
+	.facet button:not(.tag) {
 		display: flex;
 		justify-content: space-between;
 		width: 100%;
@@ -414,10 +353,10 @@
 		cursor: pointer;
 		text-transform: capitalize;
 	}
-	.facet button:not(.chip):not(.tag):hover {
+	.facet button:not(.tag):hover {
 		background: var(--bg-primary);
 	}
-	.facet button:not(.chip):not(.tag).active {
+	.facet button:not(.tag).active {
 		background: var(--color-primary);
 		color: var(--color-text-inverse);
 	}
@@ -425,38 +364,6 @@
 		font-family: var(--font-mono);
 		font-size: calc(0.7rem * var(--font-scale));
 		opacity: 0.7;
-	}
-	.ct-sm {
-		font-family: var(--font-mono);
-		font-size: calc(0.6rem * var(--font-scale));
-		opacity: 0.7;
-	}
-	.facet select {
-		width: 100%;
-		padding: var(--space-1) var(--space-2);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		background: var(--bg-surface);
-		color: var(--color-text);
-		font-family: var(--font-body);
-	}
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-1);
-	}
-	.chip {
-		padding: 2px var(--space-2);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-full);
-		background: var(--bg-surface);
-		color: var(--color-text);
-		font-size: calc(0.7rem * var(--font-scale));
-		cursor: pointer;
-	}
-	.chip.active {
-		border-color: var(--color-primary);
-		color: var(--color-primary);
 	}
 	.tag-cloud {
 		display: flex;
@@ -493,6 +400,11 @@
 		font-size: calc(0.85rem * var(--font-scale));
 		margin-bottom: var(--space-2);
 	}
+	.empty {
+		color: var(--color-text-muted);
+		text-align: center;
+		padding: var(--space-6) var(--space-2);
+	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -522,22 +434,9 @@
 		border: 2px solid var(--color-primary);
 		padding: calc(var(--space-3) - 1px);
 	}
-	.t-head {
-		display: flex;
-		justify-content: space-between;
-		gap: var(--space-2);
-		align-items: baseline;
-	}
 	.t-title {
 		font-family: var(--font-heading);
 		font-size: calc(0.95rem * var(--font-scale));
-	}
-	.t-cat {
-		font-size: calc(0.65rem * var(--font-scale));
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		flex-shrink: 0;
 	}
 	.t-desc {
 		margin: 0;
@@ -574,6 +473,11 @@
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-full);
 		color: var(--color-text-muted);
+	}
+	.hint {
+		margin: 0 0 var(--space-3) 0;
+		color: var(--color-text-muted);
+		font-size: calc(0.85rem * var(--font-scale));
 	}
 	.dock {
 		position: fixed;

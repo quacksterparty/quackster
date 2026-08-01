@@ -1,5 +1,7 @@
 import type { CreateRoom, Room } from './bindings/Rooms';
 import type { Game } from './bindings/Games';
+import { currentLocale } from './i18n.svelte';
+import { getSecret } from './secret';
 
 const API = '/api';
 
@@ -8,9 +10,14 @@ export type Result<T, E = ApiError> = { ok: true; value: T } | { ok: false; erro
 export type ApiError = { kind: 'network' } | { kind: 'http'; status: number; body: string };
 
 async function send(path: string, init?: RequestInit): Promise<Result<Response>> {
+	const headers = new Headers(init?.headers);
+	headers.set('Accept-Language', currentLocale());
+	const secret = getSecret();
+	if (secret !== null) headers.set('Authorization', `Bearer ${secret}`);
+
 	let res: Response;
 	try {
-		res = await fetch(API + path, init);
+		res = await fetch(API + path, { ...init, headers });
 	} catch {
 		return { ok: false, error: { kind: 'network' } };
 	}
@@ -47,7 +54,7 @@ async function roomExists(code: string): Promise<Result<boolean>> {
 export const api = {
 	room: {
 		exists: roomExists,
-		create: (body: CreateRoom) => post<Room>('/rooms', body)
+		create: (body: Omit<CreateRoom, 'secret'>) => post<Room>('/rooms', body)
 	},
 	games: {
 		list: () => req<Game[]>('/games')

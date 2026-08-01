@@ -2,10 +2,12 @@
 	import Logo from '$lib/components/Logo.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
 	import CodeInput from '$lib/components/CodeInput.svelte';
+	import TextInput from '$lib/components/TextInput.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { api } from '$lib/api';
+	import { getSecret, setSecret } from '$lib/secret';
 	import { toast } from '$lib/toast.svelte';
 	import { lastSession, type RoomSession } from '$lib/session';
 	import Button from './Button.svelte';
@@ -14,6 +16,9 @@
 	let joinOpen = $state(false);
 	let joinCode = $state('');
 	let recentSession: RoomSession | null = $state(null);
+
+	let hostOpen = $state(false);
+	let secretInput = $state('');
 
 	async function join() {
 		if (joinCode.length !== 6) return;
@@ -32,12 +37,19 @@
 		await goto(resolve('/room/[code]', { code: joinCode }));
 	}
 
-	async function room() {
-		await goto(resolve('/room', {}));
-	}
-
 	async function rejoin() {
 		if (recentSession) await goto(resolve('/room/[code]', { code: recentSession.room }));
+	}
+
+	function openHost() {
+		secretInput = getSecret() ?? '';
+		hostOpen = true;
+	}
+
+	function host() {
+		setSecret(secretInput.trim());
+		hostOpen = false;
+		void goto(resolve('/room', {}));
 	}
 
 	onMount(() => {
@@ -51,9 +63,21 @@
 
 	<div class="actions">
 		<Button size="xl" onclick={() => (joinOpen = true)}>{m.common_join_game()}</Button>
-		<Button variant="secondary" size="xl" onclick={room}>{m.common_host()}</Button>
+		<Button variant="secondary" size="xl" onclick={openHost}>{m.common_host()}</Button>
 	</div>
 </section>
+
+<Dialog bind:open={hostOpen} title={m.common_admin_secret()}>
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			host();
+		}}
+	>
+		<TextInput bind:value={secretInput} placeholder="Secret" type="password" />
+	</form>
+	<Button onclick={host}>{m.common_continue()}</Button>
+</Dialog>
 
 <Dialog bind:open={joinOpen} title={m.common_join_game()} description={m.common_enter_join_code()}>
 	<CodeInput bind:value={joinCode} onComplete={join} />

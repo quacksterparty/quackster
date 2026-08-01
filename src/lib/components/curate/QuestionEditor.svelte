@@ -22,11 +22,15 @@
 	const draft = $derived(pool.getDraft(activeDraftId));
 	const cell = $derived(
 		activeCell && draft
-			? draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null
+			? (draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null)
 			: null
 	);
 	const question = $derived(
-		cell ? pool.getQuestion(cell.questionId) : activeQuestionId ? pool.getQuestion(activeQuestionId) : null
+		cell
+			? pool.getQuestion(cell.questionId)
+			: activeQuestionId
+				? pool.getQuestion(activeQuestionId)
+				: null
 	);
 	const refs = $derived(question ? pool.referenceLocations(question.id) : []);
 
@@ -73,7 +77,10 @@
 				<div class="id-row">
 					<code class="qid" class:draft={isDraftId(question.id)}>{question.id}</code>
 					{#if isDraftId(question.id)}
-						<span class="badge-draft" title="Auto-renames to q_&lt;slug&gt; when prompt has text and the question is unreferenced">
+						<span
+							class="badge-draft"
+							title="Auto-renames to q_&lt;slug&gt; when prompt has text and the question is unreferenced"
+						>
 							draft id · will rename
 						</span>
 					{/if}
@@ -95,7 +102,10 @@
 			{#if activeCell}
 				<div class="empty">
 					<h3>Empty cell</h3>
-					<p>This board cell has no question. Pick an existing one from the pool, or create a new question.</p>
+					<p>
+						This board cell has no question. Pick an existing one from the pool, or create a new
+						question.
+					</p>
 					<div class="empty-actions">
 						<Button onclick={onPickQuestion}>Pick existing question</Button>
 						<Button variant="secondary" onclick={onCreateNew}>+ Create new question</Button>
@@ -118,8 +128,7 @@
 						rows="3"
 						value={question.prompt}
 						oninput={(e) => setField('prompt', (e.target as HTMLTextAreaElement).value)}
-						placeholder="e.g. In welchem Jahr fiel die Berliner Mauer?"
-					></textarea>
+						placeholder="e.g. In welchem Jahr fiel die Berliner Mauer?"></textarea>
 				</label>
 				<label>
 					<span>Kind</span>
@@ -187,8 +196,7 @@
 					<textarea
 						rows="2"
 						value={question.explanation ?? ''}
-						oninput={(e) =>
-							setField('explanation', (e.target as HTMLTextAreaElement).value)}
+						oninput={(e) => setField('explanation', (e.target as HTMLTextAreaElement).value)}
 					></textarea>
 				</label>
 			</div>
@@ -273,7 +281,10 @@
 											oninput={(e) => {
 												if (!question?.range) return;
 												pool.updateQuestion(question.id, {
-													range: { ...question.range, min: Number((e.target as HTMLInputElement).value) }
+													range: {
+														...question.range,
+														min: Number((e.target as HTMLInputElement).value)
+													}
 												});
 											}}
 										/>
@@ -287,7 +298,10 @@
 											oninput={(e) => {
 												if (!question?.range) return;
 												pool.updateQuestion(question.id, {
-													range: { ...question.range, max: Number((e.target as HTMLInputElement).value) }
+													range: {
+														...question.range,
+														max: Number((e.target as HTMLInputElement).value)
+													}
 												});
 											}}
 										/>
@@ -333,8 +347,8 @@
 									<p class="v-err">⚠ max must be greater than min</p>
 								{:else}
 									<p class="v-hint">
-										Accept any value in [{question.range.min}, {question.range.max}]
-										(step {question.range.step}, ± {question.range.tolerance})
+										Accept any value in [{question.range.min}, {question.range.max}] (step {question
+											.range.step}, ± {question.range.tolerance})
 										{question.unit ?? ''}
 									</p>
 								{/if}

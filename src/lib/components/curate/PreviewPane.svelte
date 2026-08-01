@@ -14,11 +14,15 @@
 	const draft = $derived(pool.getDraft(activeDraftId));
 	const cell = $derived(
 		activeCell && draft
-			? draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null
+			? (draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null)
 			: null
 	);
 	const question = $derived(
-		cell ? pool.getQuestion(cell.questionId) : activeQuestionId ? pool.getQuestion(activeQuestionId) : null
+		cell
+			? pool.getQuestion(cell.questionId)
+			: activeQuestionId
+				? pool.getQuestion(activeQuestionId)
+				: null
 	);
 
 	const errors = $derived.by(() => {
@@ -45,8 +49,10 @@
 
 	const warnings = $derived.by(() => {
 		const w: string[] = [];
-		if (question && question.tags.length === 0) w.push('Question has no tags — hard to find in the pool');
-		if (question && !question.explanation) w.push('No explanation — players won\'t learn from wrong answers');
+		if (question && question.tags.length === 0)
+			w.push('Question has no tags — hard to find in the pool');
+		if (question && !question.explanation)
+			w.push("No explanation — players won't learn from wrong answers");
 		return w;
 	});
 
@@ -101,7 +107,11 @@
 		<section class="pv-section">
 			<h3>How a player sees it</h3>
 			<div class="player-view">
-				<div class="pv-pts">{draft?.board.categories[activeCell?.categoryIdx ?? 0]?.name ?? 'Question'}{activeCell ? ` · ${activeCell.point} pts` : ''}</div>
+				<div class="pv-pts">
+					{draft?.board.categories[activeCell?.categoryIdx ?? 0]?.name ?? 'Question'}{activeCell
+						? ` · ${activeCell.point} pts`
+						: ''}
+				</div>
 				<div class="pv-prompt">{question.prompt || '(empty prompt)'}</div>
 				{#if question.choices}
 					<ul class="pv-choices">

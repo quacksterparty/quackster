@@ -1,0 +1,9 @@
+id: game_music_quiz
+title: Musik-Quiz
+description: Ein Grid-Quiz mit YouTube-Songschnipseln — eine Runde nur Hören, eine Runde Musikvideo.
+games:
+  - title: Runde 1
+    board:
+      categories:
+        - name: Nur Hören
+        - name: Musikvideo

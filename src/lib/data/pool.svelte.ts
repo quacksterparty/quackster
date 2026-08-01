@@ -7,7 +7,14 @@
  * revisions, TTL etc. all land with the backend.
  */
 
-import { QUESTIONS, DRAFTS, type PoolQuestion, type CurateDraft, type BoardCellRef, type QuestionVariant } from './seed';
+import {
+	QUESTIONS,
+	DRAFTS,
+	type PoolQuestion,
+	type CurateDraft,
+	type BoardCellRef,
+	type QuestionVariant
+} from './seed';
 import { newDraftQuestionId, namedQuestionId, slugify, isDraftId } from './ids';
 
 class PoolStore {
@@ -26,7 +33,9 @@ class PoolStore {
 	/** Drafts that reference a given question. */
 	referencedBy(qid: string): CurateDraft[] {
 		return this.drafts.filter((d) =>
-			d.board.categories.some((c) => Object.values(c.questions).some((cell) => cell?.questionId === qid))
+			d.board.categories.some((c) =>
+				Object.values(c.questions).some((cell) => cell?.questionId === qid)
+			)
 		);
 	}
 	/** All (draft, category, point) locations that reference a question. */
@@ -102,7 +111,13 @@ class PoolStore {
 	}
 
 	/** Attach an existing question to a board cell. */
-	attachQuestion(draftId: string, categoryIdx: number, point: number, questionId: string, variant?: QuestionVariant): void {
+	attachQuestion(
+		draftId: string,
+		categoryIdx: number,
+		point: number,
+		questionId: string,
+		variant?: QuestionVariant
+	): void {
 		const d = this.getDraft(draftId);
 		if (!d) return;
 		const cat = d.board.categories[categoryIdx];

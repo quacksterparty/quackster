@@ -33,7 +33,7 @@
 
 <header class="bar">
 	<div class="left">
-		<select class="draft-select" value={activeDraftId} onchange={() => undefined /* re-derive */}>
+		<select class="draft-select" value={activeDraftId} onchange={() => undefined}>
 			{#each pool.drafts as d (d.id)}
 				<option value={d.id}>{d.title}</option>
 			{/each}

@@ -725,13 +725,14 @@ as a `QuestionSlot` (board grid, linear question list, live `CurrentCell`).
 **Planned (not yet implemented):** pack-level `variant` override on
 `pack_ref`/`filter` sources, then uniform random fallback as the final
 layer. Precedence will be pack-override > board-cell > question-declared
+
 > random.
 
 ```yaml
 # question — author declares the default play variant
 id: q_atom_nucleus
 kind: text
-preferred_variant: open  # optional; falls back to kind default if absent
+preferred_variant: open # optional; falls back to kind default if absent
 tags: [subject:chemistry]
 content:
   default_lang: en
@@ -751,10 +752,10 @@ content:
 categories:
   - name: Chemistry
     question_ids:
-      100: { id: q_atom_nucleus, variant: open }       # board override
+      100: { id: q_atom_nucleus, variant: open } # board override
       200: { id: q_acid_base, variant: numeric_input } # board override
-      300: { id: q_chemical_oxygen_ozone }            # no override → default
-      500: { id: q_periodic_helium }                  # no override → default
+      300: { id: q_chemical_oxygen_ozone } # no override → default
+      500: { id: q_periodic_helium } # no override → default
 ```
 
 A board cell's override must reference a variant the question defines;

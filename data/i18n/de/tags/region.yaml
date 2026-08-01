@@ -1,2 +1,5 @@
 - id: region:global
   label: Global
+
+- id: region:germany
+  label: Deutschland

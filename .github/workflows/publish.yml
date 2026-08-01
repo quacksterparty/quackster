@@ -11,7 +11,7 @@ on:
         description: git tag (vX.Y.Z) for versioned tags; empty = latest/full only
         required: false
         type: string
-        default: ""
+        default: ''
 
 permissions: {}
 
