@@ -22,5 +22,6 @@
 	"common_players_and_scoreboard": "Spieler & Punktestand",
 	"common_admin_secret": "Admin-Geheimnis",
 	"common_admin_secret_hint": "Admin-Geheimnis wird automatisch aus deiner gespeicherten Sitzung gesendet.",
-	"common_continue": "Weiter"
+	"common_continue": "Weiter",
+	"common_mod": "Mod"
 }

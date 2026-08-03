@@ -133,6 +133,15 @@ export for editor YAML LSP.
   (`api/src/data/types/`, validated by `garde`); TS types are generated via
   `ts-rs`, never hand-edited.
 - Rust code uses `Result` / `thiserror` idiomatically for fallible paths.
+- **Always use descriptive variable names** — no shorthand. Readability over
+  brevity. `event_handler` not `eh`, `question_count` not `qc`, `board_config`
+  not `bc`. Type narrowing usually makes "shorter" names pointless anyway.
+  Applies to Rust, TS, YAML keys, parameter names, locals — everywhere.
+- **Run commands inside `nix develop`** (or `nix develop -c <cmd>` for one-offs).
+  Don't install tools system-wide. Especially required for frontend tests —
+  Playwright needs its bundled browsers and we can't `pnpm exec playwright
+  install` against the host's missing system deps. `nix develop` already has
+  every browser + system lib wired up.
 - No comments restating what code does; comment only non-obvious _why_.
 - Don't edit `src/lib/paraglide/**` — generated.
 - Tasks live in `TODO.org` at the repo root (Org format, `#+TODO: TODO IN_PROGRESS DONE`).

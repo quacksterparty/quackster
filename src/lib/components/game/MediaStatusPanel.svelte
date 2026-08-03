@@ -101,7 +101,7 @@
 		color: inherit;
 		font: inherit;
 		cursor: pointer;
-		box-shadow: var(--shadow-sm, 0 1px 3px rgb(0 0 0 / 0.1));
+		box-shadow: var(--shadow-sm);
 	}
 	.toggle:hover {
 		filter: brightness(1.05);
@@ -137,11 +137,11 @@
 		animation: pulse 1.2s ease-in-out infinite;
 	}
 	.dot.failed {
-		background: var(--color-danger, var(--color-accent));
+		background: var(--color-danger);
 		color: var(--bg-surface);
 	}
 	.dot.ready {
-		background: var(--color-success, var(--color-accent));
+		background: var(--color-success);
 		color: var(--bg-surface);
 	}
 	@keyframes pulse {
@@ -154,10 +154,10 @@
 		}
 	}
 	.panel[data-state='ready'] .toggle {
-		border-color: var(--color-success, var(--color-accent));
+		border-color: var(--color-success);
 	}
 	.panel[data-state='failed'] .toggle {
-		border-color: var(--color-danger, var(--color-accent));
+		border-color: var(--color-danger);
 	}
 	.body {
 		display: flex;
@@ -168,7 +168,7 @@
 		border-radius: var(--radius-md);
 		background: var(--bg-surface);
 		min-width: max(20rem, 50%);
-		box-shadow: var(--shadow-md, 0 4px 12px rgb(0 0 0 / 0.15));
+		box-shadow: var(--shadow-md);
 		position: absolute;
 		top: 100%;
 		right: 0;
@@ -200,10 +200,10 @@
 		text-align: right;
 	}
 	.media-row[data-state='Ready'] .media-state {
-		color: var(--color-success, var(--color-accent));
+		color: var(--color-success);
 	}
 	.media-row[data-state='Failed'] .media-state {
-		color: var(--color-danger, var(--color-accent));
+		color: var(--color-danger);
 	}
 	.media-err {
 		cursor: help;

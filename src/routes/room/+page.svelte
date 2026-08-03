@@ -5,9 +5,10 @@
 	import { api } from '$lib/api';
 	import type { Game } from '$lib/bindings/Games';
 	import Button from '$lib/components/Button.svelte';
-	import Dialog from '$lib/components/Dialog.svelte';
+	import GameCard from '$lib/components/GameCard.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { toast } from '$lib/toast.svelte';
+	import { unwrap } from '$lib/util/api';
 
 	let games = $state<Game[]>([]);
 	let loading = $state(true);
@@ -18,17 +19,12 @@
 	let selectedSubjects = $state<string[]>([]);
 	let selectedGame = $state<string | null>(null);
 
-	let hostOpen = $state(false);
-
 	$effect(() => {
 		void (async () => {
-			const result = await api.games.list();
-			if (!result.ok) {
+			const list = await unwrap(api.games.list(), () => {
 				loadError = m.common_error_generic();
-				loading = false;
-				return;
-			}
-			games = result.value;
+			});
+			if (list) games = list;
 			loading = false;
 		})();
 	});
@@ -83,12 +79,10 @@
 			toast.error(m.common_no_game_selected());
 			return;
 		}
-		const result = await api.room.create({ game_id: selectedGame });
-		if (!result.ok) {
-			toast.error(m.common_error_generic());
-			return;
-		}
-		await goto(`/room/${result.value.join_code}`);
+		const room = await unwrap(api.room.create({ game_id: selectedGame }), () =>
+			toast.error(m.common_error_generic())
+		);
+		if (room) await goto(`/room/${room.join_code}`);
 	}
 </script>
 
@@ -97,36 +91,39 @@
 		<h2 class="room-title">{m.common_games()}</h2>
 		<div class="head-right">
 			<label class="search">
-				<span class="sr">Search games</span>
-				<input bind:value={query} placeholder="Search games…" />
+				<span class="sr">{m.room_search_label()}</span>
+				<input bind:value={query} placeholder={m.room_search_placeholder()} />
 			</label>
-			<div class="density" role="group" aria-label="Density">
-				<button class:active={density === 'comfy'} onclick={() => (density = 'comfy')}>Comfy</button
+			<div class="density" role="group" aria-label={m.room_density_label()}>
+				<button class:active={density === 'comfy'} onclick={() => (density = 'comfy')}
+					>{m.room_density_comfy()}</button
 				>
 				<button class:active={density === 'compact'} onclick={() => (density = 'compact')}
-					>Compact</button
+					>{m.room_density_compact()}</button
 				>
 			</div>
 			<Button variant="primary" size="sm" onclick={() => goto(resolve('/curate', {}))}>
-				+ Create game
+				{m.room_create_game()}
 			</Button>
 		</div>
 	</header>
 
 	<div class="layout">
-		<aside class="rail" aria-label="Filters">
+		<aside class="rail" aria-label={m.room_filters_label()}>
 			<div class="rail-head">
-				<h2>Filters</h2>
+				<h2>{m.room_filters_title()}</h2>
 				{#if activeFilterCount}
-					<button class="clear" onclick={resetFilters}>Clear ({activeFilterCount})</button>
+					<button class="clear" onclick={resetFilters}
+						>{m.room_filters_clear({ count: activeFilterCount })}</button
+					>
 				{/if}
 			</div>
 			<section class="facet">
-				<h3>Modes</h3>
+				<h3>{m.room_facet_modes()}</h3>
 				<ul>
 					<li>
 						<button class:active={!modeFilter} onclick={() => (modeFilter = null)}>
-							<span>All</span><span class="ct">{games.length}</span>
+							<span>{m.room_filter_all()}</span><span class="ct">{games.length}</span>
 						</button>
 					</li>
 					{#each allModes as mode (mode)}
@@ -139,7 +136,7 @@
 				</ul>
 			</section>
 			<section class="facet">
-				<h3>Tags</h3>
+				<h3>{m.room_facet_tags()}</h3>
 				<div class="tag-cloud">
 					{#each allTags as t (t.id)}
 						<button
@@ -154,51 +151,32 @@
 			</section>
 		</aside>
 
-		<ScrollArea.Root class="games-scroll" type="hover">
-			<ScrollArea.Viewport class="games-viewport">
+		<ScrollArea.Root class="bits-scroll" type="hover">
+			<ScrollArea.Viewport class="bits-scroll-viewport">
 				<div class="meta-row">
-					<span><strong>{filtered.length}</strong> game{filtered.length === 1 ? '' : 's'}</span>
-					{#if activeFilterCount}<span
-							>· {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}</span
-						>{/if}
+					<span>{m.room_games_count({ count: filtered.length })}</span>
+					{#if activeFilterCount}<span>· {m.room_filters_active({ count: activeFilterCount })}</span>{/if}
 				</div>
 				{#if loading}
-					<p class="empty">Loading…</p>
+					<p class="empty">{m.room_loading()}</p>
 				{:else if loadError}
 					<p class="empty">{loadError}</p>
 				{:else if filtered.length === 0}
-					<p class="empty">No games match.</p>
+					<p class="empty">{m.room_no_games_match()}</p>
 				{:else}
 					<div class="grid" class:compact={density === 'compact'}>
 						{#each filtered as g (g.id)}
-							<button
-								class="tile"
-								class:selected={selectedGame === g.id}
+							<GameCard
+								game={g}
+								selected={selectedGame === g.id}
 								onclick={() => (selectedGame = g.id)}
-								aria-pressed={selectedGame === g.id}
-							>
-								<div class="t-title">{g.title}</div>
-								<p class="t-desc">{g.description}</p>
-								<div class="t-meta">
-									<span class="m"
-										>{(g.modes[0] ?? '').replace('_', ' ')}{#if g.modes.length > 1}
-											+{g.modes.length - 1}{/if}</span
-									>
-									<span class="dot">·</span>
-									<span class="m">{g.question_count ?? '?'}q</span>
-								</div>
-								<div class="t-tags">
-									{#each g.tags.slice(0, 3) as t (t.id)}
-										<span class="t-tag">{t.label}</span>
-									{/each}
-								</div>
-							</button>
+							/>
 						{/each}
 					</div>
 				{/if}
 			</ScrollArea.Viewport>
-			<ScrollArea.Scrollbar orientation="vertical" class="games-bar">
-				<ScrollArea.Thumb class="games-thumb" />
+			<ScrollArea.Scrollbar orientation="vertical" class="bits-scrollbar">
+				<ScrollArea.Thumb class="bits-scroll-thumb" />
 			</ScrollArea.Scrollbar>
 		</ScrollArea.Root>
 	</div>
@@ -209,18 +187,15 @@
 			<footer class="dock">
 				<div>
 					<strong>{g.title}</strong> · {g.modes.map((m) => m.replace('_', ' ')).join(', ')} ·
-					{g.question_count ?? '?'} questions
+					{g.question_count != null
+						? m.room_questions_count({ count: g.question_count })
+						: m.room_questions_unknown()}
 				</div>
-				<Button size="lg" onclick={() => (hostOpen = true)}>{m.common_host()}</Button>
+				<Button size="lg" onclick={create}>{m.common_host()}</Button>
 			</footer>
 		{/if}
 	{/if}
 </section>
-
-<Dialog bind:open={hostOpen} title={m.common_host()}>
-	<p class="hint">Admin secret is sent automatically from your saved session.</p>
-	<Button size="lg" onclick={create}>{m.common_create_room()}</Button>
-</Dialog>
 
 <style>
 	.room {
@@ -384,11 +359,11 @@
 		color: var(--color-text-inverse);
 		border-color: var(--color-accent);
 	}
-	:global(.games-scroll) {
+	:global(.bits-scroll) {
 		flex: 1;
 		min-height: 0;
 	}
-	:global(.games-viewport) {
+	:global(.bits-scroll-viewport) {
 		height: 100%;
 		padding-top: 6px;
 		padding-left: 6px;
@@ -414,71 +389,6 @@
 	.grid.compact {
 		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
 	}
-	.tile {
-		text-align: left;
-		background: var(--bg-surface);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-md);
-		padding: var(--space-3);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		cursor: pointer;
-		color: var(--color-text);
-		font-family: inherit;
-	}
-	.tile:hover {
-		border-color: var(--color-primary);
-	}
-	.tile.selected {
-		border: 2px solid var(--color-primary);
-		padding: calc(var(--space-3) - 1px);
-	}
-	.t-title {
-		font-family: var(--font-heading);
-		font-size: calc(0.95rem * var(--font-scale));
-	}
-	.t-desc {
-		margin: 0;
-		font-size: calc(0.8rem * var(--font-scale));
-		color: var(--color-text-muted);
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-	.t-meta {
-		display: flex;
-		gap: var(--space-1);
-		align-items: center;
-		font-size: calc(0.7rem * var(--font-scale));
-		color: var(--color-text-muted);
-		flex-wrap: wrap;
-	}
-	.t-meta .m {
-		text-transform: capitalize;
-	}
-	.dot {
-		opacity: 0.5;
-	}
-	.t-tags {
-		display: flex;
-		gap: 4px;
-		flex-wrap: wrap;
-	}
-	.t-tag {
-		font-size: calc(0.6rem * var(--font-scale));
-		padding: 1px var(--space-2);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-full);
-		color: var(--color-text-muted);
-	}
-	.hint {
-		margin: 0 0 var(--space-3) 0;
-		color: var(--color-text-muted);
-		font-size: calc(0.85rem * var(--font-scale));
-	}
 	.dock {
 		position: fixed;
 		bottom: 1.5rem;
@@ -496,12 +406,12 @@
 		z-index: 20;
 		gap: var(--space-3);
 	}
-	:global(.games-bar) {
+	:global(.bits-scrollbar) {
 		position: absolute;
 		width: 0.5rem;
 		--bits-scroll-area-thumb-width: 100%;
 	}
-	:global(.games-thumb) {
+	:global(.bits-scroll-thumb) {
 		background: var(--color-text-muted);
 		border-radius: var(--radius-full);
 	}

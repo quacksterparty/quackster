@@ -27,7 +27,6 @@
 	<section class="section">
 		<header class="head">
 			<h2>Drafts</h2>
-			<button class="new" title="New draft">+</button>
 		</header>
 		<ul class="drafts">
 			{#each pool.drafts as d (d.id)}
@@ -124,16 +123,6 @@
 		font-family: var(--font-heading);
 		font-size: calc(0.95rem * var(--font-scale));
 	}
-	.new {
-		background: var(--color-primary);
-		color: var(--color-text-inverse);
-		border: none;
-		width: 1.5rem;
-		height: 1.5rem;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-size: 1rem;
-	}
 	.ct {
 		font-size: calc(0.7rem * var(--font-scale));
 		color: var(--color-text-muted);
@@ -199,11 +188,11 @@
 		letter-spacing: 0.04em;
 	}
 	.badge-saved {
-		background: color-mix(in srgb, var(--color-success) 20%, transparent);
+		background: var(--bg-success-soft);
 		color: var(--color-success);
 	}
 	.badge-unsaved_changes {
-		background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+		background: var(--bg-accent-soft);
 		color: var(--color-accent);
 	}
 	.badge-incomplete {
@@ -211,7 +200,7 @@
 		color: var(--color-text-muted);
 	}
 	.badge-invalid {
-		background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+		background: var(--bg-danger-soft);
 		color: var(--color-danger);
 	}
 	.badge-protected {

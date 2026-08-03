@@ -22,6 +22,8 @@
 	import '$lib/themes/western.css';
 	import '$lib/themes/wizard.css';
 
+	import '$lib/components/icon-btn.css';
+
 	let { children }: { children: Snippet } = $props();
 
 	initReactiveLocale();

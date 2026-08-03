@@ -25,15 +25,15 @@
 	inputmode="text"
 	autocapitalize="characters"
 	autocomplete="one-time-code"
-	class="code-input"
+	class="bits-pin-input"
 >
 	{#snippet children({ cells })}
 		{#each cells as cell (cell)}
-			<PinInput.Cell {cell} class="code-cell">
+			<PinInput.Cell {cell} class="bits-pin-cell">
 				{#if cell.char}
 					{cell.char}
 				{:else if cell.hasFakeCaret}
-					<span class="code-caret"></span>
+					<span class="bits-pin-caret"></span>
 				{/if}
 			</PinInput.Cell>
 		{/each}
@@ -41,12 +41,12 @@
 </PinInput.Root>
 
 <style>
-	:global(.code-input) {
+	:global(.bits-pin-input) {
 		display: flex;
 		gap: var(--space-2);
 		justify-content: center;
 	}
-	:global(.code-cell) {
+	:global(.bits-pin-cell) {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -60,17 +60,17 @@
 		border-radius: var(--radius-md);
 		transition: border-color var(--duration-fast) var(--easing);
 	}
-	:global(.code-cell[data-active]) {
+	:global(.bits-pin-cell[data-active]) {
 		border-color: var(--color-primary);
 		box-shadow: var(--focus-ring);
 	}
-	:global(.code-caret) {
+	:global(.bits-pin-caret) {
 		width: 1px;
 		height: 1.5rem;
 		background: var(--color-text);
-		animation: code-blink 1s step-end infinite;
+		animation: bits-pin-blink 1s step-end infinite;
 	}
-	@keyframes code-blink {
+	@keyframes bits-pin-blink {
 		50% {
 			opacity: 0;
 		}

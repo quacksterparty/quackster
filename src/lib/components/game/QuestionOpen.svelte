@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GridQuizView, QuestionView } from '$lib/bindings/Protocol';
-	import { playerColor, playerInitial } from '$lib/playerUi';
+	import PlayerAvatar from '$lib/components/PlayerAvatar.svelte';
 	import { room, has } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { correctnessText, correctnessValueText } from './correctness';
@@ -54,7 +54,7 @@
 		<div class="floor-you">🎯 {m.game_you_have_floor()}</div>
 	{:else if floored}
 		<div class="floor-other">
-			<span class="avatar" style:background={playerColor(floored)}>{playerInitial(floored)}</span>
+			<PlayerAvatar name={floored} size="lg" />
 			<strong>{m.game_player_answering({ name: floored })}</strong>
 		</div>
 	{:else if amLockedOut}
@@ -129,20 +129,6 @@
 		align-items: center;
 		gap: var(--space-3);
 		font-size: clamp(1.2rem, 3.5cqi, 2rem);
-	}
-	.avatar {
-		width: clamp(1.75rem, 5cqi, 2.75rem);
-		height: clamp(1.75rem, 5cqi, 2.75rem);
-		border-radius: var(--radius-full);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--color-text-inverse);
-		font-weight: 700;
-		font-family: var(--font-heading);
-		font-size: clamp(0.8rem, 2.2cqi, 1.2rem);
-		flex-shrink: 0;
-		text-transform: uppercase;
 	}
 	/* Big blind-tap slab, subtle radius — slappable on mobile without looking. */
 	.buzz {

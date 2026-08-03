@@ -25,6 +25,7 @@
 	--bg-primary: #f8fafc;
 	--bg-surface: #ffffff;
 	--bg-surface-elevated: #ffffff;
+	--bg-muted: #f1f5f9;
 	--bg-image: none;
 
 	/* ── Typography ── */
@@ -66,12 +67,29 @@
 	--space-8: 2rem;
 	--space-12: 3rem;
 
+	/* ── Soft backgrounds (used for badges, tinted chips) ── */
+	--bg-primary-soft: color-mix(in srgb, var(--color-primary) 18%, transparent);
+	--bg-accent-soft: color-mix(in srgb, var(--color-accent) 25%, transparent);
+	--bg-success-soft: color-mix(in srgb, var(--color-success) 18%, transparent);
+	--bg-danger-soft: color-mix(in srgb, var(--color-danger) 20%, transparent);
+	--bg-warning-soft: color-mix(in srgb, var(--color-warning) 25%, transparent);
+
+	/* ── Responsive type scale (uses container query units cqi where applicable) ── */
+	--text-xs: clamp(0.7rem, 1.8cqi, 0.85rem);
+	--text-sm: clamp(0.85rem, 2.2cqi, 1.1rem);
+	--text-md: clamp(1rem, 2.8cqi, 1.6rem);
+	--text-lg: clamp(1.4rem, 5cqi, 2.8rem);
+	--text-xl: clamp(2rem, 7cqi, 4rem);
+
 	/* ── Floating background ── */
 	--float-duration: 20s;
 	--float-drift: 30deg;
 
 	/* ── Focus ring ── */
 	--focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--color-primary);
+
+	/* ── Visually hidden but available to screen readers ── */
+	--sr-only-clip: rect(0, 0, 0, 0);
 
 	/* ── Decorative overlay — theme-specific pseudo-element pattern ── */
 	--bg-overlay: rgba(0, 0, 0, 0.4);

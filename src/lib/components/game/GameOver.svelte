@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PlayerView } from '$lib/bindings/Protocol';
-	import { playerColor, playerInitial, sortedByScore } from '$lib/playerUi';
+	import PlayerAvatar from '$lib/components/PlayerAvatar.svelte';
+	import { sortedByScore } from '$lib/playerUi';
 	import { room } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
 
@@ -22,7 +23,7 @@
 		{#each standings as [name, p], i (name)}
 			<li class="row" class:you={name === room.player} class:dim={!p.connected}>
 				<span class="rank">{i + 1}</span>
-				<span class="avatar" style:background={playerColor(name)}>{playerInitial(name)}</span>
+				<PlayerAvatar name={name} size="lg" />
 				<span class="name">{name}</span>
 				<span class="score">{p.score}</span>
 			</li>
@@ -80,20 +81,6 @@
 		font-weight: 700;
 		color: var(--color-text-muted);
 		min-width: 1.8rem;
-	}
-	.avatar {
-		width: clamp(1.75rem, 5cqi, 2.75rem);
-		height: clamp(1.75rem, 5cqi, 2.75rem);
-		border-radius: var(--radius-full);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--color-text-inverse);
-		font-weight: 700;
-		font-family: var(--font-heading);
-		font-size: clamp(0.8rem, 2.2cqi, 1.2rem);
-		flex-shrink: 0;
-		text-transform: uppercase;
 	}
 	.name {
 		flex: 1;

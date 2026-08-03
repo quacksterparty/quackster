@@ -25,7 +25,7 @@
 </script>
 
 <div
-	class="toast {toast.variant}"
+	class={['toast', toast.variant]}
 	role={toast.variant === 'error' ? 'alert' : 'status'}
 	onmouseenter={pause}
 	onmouseleave={start}

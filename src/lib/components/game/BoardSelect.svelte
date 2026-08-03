@@ -10,17 +10,8 @@
 	const isMyTurn = $derived(activePicker !== null && activePicker === room.player);
 	const canPick = $derived(isMyTurn || has('Moderate'));
 
-	// Transient disable: which cell we just picked, cleared when a snapshot
-	// moves us off board_select (the phase switch unmounts us) or re-renders.
-	let pending = $state<{ column: number; row: number } | null>(null);
-	$effect(() => {
-		void view; // clear stale pending once a fresh snapshot lands
-		pending = null;
-	});
-
 	function pick(category: number, point: number) {
-		if (!canPick || pending) return;
-		pending = { column: category, row: point };
+		if (!canPick) return;
 		room.send?.({ kind: 'PickCell', category, point });
 	}
 </script>
@@ -43,12 +34,10 @@
 		{#each view.points as _point, r (r)}
 			{#each view.categories as _cat, c (c)}
 				{@const used = view.used[c]?.[r] ?? false}
-				{@const isPending = pending !== null && pending.column === c && pending.row === r}
 				<button
 					class="cell"
 					class:used
-					disabled={used || !canPick || isPending}
-					class:pending={isPending}
+					disabled={used || !canPick}
 					onclick={() => {
 						pick(c, r);
 					}}
@@ -141,8 +130,5 @@
 	.cell.used {
 		opacity: 0.25;
 		color: var(--color-text-muted);
-	}
-	.cell.pending {
-		opacity: 0.5;
 	}
 </style>

@@ -5,7 +5,7 @@
 	import { api } from '$lib/api';
 	import type { ClientMessage, ClientView, ServerMessage } from '$lib/bindings/Protocol';
 	import Button from '$lib/components/Button.svelte';
-	import Dialog from '$lib/components/Dialog.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import GameStage from '$lib/components/game/GameStage.svelte';
 	import TextInput from '$lib/components/TextInput.svelte';
 	import { currentLocale } from '$lib/i18n.svelte';
@@ -13,6 +13,7 @@
 	import { clearSession, lastSession, readSession, saveSession } from '$lib/session';
 	import { room, clearRoom } from '$lib/room.svelte';
 	import { toast } from '$lib/toast.svelte';
+	import { unwrap } from '$lib/util/api';
 	import { onMount } from 'svelte';
 
 	let nameOpen = $state(false);
@@ -29,14 +30,12 @@
 			await goto(resolve('/', {}));
 			return;
 		}
-		const result = await api.room.exists(code);
-
-		if (!result.ok) {
-			toast.error(m.common_error_generic());
+		const exists = await unwrap(api.room.exists(code), () => toast.error(m.common_error_generic()));
+		if (exists === null) {
 			await goto(resolve('/', {}));
 			return;
 		}
-		if (!result.value) {
+		if (!exists) {
 			toast.error(m.common_room_not_found());
 			await goto(resolve('/', {}));
 			return;
@@ -57,7 +56,6 @@
 			}
 		};
 		ws.onmessage = (ev) => {
-			console.log(ev);
 			const serverMsg = JSON.parse(String(ev.data)) as ServerMessage;
 			switch (serverMsg.kind) {
 				case 'Joined':
@@ -66,14 +64,12 @@
 					saveSession({ room: code, token: serverMsg.token, player: name });
 					break;
 				case 'Snapshot': {
-					console.log(serverMsg);
-
 					const prevPlayers = new Set(Object.keys(snapshot?.players ?? {}));
 					const joined = Object.keys(serverMsg.players).filter((p) => !prevPlayers.has(p));
 					joined.forEach((p) => toast.success(`${p} joined`));
 
 					room.code = code;
-					room.gamestate = serverMsg;
+					room.view = serverMsg;
 					snapshot = serverMsg;
 					break;
 				}
@@ -134,7 +130,11 @@
 	<GameStage view={snapshot} />
 {/if}
 
-<Dialog bind:open={nameOpen} title="Username">
+<Modal
+	bind:open={nameOpen}
+	title="Username"
+	onInteractOutside={(e: PointerEvent) => e.preventDefault()}
+>
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
@@ -144,4 +144,4 @@
 		<TextInput bind:value={name} placeholder="Karl" />
 		<Button disabled={!name}>{m.common_join()}</Button>
 	</form>
-</Dialog>
+</Modal>

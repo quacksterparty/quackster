@@ -5,12 +5,14 @@
 
 	let {
 		activeDraftId,
+		onSelectDraft,
 		onNewQuestion,
 		onValidate,
 		onPreview,
 		onSaveAll
 	}: {
 		activeDraftId: string;
+		onSelectDraft: (id: string) => void;
 		onNewQuestion: () => void;
 		onValidate: () => void;
 		onPreview: () => void;
@@ -33,7 +35,11 @@
 
 <header class="bar">
 	<div class="left">
-		<select class="draft-select" value={activeDraftId} onchange={() => undefined}>
+		<select
+			class="draft-select"
+			value={activeDraftId}
+			onchange={(e) => onSelectDraft((e.target as HTMLSelectElement).value)}
+		>
 			{#each pool.drafts as d (d.id)}
 				<option value={d.id}>{d.title}</option>
 			{/each}

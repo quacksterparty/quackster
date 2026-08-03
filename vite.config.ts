@@ -4,6 +4,9 @@ import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+	resolve: {
+		extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte', '.svelte.ts', '.svelte.js']
+	},
 	server: {
 		proxy: {
 			'/api': {

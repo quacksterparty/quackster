@@ -13,12 +13,22 @@
 	<div class="body">
 		<h3 class="title">{game.title}</h3>
 		<p class="desc">{game.description}</p>
-		{#if game.modes.length}
-			<!-- <ul class="modes"> -->
-			<!-- 	{#each game.modes as mode (mode)} -->
-			<!-- 		<li class="badge">{mode}</li> -->
-			<!-- 	{/each} -->
-			<!-- </ul> -->
+		<div class="meta">
+			{#if game.modes.length}
+				<span class="m"
+					>{(game.modes[0] ?? '').replace('_', ' ')}{#if game.modes.length > 1}
+						+{game.modes.length - 1}{/if}</span
+				>
+				<span class="dot">·</span>
+			{/if}
+			<span class="m">{game.question_count ?? '?'}q</span>
+		</div>
+		{#if game.tags.length}
+			<div class="tags">
+				{#each game.tags.slice(0, 3) as t (t.id)}
+					<span class="t-tag">{t.label}</span>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </Card>
@@ -39,25 +49,31 @@
 	.desc {
 		color: var(--color-text-muted);
 		font-size: calc(0.875rem * var(--font-scale));
-		/* push mode badges toward the bottom for equal-height rows */
 		flex: 1;
 	}
-	.modes {
-		list-style: none;
+	.meta {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		margin-top: var(--space-2);
-		padding: 0;
-	}
-	.badge {
-		font-family: var(--font-mono);
+		gap: var(--space-1);
+		align-items: center;
 		font-size: calc(0.75rem * var(--font-scale));
 		color: var(--color-text-muted);
-		background: var(--bg-primary);
+	}
+	.m {
+		text-transform: capitalize;
+	}
+	.dot {
+		opacity: 0.5;
+	}
+	.tags {
+		display: flex;
+		gap: 4px;
+		flex-wrap: wrap;
+	}
+	.t-tag {
+		font-size: calc(0.7rem * var(--font-scale));
+		padding: 1px var(--space-2);
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-full);
-		padding: var(--space-1) var(--space-3);
-		text-transform: capitalize;
+		color: var(--color-text-muted);
 	}
 </style>

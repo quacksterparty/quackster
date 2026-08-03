@@ -20,13 +20,12 @@
 	} = $props();
 </script>
 
-<Button.Root class="btn btn-{variant} btn-{size}" {disabled} {onclick}>
+<Button.Root class="bits-btn bits-btn-{variant} bits-btn-{size}" {disabled} {onclick}>
 	{@render children?.()}
 </Button.Root>
 
 <style>
-	/* bits-ui renders via class prop, so styles must be global-scoped */
-	:global(.btn) {
+	:global(.bits-btn) {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -45,63 +44,63 @@
 		white-space: nowrap;
 		user-select: none;
 	}
-	:global(.btn:focus-visible) {
+	:global(.bits-btn:focus-visible) {
 		outline: none;
 		box-shadow: var(--focus-ring);
 	}
-	:global(.btn:disabled) {
+	:global(.bits-btn:disabled) {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
-	:global(.btn:not(:disabled):active) {
+	:global(.bits-btn:not(:disabled):active) {
 		transform: scale(0.98);
 	}
 
 	/* ── Variants ── */
-	:global(.btn-primary) {
+	:global(.bits-btn-primary) {
 		background: var(--color-primary);
 		color: var(--color-text-inverse);
 	}
-	:global(.btn-primary:not(:disabled):hover) {
+	:global(.bits-btn-primary:not(:disabled):hover) {
 		background: var(--color-primary-hover);
 	}
-	:global(.btn-secondary) {
+	:global(.bits-btn-secondary) {
 		background: var(--color-secondary);
 		color: var(--color-text-inverse);
 	}
-	:global(.btn-secondary:not(:disabled):hover) {
+	:global(.bits-btn-secondary:not(:disabled):hover) {
 		filter: brightness(0.9);
 	}
-	:global(.btn-ghost) {
+	:global(.bits-btn-ghost) {
 		background: transparent;
 		color: var(--color-text);
 		border-color: var(--border-color);
 	}
-	:global(.btn-ghost:not(:disabled):hover) {
+	:global(.bits-btn-ghost:not(:disabled):hover) {
 		background: var(--bg-surface-elevated);
 	}
-	:global(.btn-danger) {
+	:global(.bits-btn-danger) {
 		background: var(--color-danger);
 		color: var(--color-text-inverse);
 	}
-	:global(.btn-danger:not(:disabled):hover) {
+	:global(.bits-btn-danger:not(:disabled):hover) {
 		filter: brightness(0.9);
 	}
 
 	/* ── Sizes ── */
-	:global(.btn-sm) {
+	:global(.bits-btn-sm) {
 		padding: var(--space-1) var(--space-3);
 		font-size: calc(0.875rem * var(--font-scale));
 	}
-	:global(.btn-md) {
+	:global(.bits-btn-md) {
 		padding: var(--space-2) var(--space-4);
 		font-size: calc(1rem * var(--font-scale));
 	}
-	:global(.btn-lg) {
+	:global(.bits-btn-lg) {
 		padding: var(--space-3) var(--space-6);
 		font-size: calc(1.125rem * var(--font-scale));
 	}
-	:global(.btn-xl) {
+	:global(.bits-btn-xl) {
 		padding: var(--space-4) var(--space-8);
 		font-size: calc(1.375rem * var(--font-scale));
 	}

@@ -1,3 +1,6 @@
+import { browser } from '$app/environment';
+import { isNonEmptyString, isNumber, isObject } from '$lib/util/storage';
+
 const PREFIX = 'session:';
 const LAST_KEY = 'session:last';
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
@@ -12,21 +15,20 @@ type Stored = RoomSession & { timestamp: number };
 
 function parse(raw: string | null): Stored | null {
 	if (!raw) return null;
-
+	let value: unknown;
 	try {
-		const parsed = JSON.parse(raw) as Partial<Stored>;
-		if (typeof parsed.room !== 'string' || typeof parsed.timestamp !== 'number') {
-			return null;
-		}
-
-		const session: Stored = { room: parsed.room, timestamp: parsed.timestamp };
-		if (typeof parsed.token === 'string') session.token = parsed.token;
-		if (typeof parsed.player === 'string') session.player = parsed.player;
-		return session;
+		value = JSON.parse(raw);
 	} catch {
-		// corrupt entry — treat as absent
 		return null;
 	}
+	if (!isObject(value)) return null;
+	if (!isNonEmptyString(value['room'])) return null;
+	if (!isNumber(value['timestamp'])) return null;
+
+	const session: Stored = { room: value['room'], timestamp: value['timestamp'] };
+	if (typeof value['token'] === 'string') session.token = value['token'];
+	if (typeof value['player'] === 'string') session.player = value['player'];
+	return session;
 }
 
 export function readSession(room: string): RoomSession | null {
@@ -48,6 +50,7 @@ export function clearSession(room: string): void {
 
 /** Most recently saved session, for the home-page rejoin button. */
 export function lastSession(): RoomSession | null {
+	if (!browser) return null;
 	const room = localStorage.getItem(LAST_KEY);
 	return room ? readSession(room) : null;
 }

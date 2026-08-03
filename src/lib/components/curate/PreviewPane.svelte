@@ -4,11 +4,13 @@
 	let {
 		activeDraftId,
 		activeCell,
-		activeQuestionId
+		activeQuestionId,
+		class: className = ''
 	}: {
 		activeDraftId: string;
 		activeCell: { categoryIdx: number; point: number } | null;
 		activeQuestionId: string | null;
+		class?: string;
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
@@ -59,7 +61,7 @@
 	const progress = $derived(draft ? draft.progress : 0);
 </script>
 
-<aside class="preview" aria-label="Preview and validation">
+<aside class={['preview-pane', className]} aria-label="Preview and validation">
 	<header class="pv-head">
 		<h2>Preview &amp; validation</h2>
 	</header>
@@ -158,7 +160,7 @@
 </aside>
 
 <style>
-	.preview {
+	.preview-pane {
 		display: flex;
 		flex-direction: column;
 		min-height: 0;

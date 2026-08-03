@@ -16,25 +16,25 @@
 	} = $props();
 </script>
 
-<div class="text-input-group">
+<div class="bits-text-input-group">
 	{#if label}
-		<Label.Root class="text-input-label">{label}</Label.Root>
+		<Label.Root class="bits-text-input-label">{label}</Label.Root>
 	{/if}
-	<input {type} bind:value {placeholder} {required} class="text-input" />
+	<input {type} bind:value {placeholder} {required} class="bits-text-input" />
 </div>
 
 <style>
-	:global(.text-input-group) {
+	:global(.bits-text-input-group) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
 	}
-	:global(.text-input-label) {
+	:global(.bits-text-input-label) {
 		font-family: var(--font-heading);
 		font-size: 0.875rem;
 		color: var(--color-text);
 	}
-	:global(.text-input) {
+	:global(.bits-text-input) {
 		font-family: var(--font-body);
 		font-size: calc(1rem * var(--font-scale));
 		padding: var(--space-2) var(--space-3);
@@ -45,10 +45,10 @@
 		transition: border-color var(--duration-fast) var(--easing);
 		outline: none;
 	}
-	:global(.text-input)::placeholder {
+	:global(.bits-text-input)::placeholder {
 		color: var(--color-text-muted);
 	}
-	:global(.text-input:focus) {
+	:global(.bits-text-input:focus) {
 		border-color: var(--color-primary);
 		box-shadow: var(--focus-ring);
 	}

@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { themes, type ThemeId } from '$lib/themes';
-	import { browser } from '$app/environment';
+	import { themeState, themes, type ThemeId } from '$lib/themes';
 
 	interface Particle {
 		emoji: string;
@@ -39,32 +38,7 @@
 		}));
 	}
 
-	let currentTheme = $state<ThemeId>('modern');
-	let particles = $derived(buildParticles(currentTheme));
-
-	$effect(() => {
-		if (!browser) return;
-
-		const readTheme = (): ThemeId => {
-			const attr = document.documentElement.getAttribute('data-theme');
-			if (attr && attr in themes) return attr as ThemeId;
-			return 'modern';
-		};
-
-		currentTheme = readTheme();
-
-		const observer = new MutationObserver(() => {
-			const next = readTheme();
-			if (next !== currentTheme) currentTheme = next;
-		});
-		observer.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ['data-theme']
-		});
-		return () => {
-			observer.disconnect();
-		};
-	});
+	const particles = $derived(buildParticles(themeState.id));
 </script>
 
 <div class="float-bg" aria-hidden="true">

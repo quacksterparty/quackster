@@ -22,5 +22,6 @@
 	"common_players_and_scoreboard": "Players & Scoreboard",
 	"common_admin_secret": "Admin secret",
 	"common_admin_secret_hint": "Admin secret is sent automatically from your saved session.",
-	"common_continue": "Continue"
+	"common_continue": "Continue",
+	"common_mod": "Mod"
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Logo from '$lib/components/Logo.svelte';
-	import Dialog from '$lib/components/Dialog.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import CodeInput from '$lib/components/CodeInput.svelte';
 	import TextInput from '$lib/components/TextInput.svelte';
 	import { m } from '$lib/paraglide/messages';
@@ -9,13 +9,14 @@
 	import { api } from '$lib/api';
 	import { getSecret, setSecret } from '$lib/secret';
 	import { toast } from '$lib/toast.svelte';
-	import { lastSession, type RoomSession } from '$lib/session';
+	import { lastSession } from '$lib/session';
+	import { unwrap } from '$lib/util/api';
 	import Button from './Button.svelte';
-	import { onMount } from 'svelte';
 
 	let joinOpen = $state(false);
 	let joinCode = $state('');
-	let recentSession: RoomSession | null = $state(null);
+	// Read synchronously — localStorage is sync; `lastSession()` returns null on SSR.
+	const recentSession = lastSession();
 
 	let hostOpen = $state(false);
 	let secretInput = $state('');
@@ -23,13 +24,11 @@
 	async function join() {
 		if (joinCode.length !== 6) return;
 
-		const result = await api.room.exists(joinCode);
-
-		if (!result.ok) {
-			toast.error(m.common_error_generic());
-			return;
-		}
-		if (!result.value) {
+		const exists = await unwrap(api.room.exists(joinCode), () =>
+			toast.error(m.common_error_generic())
+		);
+		if (exists === null) return;
+		if (!exists) {
 			toast.error(m.common_room_not_found());
 			return;
 		}
@@ -51,10 +50,6 @@
 		hostOpen = false;
 		void goto(resolve('/room', {}));
 	}
-
-	onMount(() => {
-		recentSession = lastSession();
-	});
 </script>
 
 <section class="hero">
@@ -67,7 +62,7 @@
 	</div>
 </section>
 
-<Dialog bind:open={hostOpen} title={m.common_admin_secret()}>
+<Modal bind:open={hostOpen} title={m.common_admin_secret()}>
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
@@ -77,9 +72,9 @@
 		<TextInput bind:value={secretInput} placeholder="Secret" type="password" />
 	</form>
 	<Button onclick={host}>{m.common_continue()}</Button>
-</Dialog>
+</Modal>
 
-<Dialog bind:open={joinOpen} title={m.common_join_game()} description={m.common_enter_join_code()}>
+<Modal bind:open={joinOpen} title={m.common_join_game()} description={m.common_enter_join_code()}>
 	<CodeInput bind:value={joinCode} onComplete={join} />
 	<Button disabled={joinCode.length !== 6} onclick={join}>
 		{m.common_join()}
@@ -87,7 +82,7 @@
 	{#if recentSession}
 		<Button variant="secondary" onclick={rejoin}>{m.common_rejoin()} {recentSession.room}</Button>
 	{/if}
-</Dialog>
+</Modal>
 
 <style>
 	.hero {

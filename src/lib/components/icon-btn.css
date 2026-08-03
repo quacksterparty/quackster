@@ -1,0 +1,27 @@
+/* Shared icon button. Used by Navbar + RoomQR. Owns no component logic —
+   just the chrome. Children supply the SVG (class="icon") and optional
+   .badge counter. */
+.bits-icon-btn {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0 var(--space-2);
+	border: var(--border-width) var(--border-style) var(--border-color);
+	border-radius: var(--radius-md);
+	background: var(--bg-surface);
+	color: var(--color-text);
+	cursor: pointer;
+}
+
+.bits-icon-btn:hover {
+	background: var(--bg-surface-elevated);
+}
+
+.bits-icon-btn .icon {
+	width: 1.25rem;
+	height: 1.25rem;
+}

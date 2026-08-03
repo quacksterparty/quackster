@@ -16,5 +16,50 @@
 	"room_mod_actions": "Moderator",
 	"room_game_not_started": "Game hasn't started yet",
 	"room_end_game": "End game",
-	"room_end_game_sent": "Ending game..."
+	"room_end_game_sent": "Ending game...",
+	"room_games_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} game",
+				"countPlural=other": "{count} games"
+			}
+		}
+	],
+	"room_questions_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} question",
+				"countPlural=other": "{count} questions"
+			}
+		}
+	],
+	"room_filters_active": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} active filter",
+				"countPlural=other": "{count} active filters"
+			}
+		}
+	],
+	"room_questions_unknown": "? questions",
+	"room_search_placeholder": "Search games…",
+	"room_search_label": "Search games",
+	"room_density_label": "Density",
+	"room_density_comfy": "Comfy",
+	"room_density_compact": "Compact",
+	"room_create_game": "+ Create game",
+	"room_filters_label": "Filters",
+	"room_filters_title": "Filters",
+	"room_filters_clear": "Clear ({count})",
+	"room_filter_all": "All",
+	"room_facet_modes": "Modes",
+	"room_facet_tags": "Tags",
+	"room_loading": "Loading…",
+	"room_no_games_match": "No games match."
 }

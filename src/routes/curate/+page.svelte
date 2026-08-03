@@ -21,6 +21,12 @@
 		toast.success(`Created ${q.id} — fill in the prompt to auto-rename`);
 	}
 
+	function selectDraft(id: string) {
+		activeDraftId = id;
+		activeCell = null;
+		activeQuestionId = null;
+	}
+
 	function openPicker() {
 		if (!activeCell) return;
 		pickerOpen = true;
@@ -66,6 +72,7 @@
 <div class="page">
 	<ActionBar
 		{activeDraftId}
+		onSelectDraft={selectDraft}
 		onNewQuestion={newQuestion}
 		onValidate={validate}
 		onPreview={preview}
@@ -76,11 +83,7 @@
 			{activeDraftId}
 			{activeCell}
 			onSelectCell={(c) => (activeCell = c)}
-			onSelectDraft={(id) => {
-				activeDraftId = id;
-				activeCell = null;
-				activeQuestionId = null;
-			}}
+			onSelectDraft={selectDraft}
 		/>
 		<QuestionEditor
 			{activeDraftId}
@@ -90,7 +93,7 @@
 			onCreateNew={newQuestion}
 			onDetach={detach}
 		/>
-		<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} />
+		<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} class="preview-pane" />
 	</div>
 </div>
 
@@ -118,7 +121,7 @@
 		.grid {
 			grid-template-columns: 16rem 1fr;
 		}
-		:global(.preview) {
+		:global(.preview-pane) {
 			grid-column: 1 / -1;
 			max-height: 30vh;
 		}

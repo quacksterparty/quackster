@@ -37,7 +37,7 @@
 
 {#if code}
 	<Popover.Root>
-		<Popover.Trigger class="icon-btn" aria-label={m.room_share()}>
+		<Popover.Trigger class="bits-icon-btn" aria-label={m.room_share()}>
 			<svg
 				class="icon"
 				viewBox="0 0 24 24"
@@ -59,7 +59,7 @@
 			</svg>
 		</Popover.Trigger>
 		<Popover.Portal>
-			<Popover.Content class="qr-popover" sideOffset={8} align="end">
+			<Popover.Content class="bits-qr-popover" sideOffset={8} align="end">
 				<div class="qr-header">
 					<h4 class="qr-title">{m.room_share()} {code}</h4>
 					<p class="qr-sub">{m.room_scan_to_join()}</p>
@@ -80,7 +80,7 @@
 {/if}
 
 <style>
-	:global(.qr-popover) {
+	:global(.bits-qr-popover) {
 		z-index: 60;
 		width: 18rem;
 		padding: var(--space-4);
@@ -91,9 +91,9 @@
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
-		animation: qr-in var(--duration-fast) var(--easing);
+		animation: bits-qr-in var(--duration-fast) var(--easing);
 	}
-	@keyframes qr-in {
+	@keyframes bits-qr-in {
 		from {
 			opacity: 0;
 			transform: translateY(-4px);

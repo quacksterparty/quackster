@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { MediaFetchStatus, PlayerView } from '$lib/bindings/Protocol';
-	import { playerColor, playerInitial } from '$lib/playerUi';
+	import PlayerAvatar from '$lib/components/PlayerAvatar.svelte';
 	import { room, has } from '$lib/room.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import Button from '$lib/components/Button.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 
 	let {
 		players,
@@ -19,6 +20,7 @@
 	);
 
 	let revealed = $state(false);
+	let confirmOpen = $state(false);
 
 	// Used by the StartGame confirm dialog. The visible status panel lives in
 	// GameStage (top-right corner).
@@ -28,9 +30,17 @@
 	);
 
 	function start_game() {
-		if (can_start && (media_all_ready || confirm(m.lobby_start_confirm()))) {
+		if (!can_start) return;
+		if (media_all_ready) {
 			room.send?.({ kind: 'StartGame' });
+		} else {
+			confirmOpen = true;
 		}
+	}
+
+	function confirmStart() {
+		confirmOpen = false;
+		room.send?.({ kind: 'StartGame' });
 	}
 </script>
 
@@ -55,7 +65,7 @@
 	<ul class="roster">
 		{#each player_entries as [name, p] (name)}
 			<li class="row" class:dim={!p.connected}>
-				<span class="avatar" style:background={playerColor(name)}>{playerInitial(name)}</span>
+				<PlayerAvatar name={name} size="xl" />
 				<span class="name">
 					{name}
 					{#if name === room.player}<em>({m.common_you()})</em>{/if}
@@ -78,6 +88,14 @@
 		<p class="muted center">{m.lobby_waiting_for_host()}</p>
 	{/if}
 </section>
+
+<Modal
+	bind:open={confirmOpen}
+	title={m.lobby_start()}
+	description={m.lobby_start_confirm()}
+>
+	<Button onclick={confirmStart}>{m.lobby_start()}</Button>
+</Modal>
 
 <style>
 	.lobby {
@@ -144,20 +162,6 @@
 	}
 	.dim {
 		opacity: 0.4;
-	}
-	.avatar {
-		width: clamp(2.25rem, 6cqi, 3.5rem);
-		height: clamp(2.25rem, 6cqi, 3.5rem);
-		border-radius: var(--radius-full);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--color-text-inverse);
-		font-weight: 700;
-		font-family: var(--font-heading);
-		font-size: clamp(0.95rem, 2.4cqi, 1.4rem);
-		flex-shrink: 0;
-		text-transform: uppercase;
 	}
 	.name {
 		flex: 1;
