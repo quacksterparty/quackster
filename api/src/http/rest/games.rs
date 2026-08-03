@@ -4,9 +4,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::State,
-    http::{
-        HeaderMap, header,
-    },
+    http::{HeaderMap, header},
     response::IntoResponse,
     routing::get,
 };
@@ -14,8 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::{
     BoardCategory, Dataset, GameConfig, GameConfigOverlay, GameMode, LinearSource, PackFilter,
-    Question, Registry, TagOverlay, normalize_locale,
+    Question, Registry, TagOverlay,
 };
+use crate::http::locale::preferred_locale;
 use crate::state::AppState;
 
 #[derive(Serialize, Deserialize)]
@@ -42,6 +41,7 @@ struct GameEntry {
     tags: Vec<TagDto>,
 }
 
+/// Tag id + label. `id` is the stable `category:slug`; `label` is localized.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[cfg_attr(test, ts(export, export_to = "Games.ts"))]
@@ -55,159 +55,160 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 async fn list_games(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
-    let locale = preferred_locale(&headers, &state.data);
+    let locale = preferred_locale(&headers, |locale| {
+        state
+            .data
+            .overlays_for(locale)
+            .iter()
+            .any(|overlays| !overlays.games.is_empty())
+    });
+    let (game_overlays, tag_overlays) = collect_overlays(&state.data, locale.as_deref());
     let games = state
         .data
         .games
         .iter()
-        .map(|(id, entry)| build_game(id, &entry.item, &state.data, locale.as_deref()))
+        .map(|(id, entry)| build_game(id, &entry.item, &state.data, &game_overlays, &tag_overlays))
         .collect::<Vec<_>>();
     ([(header::VARY, "Accept-Language")], Json(games))
 }
 
-fn preferred_locale(headers: &HeaderMap, data: &Dataset) -> Option<String> {
-    let mut ranges = headers
-        .get(header::ACCEPT_LANGUAGE)?
-        .to_str()
-        .ok()?
-        .split(',')
-        .enumerate()
-        .filter_map(|(order, item)| {
-            let mut parts = item.trim().split(';');
-            let locale = normalize_locale(parts.next()?.trim())?;
-            let quality = parts.try_fold(1.0_f32, |_, parameter| {
-                let (name, value) = parameter.trim().split_once('=')?;
-                name.eq_ignore_ascii_case("q")
-                    .then(|| value.parse::<f32>().ok())
-                    .flatten()
-                    .filter(|q| (0.0..=1.0).contains(q))
-            })?;
-            (quality > 0.0).then_some((quality, order, locale))
-        })
-        .collect::<Vec<_>>();
-    ranges.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
-    ranges
-        .into_iter()
-        .map(|(_, _, locale)| locale)
-        .find(|locale| {
-            data.overlays_for(locale)
-                .iter()
-                .any(|overlays| !overlays.games.is_empty())
-        })
+/// All overlays relevant to the games list, ordered by fallback chain.
+fn collect_overlays<'a>(
+    data: &'a Dataset,
+    locale: Option<&str>,
+) -> (Vec<&'a GameConfigOverlay>, Vec<&'a TagOverlay>) {
+    let Some(locale) = locale else {
+        return (Vec::new(), Vec::new());
+    };
+    let layers = data.overlays_for(locale);
+    let game_overlays = layers
+        .iter()
+        .flat_map(|l| l.games.values().map(|e| &e.item))
+        .collect();
+    let tag_overlays = layers
+        .iter()
+        .flat_map(|l| l.tags.values().map(|e| &e.item))
+        .collect();
+    (game_overlays, tag_overlays)
 }
 
-fn build_game(id: &str, gc: &GameConfig, data: &Dataset, locale: Option<&str>) -> Game {
-    let overlays = locale
-        .map(|locale| {
-            data.overlays_for(locale)
-                .into_iter()
-                .filter_map(|overlays| overlays.games.get(id).map(|entry| &entry.item))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let tag_overlays: Vec<&TagOverlay> = locale
-        .map(|locale| {
-            data.overlays_for(locale)
-                .into_iter()
-                .flat_map(|overlays| overlays.tags.values().map(|entry| &entry.item))
-                .collect()
-        })
-        .unwrap_or_default();
-    let entries: Vec<GameEntry> = gc
+fn build_game(
+    id: &str,
+    game_config: &GameConfig,
+    data: &Dataset,
+    game_overlays: &[&GameConfigOverlay],
+    tag_overlays: &[&TagOverlay],
+) -> Game {
+    let entry_overlays: Vec<&GameConfigOverlay> = game_overlays
+        .iter()
+        .copied()
+        .filter(|o| o.id == id)
+        .collect();
+
+    let entries: Vec<GameEntry> = game_config
         .games
         .iter()
         .enumerate()
-        .map(|(index, entry)| {
-            build_entry(entry, &data, &overlays, &tag_overlays, index)
-        })
+        .map(|(index, game)| build_entry(game, data, &entry_overlays, tag_overlays, index))
         .collect();
 
-    let modes: Vec<String> = gc
+    let mut tag_ids: BTreeSet<&str> = BTreeSet::new();
+    for entry in &entries {
+        for tag in &entry.tags {
+            tag_ids.insert(tag.id.as_str());
+        }
+    }
+    let tags: Vec<TagDto> = tag_ids
+        .into_iter()
+        .map(|id| resolve_tag(id, data, tag_overlays))
+        .collect();
+
+    let modes: Vec<String> = game_config
         .games
         .iter()
-        .map(|entry| entry.mode.mode_name().to_owned())
+        .map(|g| g.mode.mode_name().to_owned())
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
 
-    let mut tags: Vec<TagDto> = entries
-        .iter()
-        .flat_map(|e| e.tags.iter().cloned())
-        .collect();
-    tags.sort_by(|a, b| a.id.cmp(&b.id));
-    tags.dedup_by(|a, b| a.id == b.id);
-
-    let question_count = if entries.iter().any(|e| e.question_count.is_none()) {
-        None
-    } else {
-        Some(entries.iter().filter_map(|e| e.question_count).sum())
-    };
-
     Game {
         id: id.to_owned(),
-        title: overlays
-            .iter()
-            .find_map(|overlay| overlay.title.clone())
-            .unwrap_or_else(|| gc.title.clone()),
-        description: overlays
-            .iter()
-            .find_map(|overlay| overlay.description.clone())
-            .unwrap_or_else(|| gc.description.clone()),
-        auto_advance: gc.auto_advance,
+        title: overlay_string(
+            &entry_overlays,
+            |overlay| overlay.title.as_ref(),
+            &game_config.title,
+        ),
+        description: overlay_string(
+            &entry_overlays,
+            |overlay| overlay.description.as_ref(),
+            &game_config.description,
+        ),
+        auto_advance: game_config.auto_advance,
         modes,
         tags,
-        question_count,
+        question_count: total_question_count(&game_config.games),
         entries,
     }
 }
 
 fn build_entry(
-    entry: &crate::data::Game,
+    game: &crate::data::Game,
     data: &Dataset,
-    overlays: &[&GameConfigOverlay],
+    entry_overlays: &[&GameConfigOverlay],
     tag_overlays: &[&TagOverlay],
     index: usize,
 ) -> GameEntry {
-    let tag_ids = entry_tag_ids(&entry.mode, &data.questions);
+    let tag_ids = entry_tag_ids(&game.mode, &data.questions);
     let tags = tag_ids
         .into_iter()
         .map(|id| resolve_tag(&id, data, tag_overlays))
         .collect();
+    let title = entry_overlays
+        .iter()
+        .find_map(|o| o.games.get(index).and_then(|g| g.title.clone()))
+        .unwrap_or_else(|| game.title.clone());
+
     GameEntry {
-        title: overlays
-            .iter()
-            .find_map(|overlay| overlay.games.get(index)?.title.clone())
-            .unwrap_or_else(|| entry.title.clone()),
-        mode: entry.mode.mode_name().to_owned(),
-        question_count: entry_question_count(entry),
+        title,
+        mode: game.mode.mode_name().to_owned(),
+        question_count: entry_question_count(game),
         tags,
     }
 }
 
-fn resolve_tag(id: &str, data: &Dataset, tag_overlays: &[&TagOverlay]) -> TagDto {
-    let overlay_label = tag_overlays
+/// First overlay to define the field wins; canonical fallback.
+fn overlay_string<T: ToOwned + ?Sized>(
+    overlays: &[&GameConfigOverlay],
+    field: impl Fn(&GameConfigOverlay) -> Option<&T>,
+    canonical: &T,
+) -> T::Owned {
+    overlays
         .iter()
-        .find_map(|overlay| (overlay.id == id).then(|| overlay.label.clone()).flatten());
-    let canonical = data
-        .tags
-        .values()
-        .find(|entry| entry.item.id == id)
-        .map(|entry| entry.item.label.clone());
+        .find_map(|overlay| field(overlay).map(ToOwned::to_owned))
+        .unwrap_or_else(|| canonical.to_owned())
+}
+
+fn resolve_tag(id: &str, data: &Dataset, tag_overlays: &[&TagOverlay]) -> TagDto {
+    let label = tag_overlays
+        .iter()
+        .find(|overlay| overlay.id == id)
+        .and_then(|overlay| overlay.label.clone())
+        .or_else(|| data.tags.get(id).map(|entry| entry.item.label.clone()))
+        .unwrap_or_else(|| id.to_owned());
     TagDto {
         id: id.to_owned(),
-        label: overlay_label.or(canonical).unwrap_or_else(|| id.to_owned()),
+        label,
     }
 }
 
-fn entry_tag_ids(mode: &GameMode, questions: &Registry<Question>) -> Vec<String> {
+fn entry_tag_ids(mode: &GameMode, questions: &Registry<Question>) -> BTreeSet<String> {
     match mode {
-        GameMode::GridQuiz(g) => {
-            let mut set: BTreeSet<String> = BTreeSet::new();
-            for cat in &g.board.categories {
-                set.extend(category_tag_ids(cat, questions));
-            }
-            set.into_iter().collect()
-        }
+        GameMode::GridQuiz(g) => g
+            .board
+            .categories
+            .iter()
+            .flat_map(|cat| category_tag_ids(cat, questions))
+            .collect(),
         GameMode::Linear(g) => linear_tag_ids(g, questions),
     }
 }
@@ -227,7 +228,7 @@ fn category_tag_ids(cat: &BoardCategory, questions: &Registry<Question>) -> BTre
     set
 }
 
-fn linear_tag_ids(g: &crate::data::LinearGame, questions: &Registry<Question>) -> Vec<String> {
+fn linear_tag_ids(g: &crate::data::LinearGame, questions: &Registry<Question>) -> BTreeSet<String> {
     let mut set: BTreeSet<String> = BTreeSet::new();
     if let LinearSource::Questions { question_ids } = &g.questions {
         for qid in question_ids {
@@ -236,7 +237,7 @@ fn linear_tag_ids(g: &crate::data::LinearGame, questions: &Registry<Question>) -
             }
         }
     }
-    set.into_iter().collect()
+    set
 }
 
 fn filter_tag_ids(filter: &PackFilter) -> BTreeSet<String> {
@@ -250,22 +251,28 @@ fn filter_tag_ids(filter: &PackFilter) -> BTreeSet<String> {
     set
 }
 
-/// `points × categories` for grid; explicit-list length for linear with
-/// `Questions` source; `None` for linear `Pack`/`Filter` (would need
-/// pack/filter resolution — same reason subjects skip them).
-// ponytail: linear Pack/Filter counts need a seed to match runtime, defer
-// until quackster-26 wires the curation backend.
-fn entry_question_count(entry: &crate::data::Game) -> Option<u32> {
-    match &entry.mode {
+/// `points × categories` for grid; explicit-list length for linear `Questions`;
+/// `None` for linear `Pack`/`Filter` (would need pack/filter resolution).
+fn entry_question_count(game: &crate::data::Game) -> Option<u32> {
+    match &game.mode {
         GameMode::GridQuiz(g) => {
             let n = (g.board.points.len() as u32).saturating_mul(g.board.categories.len() as u32);
             Some(n)
         }
         GameMode::Linear(g) => match &g.questions {
             LinearSource::Questions { question_ids } => Some(question_ids.len() as u32),
+            // TODO: pack and filter should have a limit/count
             LinearSource::Pack { .. } | LinearSource::Filter { .. } => None,
         },
     }
+}
+
+fn total_question_count(games: &[crate::data::Game]) -> Option<u32> {
+    let mut total = 0u32;
+    for g in games {
+        total = total.saturating_add(entry_question_count(g)?);
+    }
+    Some(total)
 }
 
 #[cfg(test)]
@@ -274,7 +281,7 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
-    use crate::data::{load_dataset, run_cross_file_checks, Dataset};
+    use crate::data::{Dataset, load_dataset, run_cross_file_checks};
 
     fn fixture(files: &[(&str, &str)]) -> TempDir {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -417,7 +424,7 @@ games:
             ("games/g.yaml", GRID_4_QUESTIONS_2_TAGS),
         ]));
         let gc = ds.games.get("game_g4").unwrap();
-        let g = build_game("game_g4", &gc.item, &ds, None);
+        let g = build_game("game_g4", &gc.item, &ds, &[], &[]);
 
         assert_eq!(g.id, "game_g4");
         assert!(!g.auto_advance);
@@ -436,7 +443,7 @@ games:
             ("games/g.yaml", GRID_4_QUESTIONS_2_TAGS),
         ]));
         let gc = ds.games.get("game_g4").unwrap();
-        let g = build_game("game_g4", &gc.item, &ds, None);
+        let g = build_game("game_g4", &gc.item, &ds, &[], &[]);
 
         // Filter tag (geo) + q_one tags (geo, difficulty:general) + q_two tags
         // (history, difficulty:general). Sorted, deduped.
@@ -464,7 +471,7 @@ games:
     fn linear_pack_source_yields_none_question_count() {
         let ds = load(&with_registries(&[("games/lin.yaml", LINEAR_PACK)]));
         let gc = ds.games.get("game_lin_pack").unwrap();
-        let g = build_game("game_lin_pack", &gc.item, &ds, None);
+        let g = build_game("game_lin_pack", &gc.item, &ds, &[], &[]);
         assert_eq!(g.entries[0].question_count, None);
         assert_eq!(g.question_count, None);
         assert!(g.entries[0].tags.is_empty());
@@ -478,7 +485,7 @@ games:
             ("games/lin.yaml", LINEAR_EXPLICIT),
         ]));
         let gc = ds.games.get("game_lin_explicit").unwrap();
-        let g = build_game("game_lin_explicit", &gc.item, &ds, None);
+        let g = build_game("game_lin_explicit", &gc.item, &ds, &[], &[]);
         assert_eq!(g.entries[0].question_count, Some(2));
         assert_eq!(g.question_count, Some(2));
         assert_eq!(
@@ -512,11 +519,19 @@ games:
             ),
         ]));
         let mut headers = HeaderMap::new();
-        headers.insert(header::ACCEPT_LANGUAGE, "fr;q=0.5, de-CH;q=0.9".parse().unwrap());
+        headers.insert(
+            header::ACCEPT_LANGUAGE,
+            "fr;q=0.5, de-CH;q=0.9".parse().unwrap(),
+        );
 
-        let locale = preferred_locale(&headers, &ds);
+        let locale = preferred_locale(&headers, |locale| {
+            ds.overlays_for(locale)
+                .iter()
+                .any(|overlays| !overlays.games.is_empty())
+        });
+        let (game_overlays, tag_overlays) = collect_overlays(&ds, locale.as_deref());
         let gc = ds.games.get("game_g4").unwrap();
-        let game = build_game("game_g4", &gc.item, &ds, locale.as_deref());
+        let game = build_game("game_g4", &gc.item, &ds, &game_overlays, &tag_overlays);
 
         assert_eq!(locale.as_deref(), Some("de-CH"));
         assert_eq!(game.title, "Deutsch");
@@ -525,11 +540,24 @@ games:
     }
 
     #[test]
-    fn accept_language_uses_canonical_for_unavailable_or_disabled_locales() {
-        let ds = load(&with_registries(&[("games/g.yaml", GRID_4_QUESTIONS_2_TAGS)]));
+    fn accept_language_returns_none_when_all_unavailable() {
+        let ds = load(&with_registries(&[(
+            "games/g.yaml",
+            GRID_4_QUESTIONS_2_TAGS,
+        )]));
         let mut headers = HeaderMap::new();
-        headers.insert(header::ACCEPT_LANGUAGE, "de;q=0, invalid_locale".parse().unwrap());
+        headers.insert(
+            header::ACCEPT_LANGUAGE,
+            "de;q=0, invalid_locale".parse().unwrap(),
+        );
 
-        assert_eq!(preferred_locale(&headers, &ds), None);
+        assert_eq!(
+            preferred_locale(&headers, |locale| {
+                ds.overlays_for(locale)
+                    .iter()
+                    .any(|overlays| !overlays.games.is_empty())
+            }),
+            None
+        );
     }
 }

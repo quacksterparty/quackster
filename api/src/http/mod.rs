@@ -6,6 +6,7 @@
 //! `/api/health` ops route. `main.rs` calls this and serves the result.
 
 pub mod auth;
+pub mod locale;
 pub mod rest;
 pub mod ws;
 
