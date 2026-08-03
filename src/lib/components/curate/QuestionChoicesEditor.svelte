@@ -23,9 +23,7 @@
 	function toggleCorrect(i: number) {
 		if (!question.choices) return;
 		pool.updateQuestion(question.id, {
-			choices: question.choices.map((x, idx) =>
-				idx === i ? { ...x, correct: !x.correct } : x
-			)
+			choices: question.choices.map((x, idx) => (idx === i ? { ...x, correct: !x.correct } : x))
 		});
 	}
 

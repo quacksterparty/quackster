@@ -5,7 +5,7 @@
 	import { initReactiveLocale } from '$lib/i18n.svelte';
 
 	import favicon from '$lib/assets/favicon.svg';
-	import { initTheme } from '$lib/themes';
+	import { initTheme } from '$lib/themes/index.svelte';
 	import FloatingBackground from '$lib/components/FloatingBackground.svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
 	import AppShell from '$lib/components/AppShell.svelte';

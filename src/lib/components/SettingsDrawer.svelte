@@ -1,6 +1,12 @@
 <script lang="ts">
 	import Drawer from '$lib/components/Drawer.svelte';
-	import { themes, setTheme, setSystemTheme, themeState, type ThemeId } from '$lib/themes';
+	import {
+		themes,
+		setTheme,
+		setSystemTheme,
+		themeState,
+		type ThemeId
+	} from '$lib/themes/index.svelte';
 	import { locales, setLocale, type Locale } from '$lib/paraglide/runtime';
 	import { m } from '$lib/paraglide/messages';
 	import { currentLocale, themeLabel } from '$lib/i18n.svelte';
@@ -24,11 +30,7 @@
 	<div class="drawer-section">
 		<h3 class="section-label">🎨 {m.theme_label()}</h3>
 		<div class="chip-row">
-			<button
-				class="chip"
-				class:chip-active={themeState.usingSystem}
-				onclick={pickSystemTheme}
-			>
+			<button class="chip" class:chip-active={themeState.usingSystem} onclick={pickSystemTheme}>
 				<span class="chip-emoji">🖥️</span>
 				{m.theme_system()}
 			</button>

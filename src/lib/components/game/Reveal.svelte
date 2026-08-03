@@ -77,7 +77,7 @@
 		{#each standings as [name, p], i (name)}
 			<li class="row" class:you={name === room.player}>
 				<span class="rank">{i + 1}</span>
-				<PlayerAvatar name={name} size="lg" />
+				<PlayerAvatar {name} size="lg" />
 				<span class="name">{name}</span>
 				<span class="score">{p.score}</span>
 			</li>

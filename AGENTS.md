@@ -140,7 +140,7 @@ export for editor YAML LSP.
 - **Run commands inside `nix develop`** (or `nix develop -c <cmd>` for one-offs).
   Don't install tools system-wide. Especially required for frontend tests —
   Playwright needs its bundled browsers and we can't `pnpm exec playwright
-  install` against the host's missing system deps. `nix develop` already has
+install` against the host's missing system deps. `nix develop` already has
   every browser + system lib wired up.
 - No comments restating what code does; comment only non-obvious _why_.
 - Don't edit `src/lib/paraglide/**` — generated.

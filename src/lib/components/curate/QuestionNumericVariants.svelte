@@ -64,8 +64,7 @@
 						step="any"
 						min="0"
 						value={question.numericInput.tolerance}
-						oninput={(e) =>
-							setNumericTolerance(Number((e.target as HTMLInputElement).value))}
+						oninput={(e) => setNumericTolerance(Number((e.target as HTMLInputElement).value))}
 					/>
 				</label>
 				<p class="v-hint">
@@ -115,8 +114,7 @@
 							step="any"
 							min="0"
 							value={question.range.step}
-							oninput={(e) =>
-								setRangeField('step', e.currentTarget.value, (n) => Math.max(0, n))}
+							oninput={(e) => setRangeField('step', e.currentTarget.value, (n) => Math.max(0, n))}
 						/>
 					</label>
 					<label>

@@ -31,11 +31,7 @@
 
 	const allModes = $derived(Array.from(new Set(games.flatMap((g) => g.modes))).sort());
 	const allTags = $derived(
-		Array.from(
-			new Map(
-				games.flatMap((g) => g.tags).map((t) => [t.id, t.label] as const)
-			).entries()
-		)
+		Array.from(new Map(games.flatMap((g) => g.tags).map((t) => [t.id, t.label] as const)).entries())
 			.map(([id, label]) => ({ id, label }))
 			.sort((a, b) => a.label.localeCompare(b.label))
 	);
@@ -128,7 +124,7 @@
 					</li>
 					{#each allModes as mode (mode)}
 						<li>
-			<button class:active={modeFilter === mode} onclick={() => (modeFilter = mode)}>
+							<button class:active={modeFilter === mode} onclick={() => (modeFilter = mode)}>
 								<span>{mode.replace('_', ' ')}</span><span class="ct">{counts.mode(mode)}</span>
 							</button>
 						</li>
@@ -155,7 +151,8 @@
 			<ScrollArea.Viewport class="bits-scroll-viewport">
 				<div class="meta-row">
 					<span>{m.room_games_count({ count: filtered.length })}</span>
-					{#if activeFilterCount}<span>· {m.room_filters_active({ count: activeFilterCount })}</span>{/if}
+					{#if activeFilterCount}<span>· {m.room_filters_active({ count: activeFilterCount })}</span
+						>{/if}
 				</div>
 				{#if loading}
 					<p class="empty">{m.room_loading()}</p>

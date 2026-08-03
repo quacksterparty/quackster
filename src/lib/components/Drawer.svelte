@@ -19,7 +19,7 @@
 	} = $props();
 </script>
 
-<Dialog.Root open={open} onOpenChange={(v) => (open = v)}>
+<Dialog.Root {open} onOpenChange={(v) => (open = v)}>
 	<Dialog.Portal>
 		<Dialog.Overlay class="bits-drawer-overlay" />
 		<Dialog.Content class="bits-drawer-content">

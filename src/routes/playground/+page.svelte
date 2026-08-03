@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Logo from '$lib/components/Logo.svelte';
-	import { themes, setTheme, themeState, type ThemeId } from '$lib/themes';
+	import { themes, setTheme, themeState, type ThemeId } from '$lib/themes/index.svelte';
 	import { themeLabel } from '$lib/i18n.svelte';
 	import { toast } from '$lib/toast.svelte';
 </script>
@@ -20,10 +20,7 @@
 
 	<section class="demo">
 		<h2>Theme</h2>
-		<select
-			value={themeState.id}
-			onchange={(e) => setTheme(e.currentTarget.value as ThemeId)}
-		>
+		<select value={themeState.id} onchange={(e) => setTheme(e.currentTarget.value as ThemeId)}>
 			{#each Object.values(themes) as t (t.id)}
 				<option value={t.id}>{themeLabel(t.id)}</option>
 			{/each}

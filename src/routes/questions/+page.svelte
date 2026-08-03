@@ -122,8 +122,8 @@
 		class="select-btn"
 		class:active={selectedId === q.id}
 		onclick={() => (selectedId = q.id)}
-		aria-pressed={selectedId === q.id}
-	>View →</button>
+		aria-pressed={selectedId === q.id}>View →</button
+	>
 {/snippet}
 
 <style>

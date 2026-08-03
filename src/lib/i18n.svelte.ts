@@ -6,7 +6,7 @@ import {
 	type Locale
 } from '$lib/paraglide/runtime';
 import { m } from '$lib/paraglide/messages';
-import type { ThemeId } from '$lib/themes';
+import type { ThemeId } from '$lib/themes/index.svelte';
 
 const themeLabels: Record<ThemeId, () => string> = {
 	modern: m.theme_modern,

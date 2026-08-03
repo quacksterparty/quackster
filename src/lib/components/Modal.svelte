@@ -23,7 +23,7 @@
 	const handleInteractOutside = $derived(onInteractOutside ?? (() => {}));
 </script>
 
-<Dialog.Root open={open} onOpenChange={(v) => (open = v)}>
+<Dialog.Root {open} onOpenChange={(v) => (open = v)}>
 	{#if trigger}
 		<Dialog.Trigger>{@render trigger()}</Dialog.Trigger>
 	{/if}

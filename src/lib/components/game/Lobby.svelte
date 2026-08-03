@@ -65,7 +65,7 @@
 	<ul class="roster">
 		{#each player_entries as [name, p] (name)}
 			<li class="row" class:dim={!p.connected}>
-				<PlayerAvatar name={name} size="xl" />
+				<PlayerAvatar {name} size="xl" />
 				<span class="name">
 					{name}
 					{#if name === room.player}<em>({m.common_you()})</em>{/if}
@@ -89,11 +89,7 @@
 	{/if}
 </section>
 
-<Modal
-	bind:open={confirmOpen}
-	title={m.lobby_start()}
-	description={m.lobby_start_confirm()}
->
+<Modal bind:open={confirmOpen} title={m.lobby_start()} description={m.lobby_start_confirm()}>
 	<Button onclick={confirmStart}>{m.lobby_start()}</Button>
 </Modal>
 

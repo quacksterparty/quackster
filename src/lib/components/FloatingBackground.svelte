@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { themeState, themes, type ThemeId } from '$lib/themes';
+	import { themeState, themes, type ThemeId } from '$lib/themes/index.svelte';
 
 	interface Particle {
 		emoji: string;
