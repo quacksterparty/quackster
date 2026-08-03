@@ -43,7 +43,7 @@
 				if (question.range && question.range.max <= question.range.min)
 					e.push('Range max must be greater than min');
 			}
-			if (question.choices && question.choices.filter((c) => c.correct).length === 0)
+			if (question.choices?.filter((c) => c.correct).length === 0)
 				e.push('Multiple-choice question needs at least one correct answer');
 		}
 		return e;
@@ -51,10 +51,8 @@
 
 	const warnings = $derived.by(() => {
 		const w: string[] = [];
-		if (question && question.tags.length === 0)
-			w.push('Question has no tags — hard to find in the pool');
-		if (question && !question.explanation)
-			w.push("No explanation — players won't learn from wrong answers");
+		if (question?.tags.length === 0) w.push('Question has no tags — hard to find in the pool');
+		if (!question?.explanation) w.push("No explanation — players won't learn from wrong answers");
 		return w;
 	});
 

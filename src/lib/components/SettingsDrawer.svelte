@@ -38,7 +38,9 @@
 				<button
 					class="chip"
 					class:chip-active={!themeState.usingSystem && themeState.id === t.id}
-					onclick={() => pickTheme(t.id)}
+					onclick={() => {
+						pickTheme(t.id);
+					}}
 				>
 					<span class="chip-emoji">{t.emojis[0]}</span>
 					{themeLabel(t.id)}
@@ -54,7 +56,9 @@
 				<button
 					class="chip"
 					class:chip-active={currentLocale() === loc}
-					onclick={() => pickLang(loc)}
+					onclick={() => {
+						pickLang(loc);
+					}}
 				>
 					{loc.toUpperCase()}
 				</button>

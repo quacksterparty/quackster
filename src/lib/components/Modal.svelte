@@ -20,7 +20,10 @@
 
 	// bits-ui's Dialog.Content types onInteractOutside as non-optional under
 	// exactOptionalPropertyTypes; default to noop so we can forward it cleanly.
-	const handleInteractOutside = $derived(onInteractOutside ?? (() => {}));
+	const handleInteractOutside = $derived(
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		onInteractOutside ?? (() => {})
+	);
 </script>
 
 <Dialog.Root {open} onOpenChange={(v) => (open = v)}>

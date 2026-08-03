@@ -39,8 +39,8 @@ class PoolStore {
 		);
 	}
 	/** All (draft, category, point) locations that reference a question. */
-	referenceLocations(qid: string): Array<{ draft: CurateDraft; category: string; point: number }> {
-		const out: Array<{ draft: CurateDraft; category: string; point: number }> = [];
+	referenceLocations(qid: string): { draft: CurateDraft; category: string; point: number }[] {
+		const out: { draft: CurateDraft; category: string; point: number }[] = [];
 		for (const d of this.drafts) {
 			for (const c of d.board.categories) {
 				for (const [p, cell] of Object.entries(c.questions)) {

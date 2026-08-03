@@ -106,7 +106,7 @@
 						<p class="muted">Not yet referenced.</p>
 					{:else}
 						<ul class="refs">
-							{#each selectedRefs as r (r.draft.id + r.category + r.point)}
+							{#each selectedRefs as r (`${r.draft.id}-${r.category}-${r.point}`)}
 								<li><strong>{r.draft.title}</strong> · {r.category} · {r.point} pts</li>
 							{/each}
 						</ul>

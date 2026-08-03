@@ -48,16 +48,26 @@
 						class="ch-correct"
 						class:on={c.correct}
 						aria-label={c.correct ? 'Mark as incorrect' : 'Mark as correct'}
-						onclick={() => toggleCorrect(i)}
+						onclick={() => {
+							toggleCorrect(i);
+						}}
 					>
 						{c.correct ? '✓' : '○'}
 					</button>
 					<input
 						value={c.text}
-						oninput={(e) => setChoiceText(i, e.currentTarget.value)}
+						oninput={(e) => {
+							setChoiceText(i, e.currentTarget.value);
+						}}
 						placeholder="Choice text"
 					/>
-					<button class="ch-rm" aria-label="Remove" onclick={() => removeChoice(i)}>✕</button>
+					<button
+						class="ch-rm"
+						aria-label="Remove"
+						onclick={() => {
+							removeChoice(i);
+						}}>✕</button
+					>
 				</li>
 			{/each}
 		</ul>

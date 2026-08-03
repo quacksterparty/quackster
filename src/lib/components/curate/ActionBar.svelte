@@ -38,7 +38,9 @@
 		<select
 			class="draft-select"
 			value={activeDraftId}
-			onchange={(e) => onSelectDraft((e.target as HTMLSelectElement).value)}
+			onchange={(e) => {
+				onSelectDraft((e.target as HTMLSelectElement).value);
+			}}
 		>
 			{#each pool.drafts as d (d.id)}
 				<option value={d.id}>{d.title}</option>

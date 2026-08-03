@@ -7,12 +7,12 @@
  * still unreferenced. Once a draft references it, the ID is locked.
  */
 
-const RAND6: string = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const RAND6 = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 /** Mint a fresh draft ID — used for new questions before they get a real slug. */
 export function newDraftQuestionId(): string {
 	let s = '';
-	for (let i = 0; i < 6; i++) s += RAND6[Math.floor(Math.random() * RAND6.length)];
+	for (let i = 0; i < 6; i++) s += RAND6[Math.floor(Math.random() * RAND6.length)] ?? '';
 	return `q_draft_${s}`;
 }
 
@@ -33,7 +33,7 @@ export function namedQuestionId(slug: string, existing: ReadonlySet<string>): st
 	if (!existing.has(base)) return base;
 	const chars = (n: number): string => {
 		let s = '';
-		for (let j = 0; j < n; j++) s += RAND6[Math.floor(Math.random() * RAND6.length)] as string;
+		for (let j = 0; j < n; j++) s += RAND6[Math.floor(Math.random() * RAND6.length)] ?? '';
 		return s;
 	};
 	for (let i = 0; i < 100; i++) {

@@ -20,7 +20,12 @@
 
 	<section class="demo">
 		<h2>Theme</h2>
-		<select value={themeState.id} onchange={(e) => setTheme(e.currentTarget.value as ThemeId)}>
+		<select
+			value={themeState.id}
+			onchange={(e) => {
+				setTheme(e.currentTarget.value as ThemeId);
+			}}
+		>
 			{#each Object.values(themes) as t (t.id)}
 				<option value={t.id}>{themeLabel(t.id)}</option>
 			{/each}

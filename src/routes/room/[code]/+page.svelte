@@ -133,7 +133,9 @@
 <Modal
 	bind:open={nameOpen}
 	title="Username"
-	onInteractOutside={(e: PointerEvent) => e.preventDefault()}
+	onInteractOutside={(e: PointerEvent) => {
+		e.preventDefault();
+	}}
 >
 	<form
 		onsubmit={(e) => {

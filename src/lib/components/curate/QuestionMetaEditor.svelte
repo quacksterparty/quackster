@@ -24,14 +24,18 @@
 		<textarea
 			rows="3"
 			value={question.prompt}
-			oninput={(e) => setField('prompt', e.currentTarget.value)}
+			oninput={(e) => {
+				setField('prompt', e.currentTarget.value);
+			}}
 			placeholder="e.g. In welchem Jahr fiel die Berliner Mauer?"></textarea>
 	</label>
 	<label>
 		<span>Kind</span>
 		<select
 			value={question.kind}
-			onchange={(e) => onKindChange(e.currentTarget.value as PoolQuestion['kind'])}
+			onchange={(e) => {
+				onKindChange(e.currentTarget.value as PoolQuestion['kind']);
+			}}
 		>
 			<option value="text">Text</option>
 			<option value="numeric">Numeric</option>
@@ -45,14 +49,18 @@
 				type="number"
 				step="any"
 				value={question.answerNumeric ?? 0}
-				oninput={(e) => setField('answerNumeric', Number(e.currentTarget.value))}
+				oninput={(e) => {
+					setField('answerNumeric', Number(e.currentTarget.value));
+				}}
 			/>
 		</label>
 		<label>
 			<span>Unit <small>(optional)</small></span>
 			<input
 				value={question.unit ?? ''}
-				oninput={(e) => setField('unit', e.currentTarget.value)}
+				oninput={(e) => {
+					setField('unit', e.currentTarget.value);
+				}}
 				placeholder="e.g. km, °C"
 			/>
 		</label>
@@ -61,7 +69,9 @@
 			<span>Answer</span>
 			<input
 				value={question.answer}
-				oninput={(e) => setField('answer', e.currentTarget.value)}
+				oninput={(e) => {
+					setField('answer', e.currentTarget.value);
+				}}
 				placeholder="e.g. 1989"
 			/>
 		</label>
@@ -70,8 +80,9 @@
 		<span>Default language</span>
 		<select
 			value={question.defaultLang}
-			onchange={(e) =>
-				setField('defaultLang', e.currentTarget.value as PoolQuestion['defaultLang'])}
+			onchange={(e) => {
+				setField('defaultLang', e.currentTarget.value as PoolQuestion['defaultLang']);
+			}}
 		>
 			<option value="de">Deutsch</option>
 			<option value="en">English</option>
@@ -82,7 +93,9 @@
 		<textarea
 			rows="2"
 			value={question.explanation ?? ''}
-			oninput={(e) => setField('explanation', e.currentTarget.value)}></textarea>
+			oninput={(e) => {
+				setField('explanation', e.currentTarget.value);
+			}}></textarea>
 	</label>
 </div>
 

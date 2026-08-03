@@ -34,7 +34,9 @@
 					<button
 						class="draft"
 						class:active={d.id === activeDraftId}
-						onclick={() => onSelectDraft(d.id)}
+						onclick={() => {
+							onSelectDraft(d.id);
+						}}
 					>
 						<div class="d-title">{d.title}</div>
 						<div class="d-meta">
@@ -71,9 +73,13 @@
 							<button
 								class="bcell"
 								class:filled={!!cell}
-								class:complete={q?.answer}
-								class:selected={activeCell?.categoryIdx === ci && activeCell?.point === p}
-								onclick={() => onSelectCell({ categoryIdx: ci, point: p })}
+								class:complete={q ? q.answer : false}
+								class:selected={activeCell !== null &&
+									activeCell.categoryIdx === ci &&
+									activeCell.point === p}
+								onclick={() => {
+									onSelectCell({ categoryIdx: ci, point: p });
+								}}
 								title={q ? `${q.id} · ${q.prompt}` : 'Empty — pick or create a question'}
 							>
 								{#if q}

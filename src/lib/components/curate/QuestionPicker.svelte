@@ -6,7 +6,8 @@
 	import type { PoolQuestion } from '$lib/data/seed';
 
 	let {
-		open = $bindable(false),
+		// eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
+		open = $bindable(),
 		activeDraftId,
 		activeCell,
 		onPicked
@@ -51,7 +52,12 @@
 </Drawer>
 
 {#snippet pickAction(q: PoolQuestion)}
-	<button class="pick" onclick={() => pick(q.id)}>Pick</button>
+	<button
+		class="pick"
+		onclick={() => {
+			pick(q.id);
+		}}>Pick</button
+	>
 {/snippet}
 
 <style>

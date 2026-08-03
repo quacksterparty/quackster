@@ -88,7 +88,9 @@
 												class="bits-menu-item"
 												checked={view.grants.includes(g)}
 												closeOnSelect={false}
-												onCheckedChange={() => toggleGrant(player, view.grants, g)}
+												onCheckedChange={() => {
+													toggleGrant(player, view.grants, g);
+												}}
 											>
 												<span class="bits-menu-check">{view.grants.includes(g) ? '✓' : ''}</span>
 												{grantLabels[g]()}
@@ -97,7 +99,9 @@
 										{#if player !== room.player}
 											<DropdownMenu.Item
 												class="bits-menu-item bits-menu-danger"
-												onSelect={() => kick(player)}
+												onSelect={() => {
+													kick(player);
+												}}
 											>
 												<span class="bits-menu-check">✕</span>
 												{m.room_kick_player({ name: player })}

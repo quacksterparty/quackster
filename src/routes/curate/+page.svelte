@@ -7,7 +7,7 @@
 	import QuestionPicker from '$lib/components/curate/QuestionPicker.svelte';
 	import { toast } from '$lib/toast.svelte';
 
-	let activeDraftId = $state(pool.drafts[0]!.id);
+	let activeDraftId = $state(pool.drafts[0]?.id ?? '');
 	let activeCell = $state<{ categoryIdx: number; point: number } | null>(null);
 	let activeQuestionId = $state<string | null>(null);
 	let pickerOpen = $state(false);
@@ -82,7 +82,7 @@
 		<DraftsRail
 			{activeDraftId}
 			{activeCell}
-			onSelectCell={(c) => (activeCell = c)}
+			onSelectCell={(c: { categoryIdx: number; point: number } | null) => (activeCell = c)}
 			onSelectDraft={selectDraft}
 		/>
 		<QuestionEditor

@@ -138,7 +138,9 @@
 						<button
 							class="tag"
 							class:active={selectedSubjects.includes(t.id)}
-							onclick={() => toggleSubject(t.id)}
+							onclick={() => {
+								toggleSubject(t.id);
+							}}
 						>
 							{t.label}
 						</button>

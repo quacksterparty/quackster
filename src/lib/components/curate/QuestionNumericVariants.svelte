@@ -29,8 +29,8 @@
 		}
 	}
 
-	function setRangeField<K extends keyof NonNullable<PoolQuestion['range']>>(
-		key: K,
+	function setRangeField(
+		key: keyof NonNullable<PoolQuestion['range']>,
 		raw: string,
 		clamp: (n: number) => number = (n) => n
 	) {
@@ -50,7 +50,9 @@
 				<input
 					type="checkbox"
 					checked={!!question.numericInput}
-					onchange={(e) => toggleNumericInput((e.target as HTMLInputElement).checked)}
+					onchange={(e) => {
+						toggleNumericInput((e.target as HTMLInputElement).checked);
+					}}
 				/>
 				<strong>Numeric input (exact ± tolerance)</strong>
 			</label>
@@ -64,7 +66,9 @@
 						step="any"
 						min="0"
 						value={question.numericInput.tolerance}
-						oninput={(e) => setNumericTolerance(Number((e.target as HTMLInputElement).value))}
+						oninput={(e) => {
+							setNumericTolerance(Number((e.target as HTMLInputElement).value));
+						}}
 					/>
 				</label>
 				<p class="v-hint">
@@ -81,7 +85,9 @@
 				<input
 					type="checkbox"
 					checked={!!question.range}
-					onchange={(e) => toggleRange((e.target as HTMLInputElement).checked)}
+					onchange={(e) => {
+						toggleRange((e.target as HTMLInputElement).checked);
+					}}
 				/>
 				<strong>Range (min, max, step, tolerance)</strong>
 			</label>
@@ -95,7 +101,9 @@
 							type="number"
 							step="any"
 							value={question.range.min}
-							oninput={(e) => setRangeField('min', e.currentTarget.value)}
+							oninput={(e) => {
+								setRangeField('min', e.currentTarget.value);
+							}}
 						/>
 					</label>
 					<label>
@@ -104,7 +112,9 @@
 							type="number"
 							step="any"
 							value={question.range.max}
-							oninput={(e) => setRangeField('max', e.currentTarget.value)}
+							oninput={(e) => {
+								setRangeField('max', e.currentTarget.value);
+							}}
 						/>
 					</label>
 					<label>
@@ -114,7 +124,9 @@
 							step="any"
 							min="0"
 							value={question.range.step}
-							oninput={(e) => setRangeField('step', e.currentTarget.value, (n) => Math.max(0, n))}
+							oninput={(e) => {
+								setRangeField('step', e.currentTarget.value, (n) => Math.max(0, n));
+							}}
 						/>
 					</label>
 					<label>
@@ -124,8 +136,9 @@
 							step="any"
 							min="0"
 							value={question.range.tolerance}
-							oninput={(e) =>
-								setRangeField('tolerance', e.currentTarget.value, (n) => Math.max(0, n))}
+							oninput={(e) => {
+								setRangeField('tolerance', e.currentTarget.value, (n) => Math.max(0, n));
+							}}
 						/>
 					</label>
 				</div>

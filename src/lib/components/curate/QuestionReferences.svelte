@@ -9,7 +9,7 @@
 	{#if refs.length}
 		<h3>Referenced by</h3>
 		<ul>
-			{#each refs as r (r.draft.id + r.category + r.point)}
+			{#each refs as r (`${r.draft.id}-${r.category}-${r.point}`)}
 				<li><strong>{r.draft.title}</strong> · {r.category} · {r.point} pts</li>
 			{/each}
 		</ul>

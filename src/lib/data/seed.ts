@@ -12,7 +12,7 @@ export type QuestionKind = 'text' | 'numeric' | 'order';
 export type QuestionVariant = 'multiple_choice' | 'true_false' | 'open' | 'numeric_input' | 'range';
 export type QuestionStatus = 'draft' | 'named' | 'referenced' | 'deprecated';
 
-export type PoolQuestion = {
+export interface PoolQuestion {
 	id: string;
 	kind: QuestionKind;
 	prompt: string;
@@ -30,16 +30,19 @@ export type PoolQuestion = {
 	variants: QuestionVariant[];
 	previousIds?: string[];
 	createdAt: string;
-};
+}
 
-export type BoardCellRef = { questionId: string; variant?: QuestionVariant };
+export interface BoardCellRef {
+	questionId: string;
+	variant?: QuestionVariant;
+}
 
-export type BoardCategory = {
+export interface BoardCategory {
 	name: string;
 	questions: Record<number, BoardCellRef | null>;
-};
+}
 
-export type CurateDraft = {
+export interface CurateDraft {
 	id: string;
 	title: string;
 	language: 'de' | 'en';
@@ -50,7 +53,7 @@ export type CurateDraft = {
 	do_not_delete?: boolean;
 	board: { categories: BoardCategory[] };
 	rules: { buzz_policy: string; scoring_mode: string; judge: string };
-};
+}
 
 // ── seeded RNG so seed is stable ──
 function mulberry32(a: number) {
@@ -105,90 +108,88 @@ const VARIANTS: Record<QuestionKind, QuestionVariant[]> = {
 	order: []
 };
 
-const TEMPLATES_DE: Array<
-	[string, string, QuestionKind, QuestionVariant[], [number, number, number]?]
-> = [
+const TEMPLATES_DE: [string, string, QuestionKind, QuestionVariant[], [number, number, number]?][] =
 	[
-		'In welchem Jahr fiel die Berliner Mauer?',
-		'1989',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[1980, 2000, 1]
-	],
-	['Wie heißt die Hauptstadt von Australien?', 'Canberra', 'text', ['open', 'multiple_choice']],
-	['Welches Element hat das Symbol Au?', 'Gold', 'text', ['open', 'multiple_choice']],
-	['Wer schrieb "Faust"?', 'Goethe', 'text', ['open', 'multiple_choice']],
-	['Welche Farbe hat das Smaragd?', 'Grün', 'text', ['multiple_choice', 'true_false']],
+		[
+			'In welchem Jahr fiel die Berliner Mauer?',
+			'1989',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[1980, 2000, 1]
+		],
+		['Wie heißt die Hauptstadt von Australien?', 'Canberra', 'text', ['open', 'multiple_choice']],
+		['Welches Element hat das Symbol Au?', 'Gold', 'text', ['open', 'multiple_choice']],
+		['Wer schrieb "Faust"?', 'Goethe', 'text', ['open', 'multiple_choice']],
+		['Welche Farbe hat das Smaragd?', 'Grün', 'text', ['multiple_choice', 'true_false']],
+		[
+			'Wie viele Bundesländer hat Deutschland?',
+			'16',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[14, 18, 1]
+		],
+		['Welcher Planet ist der Sonne am nächsten?', 'Merkur', 'text', ['multiple_choice', 'open']],
+		['Wer malte die Mona Lisa?', 'Leonardo da Vinci', 'text', ['open', 'multiple_choice']],
+		['Welches Meer liegt östlich von Griechenland?', 'Ägäis', 'text', ['open', 'multiple_choice']],
+		['Wie heißt der höchste Berg der Welt?', 'Mount Everest', 'text', ['open', 'multiple_choice']],
+		[
+			'In welchem Jahr startete die Apollo 11 Mission?',
+			'1969',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[1960, 1980, 1]
+		],
+		['Welches Land hat die meisten Einwohner?', 'Indien', 'text', ['open', 'multiple_choice']],
+		['Wie heißt der längste Fluss Europas?', 'Wolga', 'text', ['open', 'multiple_choice']],
+		[
+			'Welches Metall ist flüssig bei Raumtemperatur?',
+			'Quecksilber',
+			'text',
+			['open', 'multiple_choice']
+		],
+		['Wer komponierte die 9. Symphonie?', 'Beethoven', 'text', ['open', 'multiple_choice']]
+	];
+const TEMPLATES_EN: [string, string, QuestionKind, QuestionVariant[], [number, number, number]?][] =
 	[
-		'Wie viele Bundesländer hat Deutschland?',
-		'16',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[14, 18, 1]
-	],
-	['Welcher Planet ist der Sonne am nächsten?', 'Merkur', 'text', ['multiple_choice', 'open']],
-	['Wer malte die Mona Lisa?', 'Leonardo da Vinci', 'text', ['open', 'multiple_choice']],
-	['Welches Meer liegt östlich von Griechenland?', 'Ägäis', 'text', ['open', 'multiple_choice']],
-	['Wie heißt der höchste Berg der Welt?', 'Mount Everest', 'text', ['open', 'multiple_choice']],
-	[
-		'In welchem Jahr startete die Apollo 11 Mission?',
-		'1969',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[1960, 1980, 1]
-	],
-	['Welches Land hat die meisten Einwohner?', 'Indien', 'text', ['open', 'multiple_choice']],
-	['Wie heißt der längste Fluss Europas?', 'Wolga', 'text', ['open', 'multiple_choice']],
-	[
-		'Welches Metall ist flüssig bei Raumtemperatur?',
-		'Quecksilber',
-		'text',
-		['open', 'multiple_choice']
-	],
-	['Wer komponierte die 9. Symphonie?', 'Beethoven', 'text', ['open', 'multiple_choice']]
-];
-const TEMPLATES_EN: Array<
-	[string, string, QuestionKind, QuestionVariant[], [number, number, number]?]
-> = [
-	[
-		'In which year did the Berlin Wall fall?',
-		'1989',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[1980, 2000, 1]
-	],
-	['What is the capital of Australia?', 'Canberra', 'text', ['open', 'multiple_choice']],
-	['Which element has the symbol Au?', 'Gold', 'text', ['open', 'multiple_choice']],
-	['Who wrote "Faust"?', 'Goethe', 'text', ['open', 'multiple_choice']],
-	['What color is an emerald?', 'Green', 'text', ['multiple_choice', 'true_false']],
-	[
-		'How many US states are there?',
-		'50',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[48, 52, 1]
-	],
-	['Which planet is closest to the Sun?', 'Mercury', 'text', ['multiple_choice', 'open']],
-	['Who painted the Mona Lisa?', 'Leonardo da Vinci', 'text', ['open', 'multiple_choice']],
-	['Which sea lies east of Greece?', 'Aegean', 'text', ['open', 'multiple_choice']],
-	[
-		'What is the highest mountain in the world?',
-		'Mount Everest',
-		'text',
-		['open', 'multiple_choice']
-	],
-	[
-		'In which year did Apollo 11 launch?',
-		'1969',
-		'numeric',
-		['numeric_input', 'multiple_choice', 'range'],
-		[1960, 1980, 1]
-	],
-	['Which country has the most people?', 'India', 'text', ['open', 'multiple_choice']],
-	['What is the longest river in Europe?', 'Volga', 'text', ['open', 'multiple_choice']],
-	['Which metal is liquid at room temperature?', 'Mercury', 'text', ['open', 'multiple_choice']],
-	['Who composed the 9th Symphony?', 'Beethoven', 'text', ['open', 'multiple_choice']]
-];
+		[
+			'In which year did the Berlin Wall fall?',
+			'1989',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[1980, 2000, 1]
+		],
+		['What is the capital of Australia?', 'Canberra', 'text', ['open', 'multiple_choice']],
+		['Which element has the symbol Au?', 'Gold', 'text', ['open', 'multiple_choice']],
+		['Who wrote "Faust"?', 'Goethe', 'text', ['open', 'multiple_choice']],
+		['What color is an emerald?', 'Green', 'text', ['multiple_choice', 'true_false']],
+		[
+			'How many US states are there?',
+			'50',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[48, 52, 1]
+		],
+		['Which planet is closest to the Sun?', 'Mercury', 'text', ['multiple_choice', 'open']],
+		['Who painted the Mona Lisa?', 'Leonardo da Vinci', 'text', ['open', 'multiple_choice']],
+		['Which sea lies east of Greece?', 'Aegean', 'text', ['open', 'multiple_choice']],
+		[
+			'What is the highest mountain in the world?',
+			'Mount Everest',
+			'text',
+			['open', 'multiple_choice']
+		],
+		[
+			'In which year did Apollo 11 launch?',
+			'1969',
+			'numeric',
+			['numeric_input', 'multiple_choice', 'range'],
+			[1960, 1980, 1]
+		],
+		['Which country has the most people?', 'India', 'text', ['open', 'multiple_choice']],
+		['What is the longest river in Europe?', 'Volga', 'text', ['open', 'multiple_choice']],
+		['Which metal is liquid at room temperature?', 'Mercury', 'text', ['open', 'multiple_choice']],
+		['Who composed the 9th Symphony?', 'Beethoven', 'text', ['open', 'multiple_choice']]
+	];
 
 function makeQuestion(i: number, referencedIds: Set<string>): PoolQuestion {
 	const lang: 'de' | 'en' = rand() < 0.55 ? 'de' : 'en';
@@ -215,13 +216,8 @@ function makeQuestion(i: number, referencedIds: Set<string>): PoolQuestion {
 		kind === 'numeric' && rangeTpl
 			? {
 					answerNumeric: Number(answer),
-					numericInput: { tolerance: 0 } as { tolerance: number },
-					range: { min: rangeTpl[0], max: rangeTpl[1], step: rangeTpl[2], tolerance: 0 } as {
-						min: number;
-						max: number;
-						step: number;
-						tolerance: number;
-					}
+					numericInput: { tolerance: 0 },
+					range: { min: rangeTpl[0], max: rangeTpl[1], step: rangeTpl[2], tolerance: 0 }
 				}
 			: { numericInput: null, range: null };
 	return {
