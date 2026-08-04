@@ -78,7 +78,7 @@ class PoolStore {
 			createdAt: new Date().toISOString()
 		};
 		this.questions.unshift(q);
-		return q;
+		return this.questions[0]!;
 	}
 
 	/**

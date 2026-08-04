@@ -95,7 +95,7 @@
 			{:else}
 				<div class="empty">
 					<h3>No question selected</h3>
-					<p>Select a board cell on the left, or create a new question from the top bar.</p>
+					<p>Select a board cell above, or create a new question from the top bar.</p>
 					<div class="empty-actions">
 						<Button onclick={onCreateNew}>+ Create new question</Button>
 					</div>
@@ -118,7 +118,8 @@
 	.editor {
 		display: flex;
 		flex-direction: column;
-		min-height: 0;
+		flex: 1 1 0;
+		min-height: 30rem;
 		background: var(--bg-surface);
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-md);

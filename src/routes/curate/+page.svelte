@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import ActionBar from '$lib/components/curate/ActionBar.svelte';
-	import DraftsRail from '$lib/components/curate/DraftsRail.svelte';
+	import BoardCanvas from '$lib/components/curate/BoardCanvas.svelte';
 	import QuestionEditor from '$lib/components/curate/QuestionEditor.svelte';
 	import PreviewPane from '$lib/components/curate/PreviewPane.svelte';
 	import QuestionPicker from '$lib/components/curate/QuestionPicker.svelte';
@@ -25,6 +25,10 @@
 		activeDraftId = id;
 		activeCell = null;
 		activeQuestionId = null;
+	}
+
+	function selectCell(c: { categoryIdx: number; point: number } | null) {
+		activeCell = c;
 	}
 
 	function openPicker() {
@@ -53,10 +57,6 @@
 		else toast.success('All checks pass');
 	}
 
-	function preview() {
-		toast.success('Preview opened in a new tab (mock)');
-	}
-
 	function saveAll() {
 		const d = draft;
 		if (!d) return;
@@ -75,16 +75,10 @@
 		onSelectDraft={selectDraft}
 		onNewQuestion={newQuestion}
 		onValidate={validate}
-		onPreview={preview}
 		onSaveAll={saveAll}
 	/>
-	<div class="grid">
-		<DraftsRail
-			{activeDraftId}
-			{activeCell}
-			onSelectCell={(c: { categoryIdx: number; point: number } | null) => (activeCell = c)}
-			onSelectDraft={selectDraft}
-		/>
+	<BoardCanvas {activeDraftId} {activeCell} onSelectCell={selectCell} />
+	<div class="body">
 		<QuestionEditor
 			{activeDraftId}
 			{activeCell}
@@ -93,7 +87,9 @@
 			onCreateNew={newQuestion}
 			onDetach={detach}
 		/>
-		<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} class="preview-pane" />
+		<aside class="preview-side" aria-label="Preview and validation">
+			<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} />
+		</aside>
 	</div>
 </div>
 
@@ -105,24 +101,32 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		min-height: 0;
-		gap: var(--space-2);
-	}
-	.grid {
-		flex: 1;
-		min-height: 0;
-		display: grid;
-		grid-template-columns: 20rem 1fr 22rem;
+		/* at least viewport, can grow so the page scrolls instead of clipping the canvas */
+		min-height: 100%;
 		gap: var(--space-2);
 		padding: 0 var(--space-2) var(--space-2) var(--space-2);
 	}
-	@media (max-width: 1200px) {
-		.grid {
-			grid-template-columns: 16rem 1fr;
+	.body {
+		flex: 1;
+		/* keep the editor usable even when the canvas is huge -> page scrolls */
+		min-height: 30rem;
+		display: flex;
+		gap: var(--space-2);
+	}
+	.preview-side {
+		flex: 0 0 22rem;
+		min-height: 0;
+		background: var(--bg-surface);
+		border: var(--border-width) var(--border-style) var(--border-color);
+		border-radius: var(--radius-md);
+		overflow-y: auto;
+	}
+	@media (max-width: 900px) {
+		.body {
+			flex-direction: column;
 		}
-		:global(.preview-pane) {
-			grid-column: 1 / -1;
+		.preview-side {
+			flex: 0 0 auto;
 			max-height: 30vh;
 		}
 	}

@@ -8,14 +8,12 @@
 		onSelectDraft,
 		onNewQuestion,
 		onValidate,
-		onPreview,
 		onSaveAll
 	}: {
 		activeDraftId: string;
 		onSelectDraft: (id: string) => void;
 		onNewQuestion: () => void;
 		onValidate: () => void;
-		onPreview: () => void;
 		onSaveAll: () => void;
 	} = $props();
 
@@ -54,7 +52,6 @@
 	</div>
 	<div class="right">
 		<Button variant="ghost" size="sm" onclick={onNewQuestion}>+ New question</Button>
-		<Button variant="ghost" size="sm" onclick={onPreview}>Preview</Button>
 		<Button variant="ghost" size="sm" onclick={onValidate}>Validate</Button>
 		<Button variant="primary" size="sm" onclick={onSaveAll}>Save all</Button>
 	</div>

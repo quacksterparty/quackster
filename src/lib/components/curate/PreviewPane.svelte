@@ -4,13 +4,11 @@
 	let {
 		activeDraftId,
 		activeCell,
-		activeQuestionId,
-		class: className = ''
+		activeQuestionId
 	}: {
 		activeDraftId: string;
 		activeCell: { categoryIdx: number; point: number } | null;
 		activeQuestionId: string | null;
-		class?: string;
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
@@ -59,11 +57,7 @@
 	const progress = $derived(draft ? draft.progress : 0);
 </script>
 
-<aside class={['preview-pane', className]} aria-label="Preview and validation">
-	<header class="pv-head">
-		<h2>Preview &amp; validation</h2>
-	</header>
-
+<div class="preview-body">
 	<section class="pv-section">
 		<h3>Draft</h3>
 		{#if draft}
@@ -155,26 +149,13 @@
 			</div>
 		</section>
 	{/if}
-</aside>
+</div>
 
 <style>
-	.preview-pane {
+	.preview-body {
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
-		background: var(--bg-surface);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-md);
-		overflow-y: auto;
-	}
-	.pv-head {
-		padding: var(--space-3) var(--space-4);
-		border-bottom: var(--border-width) var(--border-style) var(--border-color);
-	}
-	.pv-head h2 {
-		margin: 0;
-		font-family: var(--font-heading);
-		font-size: calc(0.95rem * var(--font-scale));
 	}
 	.pv-section {
 		padding: var(--space-3) var(--space-4);
