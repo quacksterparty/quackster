@@ -74,12 +74,7 @@ data/
       flags/ca.svg
       flags/kr.svg
       flags/ma.svg
-
-gamemodes/            # code, not data; each declares compatibility metadata
-  grid_quiz/          # Jeopardy-style — first implemented gamemode
-    manifest.yaml
-    boards/           # board definitions (category × point grid)
-      school.yaml
+  games/              # game configs: rule axes + inline grid board (see [Boards](#boards))
 
 schemas/              # JSON Schema generated from the schema definitions, committed for editor support
   question.schema.json
@@ -541,39 +536,52 @@ If no localized media is provided, the canonical media is served.
 ## Boards
 
 A **board** is a 2D grid (categories × point values) used by grid-based
-gamemodes like Jeopardy/Grid Quiz. Boards live under `gamemodes/<id>/boards/`
-and reference packs, filters, or explicit question IDs per category.
+gamemodes like Jeopardy/Grid Quiz. Boards live **inline inside a game config**
+under `data/games/` — each game lists its rounds, and each round's `mode.board`
+declares the grid (points + categories with question IDs, a pack ref, or a
+tag filter per cell). Standalone `boards/<id>.yaml` files are not currently
+used — splitting boards back out is revisited if/when a second gamemode makes
+the separation pay off.
 
 ```yaml
-# gamemodes/grid_quiz/boards/school.yaml
-# yaml-language-server: $schema=../../../schemas/board.schema.json
-
-id: board_school
+# data/games/school_quiz.yaml
+id: game_school_quiz
 title: School Quiz
-description: A 4×4 board covering capitals, flags, chemistry, math, and physics.
-points: [100, 200, 300, 500]
-difficulty_map:
-  100: [difficulty:easy]
-  200: [difficulty:general]
-  300: [difficulty:niche]
-  500: [difficulty:general, difficulty:niche]
-categories:
-  - name: Capitals
-    filter:
-      tags_any: [subject:capitals]
-  - name: Flags
-    filter:
-      tags_any: [subject:flags]
-  - name: Chemistry
-    question_ids:
-      100: { id: q_atom_nucleus, variant: multiple_choice }
-      200: { id: q_acid_base, variant: open }
-      300: { id: q_chemical_oxygen_ozone, variant: multiple_choice }
-      500: { id: q_periodic_helium, variant: true_false }
-  - name: Math & Physics
-    pack_ref: pack_school_trivia
-    filter:
-      tags_any: [subject:math, subject:physics]
+games:
+  - title: Runde 1
+    rules:
+      buzz_policy: open_floor
+      scoring_mode: first_correct
+      lockout_policy: this_question
+      steal_policy: round_limited
+      judge: auto
+      question_timer_secs: 30
+      answer_timer_secs: 15
+    mode:
+      kind: grid_quiz
+      grid_rules:
+        picker_mode: winner_picks
+      board:
+        points: [100, 200, 300, 500]
+        difficulty_map:
+          100: [difficulty:easy]
+          200: [difficulty:general]
+          300: [difficulty:niche]
+          500: [difficulty:general, difficulty:niche]
+        categories:
+          - name: Capitals
+            filter: { tags_any: [subject:capitals] }
+          - name: Flags
+            filter: { tags_any: [subject:flags] }
+          - name: Chemistry
+            question_ids:
+              100: { id: q_atom_nucleus, variant: multiple_choice }
+              200: { id: q_acid_base, variant: open }
+              300: { id: q_chemical_oxygen_ozone, variant: multiple_choice }
+              500: { id: q_periodic_helium, variant: true_false }
+          - name: Math & Physics
+            pack_ref: pack_school_trivia
+            filter: { tags_any: [subject:math, subject:physics] }
 ```
 
 Resolution per `(category, point)` slot (first match wins):
@@ -655,11 +663,15 @@ is a contamination risk).
 
 ## Gamemodes
 
-Gamemodes are **code**, not data, but each ships a small declarative manifest
-describing what content it accepts and how it presents the game.
+Gamemodes are **code**, not data. Their state machine, scoring, and content
+acceptance live in the Rust backend (`api/src/game/` for runtime,
+`api/src/data/<gamemode>.rs` for board/pool helpers). The on-disk manifest
+shown below is the *intended* shape for when each gamemode ships its own
+declarative metadata; for now only `grid_quiz` is implemented and it has no
+manifest file yet (gamemode manifest validation is an open question).
 
 ```yaml
-# gamemodes/battle_royale/manifest.yaml
+# api/src/data/battle_royale.rs (manifest alongside the runtime module)
 id: battle_royale
 name: Battle Royale
 description: Last player standing. Wrong answer = elimination.
@@ -677,8 +689,7 @@ ui:
   spectator_view: SpectatorView.svelte
 ```
 
-Gamemode IDs are bare slugs — the directory name under `gamemodes/` is
-authoritative.
+Gamemode IDs are bare slugs (e.g. `grid_quiz`).
 
 The gamemode's runtime rules, scoring, and state machine live in the Rust
 backend. For v1 `grid_quiz` is hardcoded in the room task; a `Gamemode` trait is
@@ -998,18 +1009,26 @@ same checks.
 2. ✅ Data loader (parse YAML → validate → build indexes). Cross-file validation:
    duplicate IDs, dangling refs, tag refs, overlay refs, pack cycles, media
    existence/kind/size.
-3. ✅ Example dataset: 5 canonical question files (~20 Qs across text/numeric/
-   order kinds, with `local:` media refs), German overlays, 1 pack, 6 tag
-   registries (3 populated), 4 flag SVGs.
+3. ✅ Example dataset: question files across text/numeric/order kinds (~20 Qs
+   with `local:` media refs), German + English overlays, 4 game configs under
+   `data/games/` (inline boards), 6 tag registries (3 populated), 4 flag SVGs.
 4. ✅ Pool query engine — `query_pool(filter)` with ANDed `kinds`, `tags_all`,
    `tags_any`, `tags_none`, `variants_any`, `limit`.
 5. ✅ Board builder — resolves board categories via explicit IDs, pack refs, or
    filter queries; deduplicates; deterministic shuffle via `mulberry32` PRNG.
-6. ✅ First gamemode: `grid_quiz` (Jeopardy-style) with manifest + board YAML.
-   No runtime wiring yet.
-7. ○ Game runtime (rooms, WebSocket, scoring) — see `docs/architecture.md`.
+6. ✅ First gamemode: `grid_quiz` (Jeopardy-style) — board helpers in
+   `api/src/data/grid_quiz.rs`, runtime rules still hardcoded in the room
+   task (no `Gamemode` trait yet; see step 7).
+7. 🔄 Game runtime (rooms, WebSocket, scoring) — `quackster-2` in `TODO.org`;
+   room actor, state apply, WebSocket edge, REST create/check, per-role
+   projection, score-from-log, and per-player locale are live. Remaining:
+   `Judge` trait impls, timer `sleep_until` arm, `Gamemode` trait extraction.
+   See `docs/architecture.md`.
 8. ○ Second gamemode (`battle_royale` or `music_quiz`) to validate the
-   gamemode-agnostic claim.
+   gamemode-agnostic claim. Boards are currently inline in `data/games/*.yaml`
+   rather than split out — separation revisited if/when the second gamemode
+   makes the split pay off.
 9. ○ `new-question` scaffolding script.
-10. ○ Rust JSON Schema export for editor YAML LSP.
+10. ○ Rust JSON Schema export for editor YAML LSP — `quackster-3` in
+    `TODO.org` (schemars derive vs. manual schema builder still TBD).
 11. ○ Deprecated-question warnings in validation.

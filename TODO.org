@@ -506,6 +506,32 @@ Pending backend wiring: pool/draft mutations need to hit the real
 QuizDrafts + content service per quackster-26 spec. For now: in-memory
 mock; Save all toasts a mock success.
 
+** DONE Absorb board-first canvas in /curate (variant C), fix 5-col bug
+CLOSED: [2026-08-02 Sat 18:00]
+:PROPERTIES:
+:ID:       quackster-26.3
+:END:
+
+Sidebar board squeezed cells on wide boards (only 20rem of width, hardcoded
+repeat(5, 1fr) in DraftsRail). Lift the board to the top of the page as a
+canvas that takes the full main-column width. Preview becomes a right-edge
+drawer (default closed, auto-opens when a cell is picked). Drafts list
+drops out of the rail — ActionBar already has a select.
+
+Bug: DraftsRail.brow was grid-template-columns: 5rem repeat(5, 1fr).
+Hardcoded 5 cols broke any board with != 5 points. Fix: derive N from
+board.points.length, use minmax(8rem, 1fr) so cells stay readable, wrap
+in overflow-x: auto so very wide boards scroll horizontally instead of
+crushing cells.
+
+Files: src/routes/curate/+page.svelte (restructure), new
+src/lib/components/curate/BoardCanvas.svelte (replaces DraftsRail),
+src/lib/components/curate/PreviewPane.svelte (drop <aside> wrapper,
+becomes drawer body), src/lib/components/curate/QuestionEditor.svelte
+(empty-state copy: 'on the left' -> 'above'). Delete DraftsRail.svelte.
+
+Data layer untouched. Backend untouched.
+
 ** TODO Wire pool/draft mutations to backend (QuizDrafts + content service)
 :PROPERTIES:
 :ID:       quackster-26.2

@@ -22,7 +22,7 @@ content they accept.
 > (backend ownership, transport, concurrency, game-session model);
 > `docs/data-model.md` remains canonical for content shape.
 
-Data layer implemented in Rust: types, garde validation, YAML loader, cross-file validation, pool query engine, board builder, and example dataset (20 questions, German overlays, 1 pack, grid_quiz gamemode). Game runtime and UI not yet built. JSON Schema export for editor YAML LSP is not yet re-sourced from Rust (the old TS-generated `schemas/*.json` were removed).
+Data layer done in Rust: types, garde validation, YAML loader, cross-file validation, pool query engine, board builder, plus an example dataset (~20 questions, German + English overlays, 4 game configs in `data/games/`, `grid_quiz` gamemode). **Game runtime is the current focus** — room actor + state apply + per-role projection + WebSocket edge + REST create/check + score-from-log (ADR 0002) + per-player locale resolution are live; three mechanical pieces remain (see Implementation order). Frontend game shell built over `/room`, `/curate`, `/playground`, `/questions`: AppShell, Navbar, drawers (Players/Mod/Settings), QuestionList, RoomQR, Toaster, plus 8 themes in `src/lib/themes/`. Docker images published to GHCR (`slim` + `full`); `harness/play.py` is the WebSocket driver for runtime testing. JSON Schema export for editor YAML LSP is not yet re-sourced from Rust — tracked as `quackster-3` in `TODO.org`.
 
 ## Tech stack
 
@@ -31,8 +31,13 @@ Data layer implemented in Rust: types, garde validation, YAML loader, cross-file
 - **Rust + axum** (`api/`) — data layer + live game runtime. Serves the static
   frontend and the API (REST for cold content, WebSocket for live game state).
 - **`garde`** for validation, **`serde_yaml`** for content parsing.
-- **`ts-rs`** exports Rust types to TS — single source of truth for shared types.
-- **`tokio`** for the per-room actor concurrency model.
+- **`ts-rs`** exports Rust types to TS — single source of truth for shared types
+  (lands in `src/lib/bindings/`).
+- **`tokio`** for the per-room actor concurrency model; **`dashmap`** for the
+  room registry; **`uuid`** + **`rand`** for join codes and seeded PRNG.
+- **`tracing`** + **`tracing-opentelemetry`** for observability (OTLP export
+  opt-in — core loop runs offline; ADR 0003).
+- **`thiserror`** for fallible path errors.
 
 **Frontend (SvelteKit, static):**
 
@@ -40,6 +45,8 @@ Data layer implemented in Rust: types, garde validation, YAML loader, cross-file
   no SSR, built to `build/` and served by the Rust backend.
 - **TypeScript** (strict), **Vite** for build/dev.
 - **Paraglide JS** (inlang) for UI i18n; messages in `messages/{en,de}.json`.
+- **`bits-ui`** for primitives, **`qrcode`** for join QR codes,
+  **`@fontsource/*`** bundles per-theme fonts (no runtime font fetch).
 - **Vitest** + **Playwright** for tests; **ESLint + Prettier**.
 - **pnpm** workspaces.
 
@@ -52,25 +59,46 @@ projections. See `docs/architecture.md`.
 ```
 api/                # Rust backend
   src/
-    main.rs         # axum: load data, serve build/ + API
+    main.rs         # axum: load data, serve build/ + REST/WS API
     config.rs
-    data/           # loader, validate, query, board, error, types/
+    protocol.rs     # wire types — ts-rs exports to src/lib/bindings/
+    media.rs        # yt-dlp segment cache + mod-controlled playback
+    state.rs        # AppState (DashMap<JoinCode, RoomHandle>)
+    data/           # loader, validate, query, board, grid_quiz, error, types/
+    game/           # room actor, state apply, judge, project, grants
+    http/           # ws.rs (WebSocket edge), rest/ (rooms.rs), auth.rs, locale.rs
 src/                # SvelteKit static frontend
   lib/
     paraglide/      # generated UI i18n runtime — do not edit
-    themes/         # CSS theme tokens + per-theme stylesheets
-    components/     # shared Svelte components
-  routes/           # SvelteKit routes
-  hooks.ts          # paraglide locale handling
+    bindings/       # ts-rs-generated TS types (Games, Grants, Protocol, Rooms, Verdict)
+    themes/         # 8 themes: chalkboard, kawaii, medieval, modern-dark, neon, retro, western, wizard
+    components/     # AppShell, Navbar, drawers (Players/Mod/Settings), QuestionList, RoomQR, Toaster, …
+    api.ts          # REST client (room create/check, games list)
+    room.svelte.ts  # shared reactive room state across components
+  routes/
+    +page.svelte              # Home / Host
+    room/[code]/+page.svelte  # live game (WebSocket owner)
+    curate/+page.svelte       # content review
+    playground/+page.svelte   # dev sandbox
+    questions/+page.svelte    # question browser
+  hooks.ts          # paraglide locale reroute
 messages/           # paraglide UI strings (en, de)
 project.inlang/     # paraglide config
 docs/
   architecture.md   # canonical runtime reference
   data-model.md     # canonical content reference
+  game-flow.md      # host/player journeys, screens, decisions
   glossary.md       # domain vocabulary
-  decisions/        # ADRs
-data/               # content: questions/, i18n/, packs/, tags/, media/
-gamemodes/          # grid_quiz/ with manifest.yaml + boards/
+  decisions/        # ADRs (0001 stack, 0002 score-from-log, 0003 offline-capable, 0004 persistence+HA)
+data/               # content
+  questions/        # YAML, grouped by topic (geography, science, music, …)
+  packs/            # curated question lists / filters
+  tags/             # registries, one file per category
+  i18n/{de,en}/     # translation overlays (questions, tags)
+  media/            # local binary assets
+  games/            # game configs (rule axes + inline grid board)
+harness/
+  play.py           # WebSocket driver — `smoke` and `play` scenarios
 ```
 
 ## Architectural rules (from data-model.md)
@@ -159,15 +187,33 @@ install` against the host's missing system deps. `nix develop` already has
 
 Data layer (schemas, loader, validation, query, board, example dataset, first
 gamemode) is done and ported to Rust (`api/src/data/`); the legacy TS layer has
-been removed. See `docs/data-model.md` for details. Remaining:
+been removed. The game runtime is the current focus — most of it is built, but
+three mechanical pieces remain. See `docs/data-model.md` and `TODO.org` for the
+fine-grained breakdown; high-level status below.
 
 1. ✅ Data layer in Rust: types, loader, cross-file validation, query, board.
-2. ✅ Example dataset (20 questions, German overlays, 1 pack, grid_quiz).
-3. ✅ First gamemode: `grid_quiz` (manifest + boards; no runtime wiring yet).
-4. ○ Game runtime (rooms, WebSocket, scoring) — see `docs/architecture.md`.
-5. ○ Second gamemode to validate gamemode-agnostic claim.
+2. ✅ Example dataset: ~20 questions, German + English overlays, 4 game configs
+   in `data/games/`, `grid_quiz` gamemode.
+3. ✅ First gamemode: `grid_quiz` — board logic in `api/src/data/grid_quiz.rs`,
+   runtime rules still hardcoded in the room task (see step 4).
+4. 🔄 Game runtime (rooms, WebSocket, scoring) — `quackster-2` in `TODO.org`:
+   - ✅ Room actor (`spawn_room`, mpsc in / broadcast out, `select!` loop) — `api/src/game/room.rs`
+   - ✅ WebSocket edge (`handle_socket`, join / reconnect / authed flow) — `api/src/http/ws.rs`
+   - ✅ Registry (`AppState.rooms` DashMap + REST create/check) — `api/src/state.rs`, `api/src/http/rest/rooms.rs`
+   - ✅ Token + Grant model (`Play` / `Present` / `Moderate`) — `api/src/game/grants.rs`
+   - ✅ Per-role `ClientView` projection + correct-answer strip — `api/src/game/project.rs`
+   - ✅ Judgment log + derived score — ADR 0002 (`api/src/game/state.rs`)
+   - ✅ Per-player locale resolution + layered overlay merge — `quackster-31`
+   - 🔄 `Judge` trait + `Auto` + `Moderator` impls — `api/src/game/judge.rs` (stub)
+   - 🔄 Timer `sleep_until(deadline)` arm in the `select!` loop — `api/src/game/room.rs`
+   - 🔄 `Gamemode` trait extraction — deferred until step 5 lands
+5. ○ Second gamemode to validate gamemode-agnostic claim. **Boards are currently
+   inline in `data/games/*.yaml`** rather than split out under `gamemodes/<id>/boards/`
+   — separation back into standalone board YAML is revisited if/when a second
+   gamemode makes the split pay off.
 6. ○ `new-question` scaffolding script.
-7. ○ Rust JSON Schema export for editor YAML LSP.
+7. ○ Rust JSON Schema export for editor YAML LSP — `quackster-3` in `TODO.org`
+   (schemars derive vs. manual schema builder still TBD).
 
 ## Open questions
 
