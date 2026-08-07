@@ -1,18 +1,23 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
+	import { getGamemode, type ModeId } from '$lib/gamemodes';
 	import ActionBar from '$lib/components/curate/ActionBar.svelte';
-	import BoardCanvas from '$lib/components/curate/BoardCanvas.svelte';
 	import QuestionEditor from '$lib/components/curate/QuestionEditor.svelte';
 	import PreviewPane from '$lib/components/curate/PreviewPane.svelte';
 	import QuestionPicker from '$lib/components/curate/QuestionPicker.svelte';
 	import { toast } from '$lib/toast.svelte';
 
 	let activeDraftId = $state(pool.drafts[0]?.id ?? '');
-	let activeCell = $state<{ categoryIdx: number; point: number } | null>(null);
+	// Cell shape is mode-owned: grid = {categoryIdx, point}, linear = number.
+	// The orchestrator only knows it as opaque state.
+	let activeCell = $state<unknown>(null);
 	let activeQuestionId = $state<string | null>(null);
 	let pickerOpen = $state(false);
 
 	const draft = $derived(pool.getDraft(activeDraftId));
+	const mode = $derived(draft ? getGamemode(draft.board.mode) : null);
+	// Dynamic component: re-evaluated when the mode changes (e.g. grid → linear).
+	const BoardComponent = $derived(mode?.BoardComponent);
 
 	function newQuestion() {
 		const q = pool.createDraftQuestion();
@@ -27,18 +32,18 @@
 		activeQuestionId = null;
 	}
 
-	function selectCell(c: { categoryIdx: number; point: number } | null) {
+	function selectCell(c: unknown) {
 		activeCell = c;
 	}
 
 	function openPicker() {
-		if (!activeCell) return;
+		if (activeCell === null) return;
 		pickerOpen = true;
 	}
 
 	function detach() {
-		if (!activeCell) return;
-		pool.detachQuestion(activeDraftId, activeCell.categoryIdx, activeCell.point);
+		if (!mode || activeCell === null) return;
+		mode.detach(activeDraftId, activeCell);
 		activeQuestionId = null;
 		toast.success('Question detached from cell');
 	}
@@ -47,12 +52,26 @@
 		activeQuestionId = qid;
 	}
 
+	function changeMode(next: ModeId) {
+		if (!draft || draft.board.mode === next) return;
+		// Wipes the board on swap — confirm before clobbering any work.
+		const ok = confirm(
+			`Switching to ${next} will clear this draft's board (categories/questions). Continue?`
+		);
+		if (!ok) return;
+		pool.setDraftMode(activeDraftId, next);
+		activeCell = null;
+		activeQuestionId = null;
+		toast.success(`Mode switched to ${next}`);
+	}
+
 	function validate() {
 		const d = draft;
-		if (!d) return;
+		const m = mode;
+		if (!d || !m) return;
 		const issues: string[] = [];
 		if (!d.title.trim()) issues.push('title');
-		if (d.progress < 1) issues.push(`${Math.round((1 - d.progress) * 100)}% board empty`);
+		if (m.computeProgress(d) < 1) issues.push(`${Math.round((1 - m.computeProgress(d)) * 100)}% board empty`);
 		if (issues.length) toast.error(`Validation: ${issues.join(', ')}`);
 		else toast.success('All checks pass');
 	}
@@ -72,12 +91,15 @@
 <div class="page">
 	<ActionBar
 		{activeDraftId}
+		onModeChange={changeMode}
 		onSelectDraft={selectDraft}
 		onNewQuestion={newQuestion}
 		onValidate={validate}
 		onSaveAll={saveAll}
 	/>
-	<BoardCanvas {activeDraftId} {activeCell} onSelectCell={selectCell} />
+	{#if BoardComponent && draft}
+		<BoardComponent {draft} {activeCell} onSelectCell={selectCell} />
+	{/if}
 	<div class="body">
 		<QuestionEditor
 			{activeDraftId}
@@ -93,7 +115,7 @@
 	</div>
 </div>
 
-{#if activeCell}
+{#if activeCell !== null && mode}
 	<QuestionPicker bind:open={pickerOpen} {activeDraftId} {activeCell} {onPicked} />
 {/if}
 
@@ -101,14 +123,12 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		/* at least viewport, can grow so the page scrolls instead of clipping the canvas */
 		min-height: 100%;
 		gap: var(--space-2);
 		padding: 0 var(--space-2) var(--space-2) var(--space-2);
 	}
 	.body {
 		flex: 1;
-		/* keep the editor usable even when the canvas is huge -> page scrolls */
 		min-height: 30rem;
 		display: flex;
 		gap: var(--space-2);

@@ -1,42 +1,95 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
+	import type { CurateDraft, GridQuizBoard } from '$lib/data/seed';
 
 	let {
-		activeDraftId,
+		draft,
 		activeCell,
 		onSelectCell
 	}: {
-		activeDraftId: string;
+		draft: CurateDraft;
 		activeCell: { categoryIdx: number; point: number } | null;
 		onSelectCell: (c: { categoryIdx: number; point: number } | null) => void;
 	} = $props();
 
-	const draft = $derived(pool.getDraft(activeDraftId));
-	// Point values come from the data — fix for the hardcoded-5-col bug.
-	// Length adapts to board.points.length; minmax keeps cells readable.
+	const board = $derived(
+		draft && draft.board.mode === 'grid_quiz' ? (draft.board as GridQuizBoard) : null
+	);
+
 	const points = $derived(
-		draft
-			? Object.keys(draft.board.categories[0]?.questions ?? {})
+		board && board.categories[0]
+			? Object.keys(board.categories[0].questions)
 					.map(Number)
 					.sort((a, b) => a - b)
 			: []
 	);
-	const cols = $derived(`6rem repeat(${points.length}, minmax(8rem, 1fr))`);
+	// +1 trailing column holds the "+ Category" header cell — kept narrow.
+	const cols = $derived(board ? `6rem repeat(${board.categories.length}, minmax(8rem, 1fr)) 5rem` : '');
+
+	function addCategory() {
+		pool.addGridCategory(draft.id);
+	}
+	function removeCategory(name: string) {
+		if (!board) return;
+		const idx = board.categories.findIndex((c) => c.name === name);
+		if (idx < 0) return;
+		if (
+			!confirm(
+				`Remove category "${name}"? Any questions attached to its cells will become unreferenced.`
+			)
+		)
+			return;
+		pool.removeGridCategory(draft.id, idx);
+		if (activeCell && activeCell.categoryIdx === idx) onSelectCell(null);
+	}
+	function addPoint() {
+		pool.addGridPoint(draft.id);
+	}
+	function removePoint(p: number) {
+		if (!confirm(`Remove the ${p} pts row? Any questions attached will become unreferenced.`))
+			return;
+		pool.removeGridPoint(draft.id, p);
+		if (activeCell && activeCell.point === p) onSelectCell(null);
+	}
 </script>
 
 <section class="canvas" aria-label="Board">
-	{#if draft}
+	{#if board && board.categories.length > 0}
 		<div class="board" style:grid-template-columns={cols}>
+			<!-- Header row: corner + categories + add-category -->
 			<div class="brow head">
 				<div></div>
-				{#each points as p (p)}
-					<div class="bcell head">{p}</div>
+				{#each board.categories as cat (cat.name)}
+					<div class="bcell head cat">
+						<span class="cat-name">{cat.name}</span>
+						<button
+							class="rm"
+							title="Remove category"
+							aria-label="Remove category {cat.name}"
+							onclick={() => {
+								removeCategory(cat.name);
+							}}>✕</button
+						>
+					</div>
 				{/each}
+				<button class="bcell head add" onclick={addCategory}>+ Category</button>
 			</div>
-			{#each draft.board.categories as cat, ci (cat.name)}
+
+			<!-- Data rows: row-head + N cells + 1 trailing spacer so each row fills all 8 columns -->
+			{#each points as p (p)}
 				<div class="brow">
-					<div class="bcell head cat">{cat.name}</div>
-					{#each points as p (p)}
+					<div class="bcell head">
+						<span>{p} pts</span>
+						<button
+							class="rm"
+							title="Remove row"
+							aria-label="Remove {p} pts row"
+							onclick={() => {
+								removePoint(p);
+							}}>✕</button
+						>
+					</div>
+					{#each board.categories as cat, ci (cat.name)}
 						{@const cell = cat.questions[p]}
 						{@const q = cell ? pool.getQuestion(cell.questionId) : null}
 						<button
@@ -59,8 +112,24 @@
 							{/if}
 						</button>
 					{/each}
+					<!-- ponytail: spacer keeps the next row's row-head from wrapping into this row's +Cat slot -->
+					<div class="bcell spacer"></div>
 				</div>
 			{/each}
+
+			<!-- Add-point row: add button in the row-head slot + N spacers + 1 trailing spacer -->
+			<div class="brow">
+				<button class="bcell head add" onclick={addPoint}>+ Point row</button>
+				{#each board.categories as _cat (_cat.name)}
+					<div class="bcell spacer"></div>
+				{/each}
+				<div class="bcell spacer"></div>
+			</div>
+		</div>
+	{:else if board}
+		<div class="placeholder">
+			<p>Empty grid. Add a category to get started.</p>
+			<button class="add-btn" onclick={addCategory}>+ Add first category</button>
 		</div>
 	{/if}
 </section>
@@ -69,7 +138,6 @@
 	.canvas {
 		display: flex;
 		flex-direction: column;
-		/* keep our content size in the page flex column — don't shrink, don't grow */
 		flex: 0 0 auto;
 		min-height: 0;
 		background: var(--bg-surface);
@@ -79,7 +147,6 @@
 	}
 	.board {
 		display: grid;
-		/* column count injected from data via the `grid-template-columns` style */
 		gap: 2px;
 		background: var(--border-color);
 		border: var(--border-width) var(--border-style) var(--border-color);
@@ -89,10 +156,10 @@
 		min-width: 0;
 	}
 	.brow {
-		/* virtual row — children flow into the parent grid via auto-flow */
 		display: contents;
 	}
 	.bcell {
+		position: relative;
 		padding: var(--space-2);
 		background: var(--bg-primary);
 		text-align: left;
@@ -118,6 +185,23 @@
 	.bcell.head.cat {
 		text-align: left;
 		align-items: flex-start;
+		padding-right: 1.5rem;
+	}
+	.bcell.add {
+		color: var(--color-text-muted);
+		font-style: italic;
+		background: transparent;
+		border: 1px dashed var(--border-color);
+		cursor: pointer;
+	}
+	.bcell.add:hover {
+		background: var(--bg-primary);
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+	.bcell.spacer {
+		background: transparent;
+		min-height: 2.5rem;
 	}
 	.bcell.filled {
 		background: color-mix(in srgb, var(--color-primary) 5%, var(--bg-primary));
@@ -128,6 +212,34 @@
 	.bcell.selected {
 		outline: 2px solid var(--color-primary);
 		outline-offset: -2px;
+	}
+	.cat-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
+	}
+	.rm {
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		width: 1.25rem;
+		height: 1.25rem;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--color-text-muted);
+		font-size: calc(0.65rem * var(--font-scale));
+		line-height: 1;
+		cursor: pointer;
+		opacity: 0;
+		transition: opacity 100ms;
+	}
+	.bcell:hover .rm {
+		opacity: 1;
+	}
+	.rm:hover {
+		background: var(--color-danger);
+		color: var(--color-text-inverse);
 	}
 	.qid {
 		font-family: var(--font-mono);
@@ -146,5 +258,31 @@
 		color: var(--color-text-muted);
 		font-size: 1.2rem;
 		text-align: center;
+	}
+	.placeholder {
+		padding: var(--space-6);
+		color: var(--color-text-muted);
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		align-items: center;
+	}
+	.placeholder p {
+		margin: 0;
+	}
+	.add-btn {
+		padding: var(--space-2) var(--space-4);
+		border: 1px dashed var(--border-color);
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--color-primary);
+		font-family: var(--font-body);
+		font-size: calc(0.85rem * var(--font-scale));
+		cursor: pointer;
+	}
+	.add-btn:hover {
+		background: var(--bg-primary);
+		border-style: solid;
 	}
 </style>

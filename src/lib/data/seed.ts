@@ -42,6 +42,19 @@ export interface BoardCategory {
 	questions: Record<number, BoardCellRef | null>;
 }
 
+export interface GridQuizBoard {
+	mode: 'grid_quiz';
+	categories: BoardCategory[];
+}
+
+/** Ordered sequence of question slots (Kahoot-style). */
+export interface LinearBoard {
+	mode: 'linear';
+	items: (BoardCellRef | null)[];
+}
+
+export type DraftBoard = GridQuizBoard | LinearBoard;
+
 export interface CurateDraft {
 	id: string;
 	title: string;
@@ -51,7 +64,7 @@ export interface CurateDraft {
 	progress: number;
 	updated: string;
 	do_not_delete?: boolean;
-	board: { categories: BoardCategory[] };
+	board: DraftBoard;
 	rules: { buzz_policy: string; scoring_mode: string; judge: string };
 }
 
@@ -251,7 +264,8 @@ function makeDraft(
 	do_not_delete = false
 ): CurateDraft {
 	const cats = lang === 'de' ? CATEGORIES_DE : CATEGORIES_EN;
-	const board: { categories: BoardCategory[] } = {
+	const board: GridQuizBoard = {
+		mode: 'grid_quiz',
 		categories: cats.map((name) => ({ name, questions: {} }))
 	};
 	for (const cat of board.categories) {

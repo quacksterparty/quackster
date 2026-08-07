@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import { isDraftId } from '$lib/data/ids';
+	import { getGamemode } from '$lib/gamemodes';
 	import Button from '../Button.svelte';
 	import QuestionMetaEditor from './QuestionMetaEditor.svelte';
 	import QuestionNumericVariants from './QuestionNumericVariants.svelte';
@@ -16,7 +17,7 @@
 		onDetach
 	}: {
 		activeDraftId: string;
-		activeCell: { categoryIdx: number; point: number } | null;
+		activeCell: unknown;
 		activeQuestionId: string | null;
 		onPickQuestion: () => void;
 		onCreateNew: () => void;
@@ -24,10 +25,10 @@
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
-	const cell = $derived(
-		activeCell && draft
-			? (draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null)
-			: null
+	const mode = $derived(draft ? getGamemode(draft.board.mode) : null);
+	const cell = $derived(draft && mode ? mode.getCellRef(activeCell, draft) : null);
+	const cellLabel = $derived(
+		draft && mode && activeCell !== null ? mode.cellLabel(activeCell, draft) : ''
 	);
 	const question = $derived(
 		cell
@@ -42,11 +43,10 @@
 	<header class="ed-head">
 		<div class="h-left">
 			<div class="kicker">Question</div>
-			{#if question && activeCell && cell?.questionId === question.id && draft}
-				{@const cat = draft.board.categories[activeCell.categoryIdx]?.name ?? ''}
+			{#if question && activeCell !== null && cell?.questionId === question.id && draft}
 				<div class="attach-row">
 					<span class="attach-info">
-						Attached to <strong>{cat}</strong> · {activeCell.point} pts
+						Attached to <strong>{cellLabel}</strong>
 					</span>
 					<span class="sep">·</span>
 					<button class="link" onclick={onPickQuestion}>Replace</button>

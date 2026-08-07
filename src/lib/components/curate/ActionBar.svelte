@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import { formatRelative } from '$lib/data/seed';
+	import { listGamemodes, type ModeId } from '$lib/gamemodes';
 	import Button from '../Button.svelte';
 
 	let {
@@ -8,13 +9,15 @@
 		onSelectDraft,
 		onNewQuestion,
 		onValidate,
-		onSaveAll
+		onSaveAll,
+		onModeChange
 	}: {
 		activeDraftId: string;
 		onSelectDraft: (id: string) => void;
 		onNewQuestion: () => void;
 		onValidate: () => void;
 		onSaveAll: () => void;
+		onModeChange: (mode: ModeId) => void;
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
@@ -42,6 +45,19 @@
 		>
 			{#each pool.drafts as d (d.id)}
 				<option value={d.id}>{d.title}</option>
+			{/each}
+		</select>
+		<select
+			class="mode-select"
+			aria-label="Gamemode"
+			title="Gamemode"
+			value={draft?.board.mode ?? 'grid_quiz'}
+			onchange={(e) => {
+				onModeChange((e.target as HTMLSelectElement).value as ModeId);
+			}}
+		>
+			{#each listGamemodes() as g (g.id)}
+				<option value={g.id}>{g.title}</option>
 			{/each}
 		</select>
 		<span class="meta">
@@ -82,6 +98,15 @@
 		font-family: var(--font-body);
 		font-weight: 600;
 		font-size: calc(0.95rem * var(--font-scale));
+	}
+	.mode-select {
+		padding: var(--space-1) var(--space-2);
+		border: var(--border-width) var(--border-style) var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-surface);
+		color: var(--color-text);
+		font-family: var(--font-body);
+		font-size: calc(0.8rem * var(--font-scale));
 	}
 	.meta {
 		color: var(--color-text-muted);

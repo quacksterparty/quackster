@@ -4,6 +4,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import { pool } from '$lib/data/pool.svelte';
 	import type { PoolQuestion } from '$lib/data/seed';
+	import { getGamemode } from '$lib/gamemodes';
 
 	let {
 		// eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
@@ -14,7 +15,7 @@
 	}: {
 		open: boolean;
 		activeDraftId: string;
-		activeCell: { categoryIdx: number; point: number };
+		activeCell: unknown;
 		onPicked: (qid: string) => void;
 	} = $props();
 
@@ -23,15 +24,20 @@
 	let statusFilter = $state<'all' | 'named' | 'draft' | 'referenced'>('all');
 	let langFilter = $state<'all' | 'de' | 'en'>('all');
 
+	const draft = $derived(pool.getDraft(activeDraftId));
+	const mode = $derived(draft ? getGamemode(draft.board.mode) : null);
+
 	function pick(qid: string) {
-		pool.attachQuestion(activeDraftId, activeCell.categoryIdx, activeCell.point, qid);
+		if (!mode) return;
+		mode.attach(activeDraftId, activeCell, qid);
 		onPicked(qid);
 		open = false;
 	}
 
 	function createAndAttach() {
+		if (!mode) return;
 		const q = pool.createDraftQuestion();
-		pool.attachQuestion(activeDraftId, activeCell.categoryIdx, activeCell.point, q.id);
+		mode.attach(activeDraftId, activeCell, q.id);
 		onPicked(q.id);
 		open = false;
 	}

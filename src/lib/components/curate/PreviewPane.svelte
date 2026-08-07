@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
+	import { getGamemode } from '$lib/gamemodes';
 
 	let {
 		activeDraftId,
@@ -7,19 +8,16 @@
 		activeQuestionId
 	}: {
 		activeDraftId: string;
-		activeCell: { categoryIdx: number; point: number } | null;
+		activeCell: unknown;
 		activeQuestionId: string | null;
 	} = $props();
 
 	const draft = $derived(pool.getDraft(activeDraftId));
-	const cell = $derived(
-		activeCell && draft
-			? (draft.board.categories[activeCell.categoryIdx]?.questions[activeCell.point] ?? null)
-			: null
-	);
+	const mode = $derived(draft ? getGamemode(draft.board.mode) : null);
+	const cellRef = $derived(draft && mode ? mode.getCellRef(activeCell, draft) : null);
 	const question = $derived(
-		cell
-			? pool.getQuestion(cell.questionId)
+		cellRef
+			? pool.getQuestion(cellRef.questionId)
 			: activeQuestionId
 				? pool.getQuestion(activeQuestionId)
 				: null
@@ -27,10 +25,8 @@
 
 	const errors = $derived.by(() => {
 		const e: string[] = [];
-		if (!draft) return e;
+		if (!draft || !mode) return e;
 		if (!draft.title.trim()) e.push('Draft title is required');
-		if (draft.board.categories.some((c) => Object.values(c.questions).every((cell) => !cell)))
-			e.push('At least one cell in every category should have a question');
 		if (question) {
 			if (!question.prompt.trim()) e.push('Question prompt is empty');
 			if (question.kind === 'text' && !question.answer.trim()) e.push('Question answer is empty');
@@ -54,7 +50,11 @@
 		return w;
 	});
 
-	const progress = $derived(draft ? draft.progress : 0);
+	const progress = $derived(draft && mode ? mode.computeProgress(draft) : 0);
+	const statusLine = $derived(draft && mode ? mode.statusLine(draft) : '');
+	const cellLabel = $derived(
+		draft && mode && activeCell !== null ? mode.cellLabel(activeCell, draft) : ''
+	);
 </script>
 
 <div class="preview-body">
@@ -62,12 +62,16 @@
 		<h3>Draft</h3>
 		{#if draft}
 			<p class="meta">
-				<strong>{draft.title}</strong> · {draft.language.toUpperCase()} · {draft.audience}
+				<strong>{draft.title}</strong> · {mode?.title ?? draft.board.mode} · {draft.language.toUpperCase()}
+				· {draft.audience}
 			</p>
+			{#if statusLine}
+				<p class="ct">{statusLine}</p>
+			{/if}
 			<div class="progress-bar">
 				<div class="progress-fill" style:width="{progress * 100}%"></div>
 			</div>
-			<p class="ct">{Math.round(progress * 100)}% board filled</p>
+			<p class="ct">{Math.round(progress * 100)}% filled</p>
 		{/if}
 	</section>
 
@@ -101,11 +105,7 @@
 		<section class="pv-section">
 			<h3>How a player sees it</h3>
 			<div class="player-view">
-				<div class="pv-pts">
-					{draft?.board.categories[activeCell?.categoryIdx ?? 0]?.name ?? 'Question'}{activeCell
-						? ` · ${activeCell.point} pts`
-						: ''}
-				</div>
+				<div class="pv-pts">{cellLabel || 'Question'}</div>
 				<div class="pv-prompt">{question.prompt || '(empty prompt)'}</div>
 				{#if question.choices}
 					<ul class="pv-choices">
