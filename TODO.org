@@ -221,7 +221,8 @@ Wire the policies into apply(): initial floor per BuzzPolicy (OpenFloor = nobody
 
 ** TODO Remove the hardcoded-strategy TODO comment in state.rs once wired
 
-* TODO Player drawer not scrollable on mobile :p2:frontend:
+* DONE Player drawer not scrollable on mobile                      :p2:frontend:
+  CLOSED: [2026-08-07 Fri 19:59]
 :PROPERTIES:
 :ID:       quackster-21
 :END:
@@ -229,9 +230,11 @@ Wire the policies into apply(): initial floor per BuzzPolicy (OpenFloor = nobody
 
 Drawer.svelte renders children directly into .drawer (fixed, flex column) with no scroll container — no overflow-y: auto and no min-height: 0 on the content area. When the player list / scoreboard in AppShell.svelte exceeds viewport height (mobile), overflow is clipped and can't scroll. Fix in Drawer.svelte so all drawer content (settings drawer too) scrolls: wrap children in a flex:1; min-height:0; overflow-y:auto container. Files: src/lib/components/Drawer.svelte (root cause), src/lib/components/AppShell.svelte (symptom location).
 
-** TODO Add scrollable content wrapper in Drawer.svelte (flex:1, min-height:0, overflow-y:auto)
+** DONE Add scrollable content wrapper in Drawer.svelte (flex:1, min-height:0, overflow-y:auto)
+   CLOSED: [2026-08-07 Fri 19:59]
 
-** TODO Verify both drawers (settings, players/scoreboard) scroll on small viewports
+** DONE Verify both drawers (settings, players/scoreboard) scroll on small viewports
+   CLOSED: [2026-08-07 Fri 19:59]
 
 * TODO Build browser quiz curation/editor workflow :p2:frontend:runtime:tooling:
 :PROPERTIES:
@@ -239,7 +242,11 @@ Drawer.svelte renders children directly into .drawer (fixed, flex column) with n
 :END:
 
 
-Browser-first curation for self-host admins and quiz hosts. Existing Svelte /curate UI talks to Rust API; canonical YAML remains source of truth. A saved quiz is one game_<slug> GameConfig with one grid_quiz board. Drafts are backend-memory QuizDrafts with random URL IDs, incomplete state, debounced autosave, revision checks, TTL/cap cleanup, and do_not_delete protection; drafts vanish on restart and cannot be played. Save all validates the candidate, saves staged media and changed question files before the game file, keeps independently saved questions if game save fails, reloads the dataset, and leaves existing rooms on their old snapshot. Full question reads stay public under trusted-instance model; mutations use admin_secret when configured and are open when it is not. Board eligibility depends on current open-variant runtime behavior; variant resolution is tracked separately in quackster:12 and is not part of this feature. No pack-first UX, TUI, raw YAML editor, accounts, or translation editor in first version.
+Browser-first curation for self-host admins and quiz hosts. Frontend wiring target; backend CRUD is quackster-37.
+
+The Svelte /curate UI today runs on an in-memory rune store (src/lib/data/pool.svelte.ts seeded from src/lib/data/seed.ts); it will talk to the file-backed REST CRUD in quackster-37. canonical YAML remains source of truth; a saved quiz is one game_<slug> GameConfig with one grid_quiz board. /api/questions?include_drafts=true drives the question picker; /api/games drives the game configurator. Frontend keeps the no-backend-yet fallback (run on the rune store) so visitors without the curate backend can still browse.
+
+Full question reads stay public under trusted-instance model; mutations use admin_secret when configured and are open when it is not (same secret as room creation, per quackster-37). No pack-first UX, TUI, raw YAML editor, accounts, or translation editor in first version.
 
 ** TODO Define serialized DTOs and REST contracts for public question/game/tag/media reads, QuizDrafts, revisions, grouped validation errors, Save all, uploads, and reload
 
@@ -266,6 +273,67 @@ Browser-first curation for self-host admins and quiz hosts. Existing Svelte /cur
 *** Related
 - [[id:quackster-12]]
 - [[id:quackster-5]]
+
+* TODO Backend CRUD for /curate: questions, packs, games, tags, i18n overlays :p1:backend:tooling:
+:PROPERTIES:
+:ID:       quackster-37
+:END:
+
+The Svelte /curate UI today runs on an in-memory rune store; this entry builds the file-backed REST CRUD that lets the curator edit content from the browser without touching git. Files in data/ stay the single source of truth — the existing Rust loader already serves them at boot; this work adds a write path next to it. Spec: docs/data-model.md (content shape), docs/architecture.md (state model).
+
+Locked design (grilled rounds 1-6):
+
+| Concern              | Decision                                                   |
+| -------------------- | ---------------------------------------------------------- |
+| Scope                | questions, packs, games, tags + i18n overlays for each    |
+| Storage              | file-backed; writes go to data/ directly                   |
+| Auth                 | reuse existing admin_secret (same as room creation)        |
+| Concurrency          | single-curator, last-write-wins, no etag                   |
+| Draft status         | status: draft\|published\|deprecated field on q/pack/game  |
+| Draft folder         | data/{q,pack,game}/draft/ is convention only (not enforced) |
+| Loader split         | by status field, not by path                               |
+| ID allocation        | client proposes; backend validates format; 409 on conflict |
+| Endpoints            | flat /api/{questions,packs,games,tags/<cat>}/* (no /api/curate/ prefix) |
+| Verbs                | GET (list + by id, ?include_drafts=true), POST, PUT, PATCH (RFC 7396), DELETE |
+| PATCH                | status flip + deprecation + license all share the same verb |
+| New-file POST        | body carries file; server auto-creates parent dirs + YAML  |
+| Errors               | 422 with [{path, message}] flat list                       |
+| Delete               | 409 + dependents list for referenced; tags: never hard-delete |
+| Reload               | sync full reload after every write (before 200)            |
+| Media upload         | NOT v1 — separate task (per existing note)                 |
+| File move endpoint   | NOT v1 — fat TODO in questions.rs so it's not forgotten   |
+
+Touch list:
+- api/src/state.rs — AppState.data becomes Arc<RwLock<Dataset>>; add replace_dataset. Reload entry lives here.
+- api/src/data/loader/mod.rs + types/mod.rs — Dataset split by status field (state.questions = published, state.drafts = drafts). Update query.rs / board.rs / grid_quiz.rs to read .questions only.
+- api/src/data/mod.rs — write_resource helper: load file -> swap item by id (or append for new) -> serialise -> atomic rename. One helper, reused by every resource handler.
+- api/src/http/rest/ — one file per resource (questions.rs, packs.rs, extend games.rs, tags.rs) + i18n/{questions,packs,games,tags}.rs. All handlers: validate body -> write_resource -> state.replace_dataset -> respond.
+- TODO marker at the top of api/src/http/rest/questions.rs above create_question: "When added: POST /api/questions/{id}/move with body {file: ...}. Server reads old file, removes question from list, appends to new file (creates if not exists), writes both. Useful once editors want to tidy topics after publishing."
+
+** TODO Make AppState.data an Arc<RwLock<Dataset>> + replace_dataset; update all readers
+
+** TODO Loader partitions Registry<Question> by status field, not by path; expose state.questions (published) and state.drafts (draft)
+
+** TODO write_resource helper: load file -> swap/append item -> atomic YAML write (tmp + rename)
+
+** TODO /api/questions handlers (list + ?include_drafts, by id, create with file body, put, patch RFC 7396, delete w/ dependents)
+
+** TODO /api/packs handlers (same shape)
+
+** TODO /api/games handlers (extend existing read-only listing with create/put/patch/delete)
+
+** TODO /api/tags/<category> handlers (per-entry CRUD; no hard-delete)
+
+** TODO /api/i18n/<lang>/{questions,packs,games,tags} handlers (overlay PUT/PATCH/DELETE; mirror canonical shape minus non-translatable fields)
+
+** TODO 422 validation error shape with per-field paths (garde Vec<Report> -> wire list)
+
+** TODO Drop-in TODO markers for move endpoint and media upload so they don't get forgotten
+
+*** Related
+- [[id:quackster-26]] (frontend wires onto this backend)
+- [[id:quackster-2]] (admin_secret convention aligned with room creation)
+- [[id:quackster-3]] (future Rust JSON Schema export re-uses the same types)
 
 * TODO Add second gamemode to validate gamemode-agnostic claim :p3:gamemodes:
 :PROPERTIES:
@@ -829,3 +897,61 @@ Decisions (grilled 2026-08-01):
 Files: api/src/http/rest/games.rs (Game + GameEntry ts-rs structs, derivation helpers, test), src/lib/bindings/Games.ts (regen), src/lib/data/seed.ts (drop GAMES), src/routes/room/+page.svelte (load + subjects filter + drop fake facets).
 
 Skipped (ponytail, add when asked): backend filter query params, pagination, languages per game, top-level category field, per-entry rules on the list endpoint, question count range filter.
+
+* TODO Category-tag in curation — attach tags to categories for easier filtering :p2:frontend:tooling:
+:PROPERTIES:
+:ID:       quackster-34
+:END:
+
+During curation, when editing a category (board category, pack bucket, or any groupable slot), the host wants to slap a tag on it — e.g. subject, region, audience, difficulty — so the same filtering axes already available on questions also work on categories. Goal: filter a board/pack by tag without writing filter expressions by hand.
+
+Scope: curation-only edit surface first. Read-side filtering (browse, quiz select) can ship when tags exist on enough categories to be useful. Tag shape mirrors question tags (category:slug, registry-backed from data/tags/). Backend stores tag list per category on the appropriate DTO (quiz board entry, pack bucket, etc.) and rejects unknown slugs at save.
+
+** TODO Pick which category-like slots get tags first (board categories, pack buckets, both?)
+
+** TODO Extend category DTO(s) with tags: Vec<TagRef> + serde/garde rules mirroring question tags
+
+** TODO Add tag picker to the curation editor for each tagged slot (reuse question tag picker if it exists)
+
+** TODO Backend validation: reject unknown tag slugs at save; emit grouped error alongside other Save all errors
+
+** TODO Persist tags through Save all round-trip + reload snapshot isolation (per quackster-26)
+
+** TODO Decide read-side filter surface (browse, quiz select) once enough categories carry tags
+
+* TODO Room code copy button + QR moved to hero, upper-left, toggleable :p3:frontend:
+:PROPERTIES:
+:ID:       quackster-35
+:END:
+
+On the room page, the join code is shown but not copyable, and the QR lives in a separate drawer/section. Make the code one-click copyable with a small clip icon next to it, lift the QR into the hero area in the upper-left corner, and let the host/mod toggle it visible/hidden so they can hide it once everyone has scanned in.
+
+Files: src/routes/room/[code]/+page.svelte, src/lib/components/RoomQR.svelte (already exists), bits-ui or native for toggle/popover.
+
+** TODO Add clip icon next to the join code with one-click clipboard copy (fallback toast on failure)
+
+** TODO Move QR into the hero section, upper-left, on host/mod view only
+
+** TODO Add toggle (host/mod) to show/hide QR; default visible, persist preference in localStorage per host
+
+** TODO Keep code copyable from non-hero fallback for player view
+
+* TODO Grid quiz wrap is wrong + needs horizontal scroll on small screens :p3:frontend:gamemodes:p2:
+:PROPERTIES:
+:ID:       quackster-36
+:END:
+
+BoardSelect.svelte (and any active grid view) currently shrinks columns to fit on smaller screens, which squeezes category titles into ugly wraps and makes cells unreadable. Replace shrink-to-fit with proper word-wrap (overflow-wrap: anywhere / text-wrap: balance for col-heads), and below a breakpoint the grid should overflow horizontally with a scroll container instead of reflowing narrower.
+
+Scope: src/lib/components/game/BoardSelect.svelte, src/lib/components/game/ActiveGrid.svelte (or whatever renders the in-game board), shared .grid styles. Keep tiles legible at any width; horizontal scroll beats squashed columns.
+
+** TODO Switch col-head + cell text to overflow-wrap: anywhere (or text-wrap: balance) and drop hyphenation
+
+** TODO Cap grid min column width (e.g. minmax(8rem, 1fr)) so cells don't crush
+
+** TODO Add horizontal scroll container (.grid-wrap with overflow-x: auto) below a chosen breakpoint (e.g. < 640px) for both board select and active grid
+
+** TODO Verify select + active grid scroll/swipe on mobile (e2e or manual)
+
+*** Related
+- [[id:quackster-20]]
