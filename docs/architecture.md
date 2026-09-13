@@ -46,7 +46,11 @@ consumes generated types. One schema, one validator, one truth.
 Two transports, split by temperature of the data:
 
 - **REST** for **cold content** — questions, packs, boards, gamemode manifests.
-  Cacheable, stateless reads. Served under `/api/*`.
+  Cacheable, stateless reads. Served under `/api/*`. **Mutations**
+  (POST/PUT/PATCH/DELETE on every resource + i18n overlays) are also REST,
+  gated by `admin_secret` and followed by a sync dataset reload — existing
+  rooms keep their captured `Arc<Dataset>` snapshot, so a mid-game write
+  never disturbs a live room.
 - **WebSocket** for **hot game state** — buzzes, answers, scores, timer, phase.
   One WS connection per client into a live room (axum `ws` feature).
 

@@ -274,7 +274,8 @@ Full question reads stay public under trusted-instance model; mutations use admi
 - [[id:quackster-12]]
 - [[id:quackster-5]]
 
-* TODO Backend CRUD for /curate: questions, packs, games, tags, i18n overlays :p1:backend:tooling:
+* IN_PROGRESS Backend CRUD for /curate: questions, packs, games, tags, i18n overlays :p1:backend:tooling:
+CLOSED: [2026-09-13 Sun 19:30]
 :PROPERTIES:
 :ID:       quackster-37
 :END:
@@ -319,30 +320,64 @@ CLOSED: [2026-09-13 Sun 17:00]
 ** DONE write_resource helper: load file -> swap/append item -> atomic YAML write (tmp + rename)
 CLOSED: [2026-09-13 Sun 17:00]
 
-** TODO /api/questions handlers (list + ?include_drafts, by id, create with file body, put, patch RFC 7396, delete w/ dependents)
+** DONE /api/questions handlers (list + ?include_drafts, by id, create with file body, put, patch RFC 7396, delete w/ dependents)
+CLOSED: [2026-09-13 Sun 19:30]
 - DONE Phase B: list + ?include_drafts + by id (questions.rs)
-- TODO Phase C: POST (new-file), PUT, PATCH, DELETE
+- DONE Phase C: POST (new-file), PUT, PATCH, DELETE (with 409 dependents + reload)
 
-** TODO /api/packs handlers (same shape)
+** DONE /api/packs handlers (same shape)
+CLOSED: [2026-09-13 Sun 19:30]
 - DONE Phase B: list + ?include_drafts + by id (packs.rs)
-- TODO Phase C: POST, PUT, PATCH, DELETE
+- DONE Phase C: POST, PUT, PATCH, DELETE (single-file storage; 409 on game dependents)
 
-** TODO /api/games handlers (extend existing read-only listing with create/put/patch/delete)
+** DONE /api/games handlers (extend existing read-only listing with create/put/patch/delete)
+CLOSED: [2026-09-13 Sun 19:30]
 - DONE Phase B: existing list + new /games/{id}, ?include_drafts added (games.rs)
-- TODO Phase C: POST, PUT, PATCH, DELETE
+- DONE Phase C: POST, PUT, PATCH, DELETE (single-file storage)
 
-** TODO /api/tags/<category> handlers (per-entry CRUD; no hard-delete)
+** DONE /api/tags/<category> handlers (per-entry CRUD; no hard-delete)
+CLOSED: [2026-09-13 Sun 19:30]
 - DONE Phase B: list + by id (tags.rs)
-- TODO Phase C: POST, PUT, PATCH (no DELETE per locked design)
+- DONE Phase C: POST, PUT, PATCH (DELETE route intentionally not registered per locked design)
 
-** TODO /api/i18n/<lang>/{questions,packs,games,tags} handlers (overlay PUT/PATCH/DELETE; mirror canonical shape minus non-translatable fields)
+** DONE /api/i18n/<lang>/{questions,packs,games,tags} handlers (overlay PUT/PATCH/DELETE; mirror canonical shape minus non-translatable fields)
+CLOSED: [2026-09-13 Sun 19:30]
 - DONE Phase B: GET (i18n.rs) returns 404 for unknown locale
-- TODO Phase C: PUT, PATCH, DELETE
+- DONE Phase C: PUT, PATCH, DELETE per (lang, resource, id)
 
 ** DONE 422 validation error shape with per-field paths (garde Vec<Report> -> wire list)
 CLOSED: [2026-09-13 Sun 17:00]
 
-** TODO Drop-in TODO markers for move endpoint and media upload so they don't get forgotten
+** DONE Drop-in TODO markers for move endpoint and media upload so they don't get forgotten
+CLOSED: [2026-09-13 Sun 19:30]
+- DONE Move-endpoint marker above questions.rs (post-MVP editor tidy)
+- DONE Media-upload marker above api/src/media.rs module doc (quackster-26 territory)
+
+** DONE Phase D polish — tests + glue for the CRUD surface
+CLOSED: [2026-09-14 Mon 19:30]
+- DONE Loader partition test (single file mixes draft + published; partition routes by field)
+- DONE Reload-after-write covered by put_round_trip_persists_and_reloads + existing_rooms_keep_their_dataset_after_replace
+- DONE PATCH merge covered by json_merge tests + handler-level patch_merges_preserving_untouched_fields
+- DONE DELETE dependents covered by delete_returns_409_with_dependents_list + delete_succeeds_when_no_dependents
+- DONE Draft visibility covered by list_excludes_drafts_by_default + list_with_include_drafts_flag_returns_both + by_id_with_include_drafts_finds_drafts
+- DONE write_resource covered by writes_and_round_trips_yaml + creates_missing_parent_directories + leaves_no_stray_tmp_on_success + load_list_or_empty_*
+- DEFERRED Public search/filter — no list endpoint takes a text query; only ?include_drafts filter exists. Skip per locked design (YAGNI; add when curate UI needs it). Promoted to standalone quackster-38.
+- SKIP architecture.md note — Frontend ↔ backend contract section already states "mutations ... followed by a sync dataset reload — existing rooms keep their captured Arc<Dataset> snapshot" (the phase-D note verbatim)
+- DONE Cargo test green: 210 passed, 0 failed
+
+** DONE Phase D review fixes — security boundary tests, crash-recovery, dead-code sweep, PATCH unknown-field rejection
+CLOSED: [2026-09-14 Mon 21:00]
+- DONE Auth middleware: 5 tests (no-secret open, missing header, wrong bearer, malformed auth header, correct bearer) — http/auth.rs
+- DONE walk_yaml_inner skips dotfiles — atomic-write tmpfiles + editor swaps no longer get loaded as content
+- DONE sweep_stale_edit_tmpfiles called at every load_dataset — removes `.q-edit-*.yaml` sidecars left by a crash mid-write on a previous run; logs warn so admins know a crash happened
+- DONE write.rs docstring corrected — no longer claims walk_yaml filters tmpfiles
+- DONE reload_dataset logs error on failure (data still on disk; caller may retry and collide with own id)
+- DONE create_room body-secret gate removed — auth is entirely the global header middleware; single source of truth
+- DONE Stale TODO removed from http/mod.rs (build_router lives in main.rs)
+- DONE Dead code deleted: Dataset::published_question_ids, ValidationError::empty/is_empty/push (and the 2 tests that only exercised them)
+- DONE deny_unknown_fields on Question, Pack, GameConfig — PATCH with a typo now returns 400 with the unknown field name instead of silently dropping
+- DEFERRED Empty-file cleanup after DELETE — promoted to standalone quackster-39
+- DONE Cargo test green: 215 passed, 0 failed
 
 *** Related
 - [[id:quackster-26]] (frontend wires onto this backend)
@@ -969,3 +1004,36 @@ Scope: src/lib/components/game/BoardSelect.svelte, src/lib/components/game/Activ
 
 *** Related
 - [[id:quackster-20]]
+
+* TODO Server-side search/filter on list endpoints :p3:backend:tooling:
+:PROPERTIES:
+:ID:       quackster-38
+:END:
+
+List endpoints today only support `?include_drafts=true` — no text search, no tag filter, no kind filter. With the question/games count growing (current dataset ~24+ questions, 4 games, plus drafts), the curate UI will need to do filtering somewhere. Three options:
+
+- Client-side: keep all items in memory, filter in JS. Fine up to a few hundred questions, breaks at scale.
+- Server-side query string (`?q=foo&tag=subject:geo&kind=text`): adds query layer. Backend parses, runs over `Registry`, returns a `Vec<&T>` slice.
+- Backend search index (tantivy/sqlite): overkill for the dataset sizes this project targets.
+
+Ponytail: start with the server-side query string (cheap, mirrors the `ListParams` pattern, no new deps). Add once the curate UI asks for it; don't pre-build.
+
+Scope when added: `questions`, `packs`, `games`, `tags/<category>` all get the same filter shape; i18n overlays stay as-is. Match the field names the frontend already types.
+
+*** Related
+- [[id:quackster-37]] (curate CRUD this sits on top of)
+- [[id:quackster-26]] (curate UI consumer)
+
+* TODO Auto-remove empty question files after DELETE leaves zero items :p3:backend:tooling:
+:PROPERTIES:
+:ID:       quackster-39
+:END:
+
+`DELETE /api/questions/{id}` keeps the file with an empty `[]` list when the last item is removed. Loader handles `[]` cleanly so no correctness issue, but cruft accumulates as curators tidy topics. Two cases:
+
+- File ends with `[]`: delete the file. Loader's missing-file path is already exercised.
+- File ends with `[]` but is the canonical home for one id (last survivor was just deleted): delete is correct — the file is empty.
+
+Ponytail: only add when an admin notices. The current behaviour is silent and harmless; promote when it isn't.
+
+Trigger to add: a curator complaint about empty `.yaml` files in the data dir, or when `git status` after a delete churn becomes noisy.

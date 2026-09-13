@@ -68,13 +68,6 @@ pub struct Dataset {
     pub drafts: Drafts,
 }
 
-impl Dataset {
-    /// Iterate every published question id (no drafts).
-    pub fn published_question_ids(&self) -> impl Iterator<Item = &str> {
-        self.questions.keys().map(String::as_str)
-    }
-}
-
 /// Non-fatal diagnostic from the data loader.
 #[derive(Debug, Clone)]
 pub struct LoadIssue {

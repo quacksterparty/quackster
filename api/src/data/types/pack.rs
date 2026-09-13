@@ -26,6 +26,7 @@ pub struct PackFilter {
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 #[garde(custom(pack_has_content))]
+#[serde(deny_unknown_fields)]
 pub struct Pack {
     #[garde(custom(valid_pack_id))]
     pub id: String,

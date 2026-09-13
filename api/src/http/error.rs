@@ -15,23 +15,6 @@ pub struct FieldError {
 #[derive(Debug, Serialize)]
 pub struct ValidationError(pub Vec<FieldError>);
 
-impl ValidationError {
-    pub fn empty() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn push(&mut self, path: impl Into<String>, message: impl Into<String>) {
-        self.0.push(FieldError {
-            path: path.into(),
-            message: message.into(),
-        });
-    }
-}
-
 impl From<Report> for ValidationError {
     fn from(report: Report) -> Self {
         Self(

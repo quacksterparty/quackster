@@ -267,7 +267,7 @@ pub struct QuestionBase {
 
 /// Discriminated union over `kind: text | numeric | order`.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[serde(tag = "kind", rename_all = "lowercase")]
+#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 pub enum Question {
     Text {
         #[serde(flatten)]

@@ -481,4 +481,46 @@ fn catches_only_one_order_item() {
     assert!(!ds.issues.is_empty());
 }
 
-// ─── Game loader tests ────────────────────────────────────────────
+#[test]
+fn partition_splits_questions_by_status_field() {
+    // A single file may mix published and draft items; the loader walks the
+    // disk once, then partitions by `status` field (path is irrelevant).
+    let ds = load(&with_registries(&[(
+        "questions/mixed.yaml",
+        r#"
+- id: q_pub
+  status: published
+  kind: text
+  tags: [subject:geo]
+  content:
+    default_lang: en
+    prompt: { text: "P" }
+    answer: p
+    variants: { open: { accepted: ["p"] } }
+- id: q_draft
+  status: draft
+  kind: text
+  tags: [subject:geo]
+  content:
+    default_lang: en
+    prompt: { text: "D" }
+    answer: d
+    variants: { open: { accepted: ["d"] } }
+- id: q_default
+  kind: text
+  tags: [subject:geo]
+  content:
+    default_lang: en
+    prompt: { text: "?" }
+    answer: x
+    variants: { open: { accepted: ["x"] } }
+"#,
+    )]));
+    assert!(ds.issues.is_empty(), "unexpected issues: {:?}", ds.issues);
+    assert!(ds.questions.contains_key("q_pub"));
+    assert!(ds.questions.contains_key("q_default"));
+    assert!(ds.drafts.questions.contains_key("q_draft"));
+    assert!(!ds.drafts.questions.contains_key("q_pub"));
+    assert!(!ds.drafts.questions.contains_key("q_default"));
+    assert!(!ds.questions.contains_key("q_draft"));
+}

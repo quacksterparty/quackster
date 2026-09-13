@@ -19,7 +19,6 @@ use crate::{
 #[cfg_attr(test, ts(export, export_to = "Rooms.ts"))]
 struct CreateRoom {
     game_id: String,
-    secret: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,12 +38,6 @@ async fn create_room(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateRoom>,
 ) -> impl IntoResponse {
-    if let Some(secret) = state.config.admin_secret.as_deref()
-        && body.secret.as_deref() != Some(secret)
-    {
-        return StatusCode::FORBIDDEN.into_response();
-    }
-
     const MAX_TRIES: usize = 10;
 
     let Some(code) = (0..MAX_TRIES)

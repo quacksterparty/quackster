@@ -1,9 +1,9 @@
 //! Atomic YAML write helpers used by Phase C handlers.
 //!
 //! The contract: a write either fully lands or leaves the previous file
-//! untouched. Crashes mid-write leave a sidecar tmp file (started with
-//! `.q-edit-`); the loader does not pick those up because `walk_yaml` filters
-//! on `.yaml`/`.yml` only.
+//! untouched. Crashes mid-write leave a sidecar tmp file (`.q-edit-*.yaml`);
+//! `load_dataset` skips dotfiles on walk and sweeps stale sidecars at startup,
+//! so they never reach the in-memory registries.
 
 use std::{
     fs,
@@ -28,6 +28,15 @@ pub fn read_yaml_file<T: DeserializeOwned>(path: &Path) -> Result<T, ReadError> 
     let text = fs::read_to_string(path)?;
     let value = serde_yaml::from_str(&text)?;
     Ok(value)
+}
+
+/// Read a list-shaped YAML file. Returns an empty `Vec` when the file is
+/// missing so callers can treat "new file" and "existing list" uniformly.
+pub fn load_list_or_empty<T: DeserializeOwned>(path: &Path) -> Result<Vec<T>, ReadError> {
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    read_yaml_file::<Vec<T>>(path)
 }
 
 #[derive(Debug, Error)]
@@ -55,6 +64,27 @@ pub fn write_yaml_file_atomic<T: Serialize>(path: &Path, value: &T) -> Result<()
     tmp.as_file().sync_all()?;
     tmp.persist(path).map_err(|e| e.error)?;
     Ok(())
+}
+
+/// Recursively merge `patch` into `target` per RFC 7396. A `null` value in
+/// the patch removes the field from the target. Non-object patch values
+/// replace the target outright.
+pub fn json_merge(target: &mut serde_json::Value, patch: serde_json::Value) {
+    if let (Some(target_obj), Some(patch_obj)) = (target.as_object_mut(), patch.as_object()) {
+        for (key, patch_val) in patch_obj {
+            if patch_val.is_null() {
+                target_obj.remove(key);
+                continue;
+            }
+            if let Some(existing) = target_obj.get_mut(key) {
+                json_merge(existing, patch_val.clone());
+            } else {
+                target_obj.insert(key.clone(), patch_val.clone());
+            }
+        }
+    } else {
+        *target = patch;
+    }
 }
 
 #[cfg(test)]

@@ -33,9 +33,9 @@ enum Parsed<T> {
 }
 
 pub fn load_dataset(data_dir: &Path) -> Result<Dataset, LoadError> {
-    let base = data_dir.parent().unwrap_or(data_dir);
+    sweep_stale_edit_tmpfiles(data_dir);
     let rel = |p: &Path| -> String {
-        p.strip_prefix(base)
+        p.strip_prefix(data_dir)
             .unwrap_or(p)
             .to_string_lossy()
             .into_owned()
@@ -111,16 +111,48 @@ fn walk_yaml(dir: &Path) -> Result<Vec<PathBuf>, LoadError> {
     Ok(files)
 }
 
+fn sweep_stale_edit_tmpfiles(data_dir: &Path) {
+    fn collect(path: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(path) else { return };
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() {
+                collect(&p, out);
+            } else if p
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(".q-edit-"))
+            {
+                out.push(p);
+            }
+        }
+    }
+    let mut stale = Vec::new();
+    collect(data_dir, &mut stale);
+    for path in stale {
+        match fs::remove_file(&path) {
+            Ok(()) => tracing::warn!(path = %path.display(), "removed stale edit tmpfile from previous run"),
+            Err(e) => tracing::warn!(error = %e, path = %path.display(), "could not remove stale edit tmpfile"),
+        }
+    }
+}
+
 fn walk_yaml_inner(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), LoadError> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
             walk_yaml_inner(&path, out)?;
-        } else if let Some(ext) = path.extension() {
-            let ext = ext.to_string_lossy();
-            if ext == "yaml" || ext == "yml" {
-                out.push(path);
+        } else if let Some(file_name) = path.file_name().and_then(|n| n.to_str())
+            && !file_name.starts_with('.')
+        {
+            // Skip dotfiles: atomic-write tmp files (`.q-edit-*.yaml`) and any
+            // editor backups (`.#foo.yaml.swp`) must never be loaded as content.
+            if let Some(ext) = path.extension() {
+                let ext = ext.to_string_lossy();
+                if ext == "yaml" || ext == "yml" {
+                    out.push(path);
+                }
             }
         }
     }

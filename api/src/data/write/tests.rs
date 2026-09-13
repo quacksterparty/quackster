@@ -3,7 +3,7 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 use tempfile::tempdir;
 
-use super::{read_yaml_file, write_yaml_file_atomic};
+use super::{json_merge, load_list_or_empty, read_yaml_file, write_yaml_file_atomic};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Point {
@@ -79,4 +79,51 @@ fn leaves_no_stray_tmp_on_success() {
         })
         .collect();
     assert!(strays.is_empty(), "found leftover tmp files");
+}
+
+#[test]
+fn load_list_or_empty_returns_empty_when_file_missing() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("absent.yaml");
+    assert!(load_list_or_empty::<Point>(&path).unwrap().is_empty());
+}
+
+#[test]
+fn load_list_or_empty_reads_existing_file() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("items.yaml");
+    write_yaml_file_atomic(
+        &path,
+        &vec![
+            Point { id: "a".into(), value: 1 },
+            Point { id: "b".into(), value: 2 },
+        ],
+    )
+    .unwrap();
+    assert_eq!(load_list_or_empty::<Point>(&path).unwrap().len(), 2);
+}
+
+#[test]
+fn json_merge_rfc7396_object_recursion() {
+    let mut target = serde_json::json!({ "a": 1, "nested": { "x": 1, "y": 2 } });
+    let patch = serde_json::json!({ "nested": { "y": 99, "z": 3 }, "b": 2 });
+    json_merge(&mut target, patch);
+    assert_eq!(
+        target,
+        serde_json::json!({ "a": 1, "nested": { "x": 1, "y": 99, "z": 3 }, "b": 2 })
+    );
+}
+
+#[test]
+fn json_merge_null_removes_field() {
+    let mut target = serde_json::json!({ "a": 1, "b": 2 });
+    json_merge(&mut target, serde_json::json!({ "b": null }));
+    assert_eq!(target, serde_json::json!({ "a": 1 }));
+}
+
+#[test]
+fn json_merge_non_object_replaces() {
+    let mut target = serde_json::json!({ "a": { "x": 1 } });
+    json_merge(&mut target, serde_json::json!({ "a": 5 }));
+    assert_eq!(target, serde_json::json!({ "a": 5 }));
 }

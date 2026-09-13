@@ -4,6 +4,10 @@
 //! (served at `/media-cache`) once downloaded. Downloads are prefetched at
 //! room spawn (board is fixed then); a segment that isn't ready when its
 //! question opens projects as no media — the agreed degrade path.
+//!
+//! TODO(quackster-#): staged local-media uploads under data/media/uploads/,
+//! generated safe filenames, promotion during Save all, abandoned-file
+//! cleanup. Blocked on curate UI side. Phase D / quackster-26 territory.
 
 use std::{path::PathBuf, sync::Arc};
 
