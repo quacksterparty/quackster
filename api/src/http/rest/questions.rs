@@ -1,5 +1,6 @@
-//! `/api/packs` — list + by id. Drafts hidden by default; `?include_drafts=true`
-//! surfaces them.
+//! `/api/questions` — list + by id. Drafts hidden by default; `?include_drafts=true`
+//! surfaces them. Returns the canonical domain types; overlays arrive via
+//! `/api/i18n/{lang}/questions` and are merged client-side.
 
 use std::sync::Arc;
 
@@ -11,40 +12,40 @@ use axum::{
     routing::get,
 };
 
-use crate::data::Pack;
+use crate::data::Question;
 use crate::http::rest::ListParams;
 use crate::state::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/packs", get(list_packs))
-        .route("/packs/{id}", get(get_pack))
+        .route("/questions", get(list_questions))
+        .route("/questions/{id}", get(get_question))
 }
 
-async fn list_packs(
+async fn list_questions(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListParams>,
-) -> Json<Vec<Pack>> {
+) -> Json<Vec<Question>> {
     let data = state.read_dataset();
-    let mut out: Vec<Pack> = data.packs.values().map(|e| e.item.clone()).collect();
+    let mut out: Vec<Question> = data.questions.values().map(|e| e.item.clone()).collect();
     if params.include_drafts {
-        out.extend(data.drafts.packs.values().map(|e| e.item.clone()));
+        out.extend(data.drafts.questions.values().map(|e| e.item.clone()));
     }
-    out.sort_by(|a, b| a.id.cmp(&b.id));
+    out.sort_by(|a, b| a.id().cmp(b.id()));
     Json(out)
 }
 
-async fn get_pack(
+async fn get_question(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let data = state.read_dataset();
-    if let Some(entry) = data.packs.get(&id) {
+    if let Some(entry) = data.questions.get(&id) {
         return Json(entry.item.clone()).into_response();
     }
     if params.include_drafts
-        && let Some(entry) = data.drafts.packs.get(&id)
+        && let Some(entry) = data.drafts.questions.get(&id)
     {
         return Json(entry.item.clone()).into_response();
     }
@@ -85,10 +86,16 @@ mod tests {
     fn tags_yaml() -> Vec<(&'static str, &'static str)> {
         vec![
             ("tags/audience.yaml", "[]\n"),
-            ("tags/difficulty.yaml", "[]\n"),
+            (
+                "tags/difficulty.yaml",
+                "- id: difficulty:general\n  default_lang: en\n  label: General\n",
+            ),
             ("tags/format.yaml", "[]\n"),
             ("tags/region.yaml", "[]\n"),
-            ("tags/subject.yaml", "[]\n"),
+            (
+                "tags/subject.yaml",
+                "- id: subject:geo\n  default_lang: en\n  label: Geography\n",
+            ),
             ("tags/warning.yaml", "[]\n"),
         ]
     }
@@ -110,30 +117,41 @@ mod tests {
         })
     }
 
-    const PACK_PUB: &str = r#"
-id: pack_pub
-title: Public
-questions: []
+    const Q_PUB: &str = r#"
+- id: q_pub
+  kind: text
+  tags: [subject:geo]
+  content:
+    default_lang: en
+    prompt: { text: "?" }
+    answer: a
+    variants:
+      open:
+        accepted: ["a"]
 "#;
 
-    const PACK_DRAFT: &str = r#"
-id: pack_draft
-status: draft
-title: Draft
-questions: []
+    const Q_DRAFT: &str = r#"
+- id: q_draft
+  status: draft
+  kind: text
+  tags: [subject:geo]
+  content:
+    default_lang: en
+    prompt: { text: "?" }
+    answer: a
+    variants:
+      open:
+        accepted: ["a"]
 "#;
 
     #[tokio::test]
     async fn list_excludes_drafts_by_default() {
-        let ds = load(&[
-            ("packs/pub.yaml", PACK_PUB),
-            ("packs/draft.yaml", PACK_DRAFT),
-        ]);
+        let ds = load(&[("questions/q.yaml", &format!("{Q_PUB}\n{Q_DRAFT}"))]);
         let app = router().with_state(test_state(ds));
         let body = axum::body::to_bytes(
             app.oneshot(
                 Request::builder()
-                    .uri("/packs")
+                    .uri("/questions")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -149,22 +167,67 @@ questions: []
             .iter()
             .map(|v| v.get("id").and_then(|x| x.as_str()).unwrap())
             .collect();
-        assert_eq!(ids, vec!["pack_pub"]);
+        assert_eq!(ids, vec!["q_pub"]);
     }
 
     #[tokio::test]
-    async fn by_id_404_when_missing() {
-        let ds = load(&[("packs/p.yaml", PACK_PUB)]);
+    async fn list_with_include_drafts_flag_returns_both() {
+        let ds = load(&[("questions/q.yaml", &format!("{Q_PUB}\n{Q_DRAFT}"))]);
+        let app = router().with_state(test_state(ds));
+        let body = axum::body::to_bytes(
+            app.oneshot(
+                Request::builder()
+                    .uri("/questions?include_drafts=true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+            .into_body(),
+            4096,
+        )
+        .await
+        .unwrap();
+        let parsed: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+        let ids: Vec<&str> = parsed
+            .iter()
+            .map(|v| v.get("id").and_then(|x| x.as_str()).unwrap())
+            .collect();
+        assert_eq!(ids, vec!["q_draft", "q_pub"]);
+    }
+
+    #[tokio::test]
+    async fn by_id_returns_404_when_missing() {
+        let ds = load(&[("questions/q.yaml", Q_PUB)]);
         let app = router().with_state(test_state(ds));
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/packs/pack_nope")
+                    .uri("/questions/q_missing")
                     .body(Body::empty())
                     .unwrap(),
             )
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn by_id_with_include_drafts_finds_drafts() {
+        let ds = load(&[("questions/q.yaml", Q_DRAFT)]);
+        let app = router().with_state(test_state(ds));
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/questions/q_draft?include_drafts=true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), 4096).await.unwrap();
+        let parsed: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(parsed.get("id").and_then(|v| v.as_str()), Some("q_draft"));
     }
 }

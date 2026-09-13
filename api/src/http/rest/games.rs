@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use axum::{
     Json, Router,
-    extract::State,
-    http::{HeaderMap, header},
+    extract::{Path, Query, State},
+    http::{HeaderMap, StatusCode, header},
     response::IntoResponse,
     routing::get,
 };
@@ -15,6 +15,7 @@ use crate::data::{
     Question, Registry, TagOverlay,
 };
 use crate::http::locale::preferred_locale;
+use crate::http::rest::ListParams;
 use crate::state::AppState;
 
 #[derive(Serialize, Deserialize)]
@@ -51,25 +52,61 @@ struct TagDto {
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/games", get(list_games))
+    Router::new()
+        .route("/games", get(list_games))
+        .route("/games/{id}", get(get_game))
 }
 
-async fn list_games(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
+async fn list_games(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let data = state.read_dataset();
     let locale = preferred_locale(&headers, |locale| {
-        state
-            .data
-            .overlays_for(locale)
+        data.overlays_for(locale)
             .iter()
             .any(|overlays| !overlays.games.is_empty())
     });
-    let (game_overlays, tag_overlays) = collect_overlays(&state.data, locale.as_deref());
-    let games = state
-        .data
+    let (game_overlays, tag_overlays) = collect_overlays(&data, locale.as_deref());
+    let mut games: Vec<Game> = data
         .games
         .iter()
-        .map(|(id, entry)| build_game(id, &entry.item, &state.data, &game_overlays, &tag_overlays))
-        .collect::<Vec<_>>();
+        .map(|(id, entry)| build_game(id, &entry.item, &data, &game_overlays, &tag_overlays))
+        .collect();
+    if params.include_drafts {
+        games.extend(data.drafts.games.iter().map(|(id, entry)| {
+            build_game(id, &entry.item, &data, &game_overlays, &tag_overlays)
+        }));
+    }
     ([(header::VARY, "Accept-Language")], Json(games))
+}
+
+async fn get_game(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(params): Query<ListParams>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let data = state.read_dataset();
+    let locale = preferred_locale(&headers, |locale| {
+        data.overlays_for(locale)
+            .iter()
+            .any(|overlays| !overlays.games.is_empty())
+    });
+    let (game_overlays, tag_overlays) = collect_overlays(&data, locale.as_deref());
+
+    if let Some(entry) = data.games.get(&id) {
+        let game = build_game(&id, &entry.item, &data, &game_overlays, &tag_overlays);
+        return ([(header::VARY, "Accept-Language")], Json(game)).into_response();
+    }
+    if params.include_drafts
+        && let Some(entry) = data.drafts.games.get(&id)
+    {
+        let game = build_game(&id, &entry.item, &data, &game_overlays, &tag_overlays);
+        return ([(header::VARY, "Accept-Language")], Json(game)).into_response();
+    }
+    StatusCode::NOT_FOUND.into_response()
 }
 
 /// All overlays relevant to the games list, ordered by fallback chain.

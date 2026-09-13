@@ -310,23 +310,37 @@ Touch list:
 - api/src/http/rest/ — one file per resource (questions.rs, packs.rs, extend games.rs, tags.rs) + i18n/{questions,packs,games,tags}.rs. All handlers: validate body -> write_resource -> state.replace_dataset -> respond.
 - TODO marker at the top of api/src/http/rest/questions.rs above create_question: "When added: POST /api/questions/{id}/move with body {file: ...}. Server reads old file, removes question from list, appends to new file (creates if not exists), writes both. Useful once editors want to tidy topics after publishing."
 
-** TODO Make AppState.data an Arc<RwLock<Dataset>> + replace_dataset; update all readers
+** DONE Make AppState.data an Arc<RwLock<Dataset>> + replace_dataset; update all readers
+CLOSED: [2026-09-13 Sun 17:00]
 
-** TODO Loader partitions Registry<Question> by status field, not by path; expose state.questions (published) and state.drafts (draft)
+** DONE Loader partitions Registry<Question> by status field, not by path; expose state.questions (published) and state.drafts (draft)
+CLOSED: [2026-09-13 Sun 17:00]
 
-** TODO write_resource helper: load file -> swap/append item -> atomic YAML write (tmp + rename)
+** DONE write_resource helper: load file -> swap/append item -> atomic YAML write (tmp + rename)
+CLOSED: [2026-09-13 Sun 17:00]
 
 ** TODO /api/questions handlers (list + ?include_drafts, by id, create with file body, put, patch RFC 7396, delete w/ dependents)
+- DONE Phase B: list + ?include_drafts + by id (questions.rs)
+- TODO Phase C: POST (new-file), PUT, PATCH, DELETE
 
 ** TODO /api/packs handlers (same shape)
+- DONE Phase B: list + ?include_drafts + by id (packs.rs)
+- TODO Phase C: POST, PUT, PATCH, DELETE
 
 ** TODO /api/games handlers (extend existing read-only listing with create/put/patch/delete)
+- DONE Phase B: existing list + new /games/{id}, ?include_drafts added (games.rs)
+- TODO Phase C: POST, PUT, PATCH, DELETE
 
 ** TODO /api/tags/<category> handlers (per-entry CRUD; no hard-delete)
+- DONE Phase B: list + by id (tags.rs)
+- TODO Phase C: POST, PUT, PATCH (no DELETE per locked design)
 
 ** TODO /api/i18n/<lang>/{questions,packs,games,tags} handlers (overlay PUT/PATCH/DELETE; mirror canonical shape minus non-translatable fields)
+- DONE Phase B: GET (i18n.rs) returns 404 for unknown locale
+- TODO Phase C: PUT, PATCH, DELETE
 
-** TODO 422 validation error shape with per-field paths (garde Vec<Report> -> wire list)
+** DONE 422 validation error shape with per-field paths (garde Vec<Report> -> wire list)
+CLOSED: [2026-09-13 Sun 17:00]
 
 ** TODO Drop-in TODO markers for move endpoint and media upload so they don't get forgotten
 

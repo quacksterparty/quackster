@@ -1,54 +1,41 @@
-//! `/api/packs` — list + by id. Drafts hidden by default; `?include_drafts=true`
-//! surfaces them.
+//! `/api/tags` — list + by id. Tags have no draft state; the registry is
+//! always fully published.
 
 use std::sync::Arc;
 
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     routing::get,
 };
 
-use crate::data::Pack;
-use crate::http::rest::ListParams;
+use crate::data::Tag;
 use crate::state::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/packs", get(list_packs))
-        .route("/packs/{id}", get(get_pack))
+        .route("/tags", get(list_tags))
+        .route("/tags/{id}", get(get_tag))
 }
 
-async fn list_packs(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<ListParams>,
-) -> Json<Vec<Pack>> {
+async fn list_tags(State(state): State<Arc<AppState>>) -> Json<Vec<Tag>> {
     let data = state.read_dataset();
-    let mut out: Vec<Pack> = data.packs.values().map(|e| e.item.clone()).collect();
-    if params.include_drafts {
-        out.extend(data.drafts.packs.values().map(|e| e.item.clone()));
-    }
+    let mut out: Vec<Tag> = data.tags.values().map(|e| e.item.clone()).collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
     Json(out)
 }
 
-async fn get_pack(
+async fn get_tag(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
     let data = state.read_dataset();
-    if let Some(entry) = data.packs.get(&id) {
-        return Json(entry.item.clone()).into_response();
+    match data.tags.get(&id) {
+        Some(entry) => Json(entry.item.clone()).into_response(),
+        None => StatusCode::NOT_FOUND.into_response(),
     }
-    if params.include_drafts
-        && let Some(entry) = data.drafts.packs.get(&id)
-    {
-        return Json(entry.item.clone()).into_response();
-    }
-    StatusCode::NOT_FOUND.into_response()
 }
 
 #[cfg(test)]
@@ -82,21 +69,8 @@ mod tests {
         tmp
     }
 
-    fn tags_yaml() -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("tags/audience.yaml", "[]\n"),
-            ("tags/difficulty.yaml", "[]\n"),
-            ("tags/format.yaml", "[]\n"),
-            ("tags/region.yaml", "[]\n"),
-            ("tags/subject.yaml", "[]\n"),
-            ("tags/warning.yaml", "[]\n"),
-        ]
-    }
-
-    fn load(extra: &[(&str, &str)]) -> Dataset {
-        let mut files: Vec<(&str, &str)> = tags_yaml();
-        files.extend_from_slice(extra);
-        let mut ds = load_dataset(fixture(&files).path()).expect("load");
+    fn load(files: &[(&str, &str)]) -> Dataset {
+        let mut ds = load_dataset(fixture(files).path()).expect("load");
         ds.issues.extend(run_cross_file_checks(&ds));
         ds
     }
@@ -110,30 +84,23 @@ mod tests {
         })
     }
 
-    const PACK_PUB: &str = r#"
-id: pack_pub
-title: Public
-questions: []
-"#;
-
-    const PACK_DRAFT: &str = r#"
-id: pack_draft
-status: draft
-title: Draft
-questions: []
+    const TAG_FIXTURE: &str = r#"
+- id: subject:geo
+  default_lang: en
+  label: Geography
+- id: subject:history
+  default_lang: en
+  label: History
 "#;
 
     #[tokio::test]
-    async fn list_excludes_drafts_by_default() {
-        let ds = load(&[
-            ("packs/pub.yaml", PACK_PUB),
-            ("packs/draft.yaml", PACK_DRAFT),
-        ]);
+    async fn list_returns_tags_sorted_by_id() {
+        let ds = load(&[("tags/subject.yaml", TAG_FIXTURE)]);
         let app = router().with_state(test_state(ds));
         let body = axum::body::to_bytes(
             app.oneshot(
                 Request::builder()
-                    .uri("/packs")
+                    .uri("/tags")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -149,17 +116,17 @@ questions: []
             .iter()
             .map(|v| v.get("id").and_then(|x| x.as_str()).unwrap())
             .collect();
-        assert_eq!(ids, vec!["pack_pub"]);
+        assert_eq!(ids, vec!["subject:geo", "subject:history"]);
     }
 
     #[tokio::test]
-    async fn by_id_404_when_missing() {
-        let ds = load(&[("packs/p.yaml", PACK_PUB)]);
+    async fn by_id_returns_404_when_missing() {
+        let ds = load(&[("tags/subject.yaml", TAG_FIXTURE)]);
         let app = router().with_state(test_state(ds));
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/packs/pack_nope")
+                    .uri("/tags/subject:nope")
                     .body(Body::empty())
                     .unwrap(),
             )
