@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use super::common::*;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Packs.ts"))]
 #[garde(allow_unvalidated)]
 pub struct PackFilter {
     #[serde(default)]
@@ -24,6 +26,8 @@ pub struct PackFilter {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Packs.ts"))]
 #[garde(allow_unvalidated)]
 #[garde(custom(pack_has_content))]
 #[serde(deny_unknown_fields)]
@@ -69,6 +73,8 @@ fn pack_has_content(pack: &Pack, _ctx: &()) -> garde::Result {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[garde(allow_unvalidated)]
 #[serde(deny_unknown_fields)]
 pub struct PackOverlay {

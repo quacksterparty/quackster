@@ -38,12 +38,16 @@ pub struct ListParams {
 
 /// One reference to a resource that depends on the item being deleted.
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Errors.ts"))]
 pub struct Dependent {
     pub kind: &'static str,
     pub id: String,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Errors.ts"))]
 pub struct DependentsError {
     pub dependents: Vec<Dependent>,
 }

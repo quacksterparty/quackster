@@ -4,7 +4,4 @@ export type Game = { id: string, title: string, description: string, auto_advanc
 
 export type GameEntry = { title: string, mode: string, question_count: number | null, tags: Array<TagDto>, };
 
-/**
- * Tag id + label. `id` is the stable `category:slug`; `label` is localized.
- */
 export type TagDto = { id: string, label: string, };

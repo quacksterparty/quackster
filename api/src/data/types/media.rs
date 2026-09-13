@@ -2,6 +2,8 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Media.ts"))]
 #[serde(rename_all = "lowercase")]
 pub enum MediaKind {
     Image,
@@ -10,6 +12,8 @@ pub enum MediaKind {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Media.ts"))]
 #[serde(deny_unknown_fields)]
 #[garde(allow_unvalidated)]
 #[garde(custom(valid_media))]

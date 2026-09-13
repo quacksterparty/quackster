@@ -5,6 +5,8 @@ use super::media::Media;
 /// Translatable subset of a question — no `correct`, `position`, numeric
 /// `answer`, variant config, or metadata fields.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct QuestionOverlay {
     pub id: String,
@@ -12,6 +14,8 @@ pub struct QuestionOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct ContentOverlay {
     #[serde(default)]
@@ -29,6 +33,8 @@ pub struct ContentOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct PromptOverlay {
     #[serde(default)]
@@ -38,6 +44,8 @@ pub struct PromptOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct VariantsOverlay {
     #[serde(default)]
@@ -47,12 +55,16 @@ pub struct VariantsOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct MultipleChoiceOverlay {
     pub choices: Vec<ChoiceOverlay>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct ChoiceOverlay {
     pub id: String,
@@ -63,6 +75,8 @@ pub struct ChoiceOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct OpenVariantOverlay {
     #[serde(default)]
@@ -70,6 +84,8 @@ pub struct OpenVariantOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct OrderItemOverlay {
     pub id: String,

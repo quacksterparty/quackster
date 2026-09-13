@@ -6,6 +6,8 @@ use super::common::*;
 use super::media::{Media, MediaKind};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct Prompt {
     pub text: String,
@@ -15,6 +17,8 @@ pub struct Prompt {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct Choice {
     #[garde(custom(valid_slug))]
@@ -27,6 +31,8 @@ pub struct Choice {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 pub struct MultipleChoiceVariant {
     #[garde(
         length(min = 2),
@@ -69,6 +75,8 @@ fn choices_unique_ids(choices: &[Choice], _ctx: &()) -> garde::Result {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct OpenVariant {
     #[garde(length(min = 1))]
@@ -78,12 +86,16 @@ pub struct OpenVariant {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct TrueFalseVariant {
     pub correct: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 pub struct NumericInputVariant {
     #[garde(range(min = 0.0))]
     #[serde(default)]
@@ -91,6 +103,8 @@ pub struct NumericInputVariant {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 #[garde(custom(range_max_gt_min))]
 pub struct RangeVariant {
@@ -119,6 +133,8 @@ fn default_step() -> f64 {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(custom(text_has_variant))]
 pub struct TextVariants {
     #[serde(default)]
@@ -143,6 +159,8 @@ fn text_has_variant(v: &TextVariants, _ctx: &()) -> garde::Result {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(custom(numeric_has_variant))]
 pub struct NumericVariants {
     #[serde(default)]
@@ -167,6 +185,8 @@ fn numeric_has_variant(v: &NumericVariants, _ctx: &()) -> garde::Result {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct TextContent {
     #[garde(custom(valid_locale))]
@@ -180,6 +200,8 @@ pub struct TextContent {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct NumericContent {
     #[garde(custom(valid_locale))]
@@ -194,6 +216,8 @@ pub struct NumericContent {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct OrderItem {
     #[garde(custom(valid_slug))]
@@ -207,6 +231,8 @@ pub struct OrderItem {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct OrderContent {
     #[garde(custom(valid_locale))]
@@ -244,6 +270,8 @@ fn order_items_valid(items: &[OrderItem], _ctx: &()) -> garde::Result {
 
 /// Base metadata shared by all question kinds.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(allow_unvalidated)]
 pub struct QuestionBase {
     #[garde(custom(valid_question_id))]
@@ -267,6 +295,8 @@ pub struct QuestionBase {
 
 /// Discriminated union over `kind: text | numeric | order`.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 pub enum Question {
     Text {

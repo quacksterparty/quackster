@@ -7,12 +7,16 @@ use garde::Report;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Errors.ts"))]
 pub struct FieldError {
     pub path: String,
     pub message: String,
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Errors.ts"))]
 pub struct ValidationError(pub Vec<FieldError>);
 
 impl From<Report> for ValidationError {

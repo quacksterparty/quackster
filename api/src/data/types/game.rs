@@ -14,6 +14,8 @@ use crate::data::{PackFilter, Question, VariantName, valid_game_id};
 
 /// Top-level game config, parsed from `data/games/*.yaml`.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[garde(allow_unvalidated)]
 #[serde(deny_unknown_fields)]
 pub struct GameConfig {
@@ -30,6 +32,8 @@ pub struct GameConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct GameConfigOverlay {
     pub id: String,
@@ -42,6 +46,8 @@ pub struct GameConfigOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct GameOverlay {
     #[serde(default)]
@@ -51,6 +57,8 @@ pub struct GameOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardOverlay {
     #[serde(default)]
@@ -58,6 +66,8 @@ pub struct BoardOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardCategoryOverlay {
     #[serde(default)]
@@ -65,6 +75,8 @@ pub struct BoardCategoryOverlay {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct Game {
     pub title: String, // translatable
@@ -74,6 +86,8 @@ pub struct Game {
 
 /// A single game in the chain. Each has its own mode, rules, and content.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum GameMode {
     /// Grid-based, Jeopardy-style quiz with NxM board.
@@ -93,6 +107,8 @@ impl GameMode {
 
 /// Grid quiz: inline board definition.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct GridQuizGame {
     #[serde(default)]
@@ -101,6 +117,8 @@ pub struct GridQuizGame {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct Board {
     #[serde(default)]
@@ -110,6 +128,8 @@ pub struct Board {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardCategory {
     pub name: String,
@@ -122,6 +142,8 @@ pub struct BoardCategory {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardCell {
     pub id: String,
@@ -137,12 +159,16 @@ impl BoardCell {
 
 /// Linear quiz: resolved question list.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct LinearGame {
     pub questions: LinearSource,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(tag = "source", rename_all = "snake_case", deny_unknown_fields)]
 pub enum LinearSource {
     /// Explicit list of question IDs.
@@ -171,6 +197,8 @@ impl QuestionSlot {
 
 /// Per-entry game rules. Complete, no merging with defaults.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct Rules {
     pub buzz_policy: BuzzPolicy,
@@ -193,6 +221,8 @@ fn default_answer_timer() -> u32 {
 
 /// Who gets the floor when a question goes live.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum BuzzPolicy {
     OpenFloor,
@@ -202,6 +232,8 @@ pub enum BuzzPolicy {
 
 /// How points are decided for a question.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum ScoringMode {
     FirstCorrect,
@@ -211,6 +243,8 @@ pub enum ScoringMode {
 
 /// What happens after a wrong answer.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum LockoutPolicy {
     None,
@@ -220,6 +254,8 @@ pub enum LockoutPolicy {
 
 /// After wrong answer, does floor reopen?
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum StealPolicy {
     #[serde(rename = "none")]
@@ -230,6 +266,8 @@ pub enum StealPolicy {
 
 /// How answers are judged.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum Judge {
     Auto,
@@ -239,6 +277,8 @@ pub enum Judge {
 /// Who picks the next cell in grid_quiz. Independent of the answer-side buzz
 /// policy — see `docs/game-flow.md` §Picker modes.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum PickerMode {
     /// Strict rotation through the player order every round.
@@ -252,6 +292,8 @@ pub enum PickerMode {
 /// grid_quiz-specific rules, separate from the shared `Rules` (linear has no
 /// cells to pick). Defaults from the manifest; host may override per session.
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct GridQuizRules {
     #[serde(default = "default_picker_mode")]

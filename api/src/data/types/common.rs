@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 /// Question kinds.
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[allow(non_camel_case_types)]
 pub enum License {
     #[serde(rename = "CC0-1.0")]
@@ -21,6 +23,8 @@ pub enum License {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[garde(allow_unvalidated)]
 pub struct Source {
     #[garde(pattern(r"^https?://"))]
@@ -33,6 +37,8 @@ pub struct Source {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 pub struct Deprecation {
     pub reason: String,
     #[serde(default)]
@@ -40,6 +46,8 @@ pub struct Deprecation {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[serde(rename_all = "lowercase")]
 pub enum QuestionKind {
     Text,
@@ -57,6 +65,8 @@ impl QuestionKind {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum VariantName {
     MultipleChoice,
@@ -67,6 +77,8 @@ pub enum VariantName {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[serde(rename_all = "snake_case")]
 pub enum NormalizeOp {
     Lowercase,
@@ -77,6 +89,8 @@ pub enum NormalizeOp {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 #[serde(rename_all = "lowercase")]
 pub enum ContentStatus {
     #[default]
