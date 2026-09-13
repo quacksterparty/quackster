@@ -32,13 +32,16 @@ import { toast } from '$lib/toast.svelte';
 
 const POINTS_PER_CATEGORY = 5;
 
-function errorMessage(err: { kind: 'network' } | { kind: 'http'; status: number; body: string }): string {
+function errorMessage(
+	err: { kind: 'network' } | { kind: 'http'; status: number; body: string }
+): string {
 	if (err.kind === 'network') return 'network unreachable';
 	// Best-effort: try to surface a structured message; fall back to raw body.
 	try {
 		const parsed = JSON.parse(err.body) as { message?: string; dependents?: unknown };
 		if (parsed.message) return parsed.message;
-		if (parsed.dependents) return `referenced by ${(parsed.dependents as { id: string }[]).length} item(s)`;
+		if (parsed.dependents)
+			return `referenced by ${(parsed.dependents as { id: string }[]).length} item(s)`;
 	} catch {
 		/* not JSON */
 	}
@@ -329,9 +332,10 @@ class PoolStore {
 		const d = this.getDraft(draftId);
 		if (!d) return;
 		if (d.board.mode === mode) return;
-		d.board = mode === 'grid_quiz'
-			? ({ mode: 'grid_quiz', categories: [] } as GridQuizBoard)
-			: ({ mode: 'linear', items: [] } as LinearBoard);
+		d.board =
+			mode === 'grid_quiz'
+				? ({ mode: 'grid_quiz', categories: [] } as GridQuizBoard)
+				: ({ mode: 'linear', items: [] } as LinearBoard);
 		d.progress = 0;
 		d.status = 'incomplete';
 		d.updated = new Date().toISOString();

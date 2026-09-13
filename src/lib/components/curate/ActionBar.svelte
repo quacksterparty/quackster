@@ -87,7 +87,9 @@
 		{:else}
 			<span class="meta ok">in sync</span>
 		{/if}
-		<Button variant="ghost" size="sm" onclick={onNewQuestion} disabled={loading}>+ New question</Button>
+		<Button variant="ghost" size="sm" onclick={onNewQuestion} disabled={loading}
+			>+ New question</Button
+		>
 		<Button variant="ghost" size="sm" onclick={onValidate} disabled={loading}>Validate</Button>
 		<Button variant="primary" size="sm" onclick={onSaveAll} disabled={loading || saving}>
 			{saving ? 'Saving…' : `Save all${dirtyCount > 0 ? ` (${dirtyCount})` : ''}`}

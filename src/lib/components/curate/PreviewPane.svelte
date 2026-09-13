@@ -148,15 +148,16 @@
 					<ul class="dbg-choices">
 						{#each question.choices as c (c.id)}
 							<li class:correct={c.correct}>
-								{c.correct ? '✓' : '✗'} {c.text || '—'}
+								{c.correct ? '✓' : '✗'}
+								{c.text || '—'}
 							</li>
 						{/each}
 					</ul>
 				{:else if question.kind === 'numeric'}
 					{#if question.range}
 						<p class="dbg-meta">
-							[{question.range.min}, {question.range.max}] {question.unit ?? ''} ·
-							step {question.range.step} · tolerance ± {question.range.tolerance}
+							[{question.range.min}, {question.range.max}] {question.unit ?? ''} · step {question
+								.range.step} · tolerance ± {question.range.tolerance}
 						</p>
 					{/if}
 					{#if question.numericInput}

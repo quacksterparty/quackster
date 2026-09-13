@@ -102,7 +102,13 @@
 				{secretConfigured ? 'Update' : 'Save'}
 			</button>
 			{#if secretConfigured}
-				<button class="chip danger" onclick={() => { clearSecret(); secretInput = ''; }}>
+				<button
+					class="chip danger"
+					onclick={() => {
+						clearSecret();
+						secretInput = '';
+					}}
+				>
 					Clear
 				</button>
 			{/if}

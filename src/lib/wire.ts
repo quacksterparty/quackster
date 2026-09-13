@@ -25,12 +25,7 @@ import type { Tag as ApiTag } from '$lib/bindings/Tags';
 // ── curate-local types (what the components use) ───────────────────────────
 
 export type QuestionKind = 'text' | 'numeric' | 'order';
-export type QuestionVariant =
-	| 'multiple_choice'
-	| 'true_false'
-	| 'open'
-	| 'numeric_input'
-	| 'range';
+export type QuestionVariant = 'multiple_choice' | 'true_false' | 'open' | 'numeric_input' | 'range';
 
 /** Mirror of `ContentStatus` plus UI-only `incomplete` (board not yet built). */
 export type QuestionStatus = 'draft' | 'named' | 'referenced' | 'deprecated' | 'incomplete';
@@ -275,21 +270,22 @@ export function poolToWire(q: PoolQuestion): Question {
 		license: (q.license ?? 'CC-BY-4.0') as Question['license'],
 		sources: null,
 		preferred_variant: null,
-		status: (
-			q.status === 'deprecated'
-				? 'deprecated'
-				: q.status === 'draft'
-					? 'draft'
-					: 'published'
-		) as Question['status']
+		status: (q.status === 'deprecated'
+			? 'deprecated'
+			: q.status === 'draft'
+				? 'draft'
+				: 'published') as Question['status']
 	};
 	if (q.kind === 'text') {
 		const v: TextVariants = { multiple_choice: null, open: null, true_false: null };
 		if (q.variants.includes('multiple_choice') && q.choices) {
 			v.multiple_choice = {
-				choices: q.choices.map(
-					(c): Choice => ({ id: c.id, text: c.text, correct: c.correct, media: null })
-				)
+				choices: q.choices.map((c): Choice => ({
+					id: c.id,
+					text: c.text,
+					correct: c.correct,
+					media: null
+				}))
 			};
 		}
 		if (q.variants.includes('open')) {
@@ -314,9 +310,12 @@ export function poolToWire(q: PoolQuestion): Question {
 		const v: NumericVariants = { multiple_choice: null, numeric_input: null, range: null };
 		if (q.variants.includes('multiple_choice') && q.choices) {
 			v.multiple_choice = {
-				choices: q.choices.map(
-					(c): Choice => ({ id: c.id, text: c.text, correct: c.correct, media: null })
-				)
+				choices: q.choices.map((c): Choice => ({
+					id: c.id,
+					text: c.text,
+					correct: c.correct,
+					media: null
+				}))
 			};
 		}
 		if (q.variants.includes('numeric_input') && q.numericInput) {
@@ -404,8 +403,10 @@ export function draftToWire(d: CurateDraft): ApiGameConfig {
 			{
 				title: 'Round 1',
 				rules: {
-					buzz_policy: d.rules.buzz_policy as ApiGameConfig['games'][number]['rules']['buzz_policy'],
-					scoring_mode: d.rules.scoring_mode as ApiGameConfig['games'][number]['rules']['scoring_mode'],
+					buzz_policy: d.rules
+						.buzz_policy as ApiGameConfig['games'][number]['rules']['buzz_policy'],
+					scoring_mode: d.rules
+						.scoring_mode as ApiGameConfig['games'][number]['rules']['scoring_mode'],
 					lockout_policy: 'none',
 					steal_policy: 'none',
 					judge: d.rules.judge as ApiGameConfig['games'][number]['rules']['judge'],

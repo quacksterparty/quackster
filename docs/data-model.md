@@ -666,7 +666,7 @@ is a contamination risk).
 Gamemodes are **code**, not data. Their state machine, scoring, and content
 acceptance live in the Rust backend (`api/src/game/` for runtime,
 `api/src/data/<gamemode>.rs` for board/pool helpers). The on-disk manifest
-shown below is the *intended* shape for when each gamemode ships its own
+shown below is the _intended_ shape for when each gamemode ships its own
 declarative metadata; for now only `grid_quiz` is implemented and it has no
 manifest file yet (gamemode manifest validation is an open question).
 

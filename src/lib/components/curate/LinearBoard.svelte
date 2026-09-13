@@ -14,9 +14,7 @@
 	} = $props();
 
 	// Narrow once so the template can use `board.items` without repeated checks.
-	const board = $derived(
-		draft.board.mode === 'linear' ? (draft.board as LinearBoardShape) : null
-	);
+	const board = $derived(draft.board.mode === 'linear' ? (draft.board as LinearBoardShape) : null);
 
 	let listEl: HTMLOListElement | null = $state(null);
 
@@ -56,12 +54,7 @@
 		<ol class="slots" bind:this={listEl}>
 			{#each board.items as slot, i (i)}
 				{@const q = slot ? pool.getQuestion(slot.questionId) : null}
-				<li
-					class="slot"
-					class:selected={activeCell === i}
-					class:filled={!!slot}
-					data-idx={i}
-				>
+				<li class="slot" class:selected={activeCell === i} class:filled={!!slot} data-idx={i}>
 					<button
 						class="slot-main"
 						onclick={() => {

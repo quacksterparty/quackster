@@ -24,7 +24,9 @@
 			: []
 	);
 	// +1 trailing column holds the "+ Category" header cell — kept narrow.
-	const cols = $derived(board ? `6rem repeat(${board.categories.length}, minmax(8rem, 1fr)) 5rem` : '');
+	const cols = $derived(
+		board ? `6rem repeat(${board.categories.length}, minmax(8rem, 1fr)) 5rem` : ''
+	);
 
 	function addCategory() {
 		pool.addGridCategory(draft.id);

@@ -28,12 +28,7 @@ export interface GamemodeDescriptor<TCell = unknown> {
 	computeProgress: (draft: CurateDraft) => number;
 
 	/** Attach a question to the cell at `position`. */
-	attach: (
-		draftId: string,
-		position: TCell,
-		questionId: string,
-		variant?: QuestionVariant
-	) => void;
+	attach: (draftId: string, position: TCell, questionId: string, variant?: QuestionVariant) => void;
 
 	/** Detach the cell at `position` (sets to null, does not remove the slot). */
 	detach: (draftId: string, position: TCell) => void;
