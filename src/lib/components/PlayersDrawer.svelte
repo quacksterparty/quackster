@@ -3,7 +3,7 @@
 	import PlayerAvatar from '$lib/components/PlayerAvatar.svelte';
 	import { DropdownMenu } from 'bits-ui';
 	import { m } from '$lib/paraglide/messages';
-	import { room, has } from '$lib/room.svelte';
+	import { room, has, onlyPlayers } from '$lib/room.svelte';
 	import { sortedByScore } from '$lib/playerUi';
 	import type { Grant } from '$lib/bindings/Grants';
 
@@ -15,7 +15,7 @@
 		const stage = room.view?.stage;
 		return stage?.kind === 'GridQuiz' ? stage.phase : undefined;
 	});
-	const sortedPlayers = $derived(sortedByScore(room.view?.players ?? {}));
+	const sortedPlayers = $derived(sortedByScore(onlyPlayers()));
 
 	const allGrants: Grant[] = ['Play', 'Present', 'Moderate'];
 	const grantLabels: Record<Grant, () => string> = {
