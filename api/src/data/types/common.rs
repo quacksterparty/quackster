@@ -2,7 +2,7 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 /// Question kinds.
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum License {
     #[serde(rename = "CC0-1.0")]
@@ -20,7 +20,7 @@ pub enum License {
     MIT,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct Source {
     #[garde(pattern(r"^https?://"))]
@@ -32,7 +32,7 @@ pub struct Source {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Deprecation {
     pub reason: String,
     #[serde(default)]
@@ -56,7 +56,7 @@ impl QuestionKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum VariantName {
     MultipleChoice,
@@ -66,7 +66,7 @@ pub enum VariantName {
     Range,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum NormalizeOp {
     Lowercase,
@@ -74,6 +74,19 @@ pub enum NormalizeOp {
     StripPunctuation,
     StripWhitespace,
     StripArticles,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentStatus {
+    #[default]
+    Published,
+    Draft,
+    Deprecated,
+}
+
+pub(crate) fn default_published() -> ContentStatus {
+    ContentStatus::Published
 }
 
 pub const TAG_CATEGORIES: &[&str] = &[

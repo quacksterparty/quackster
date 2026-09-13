@@ -49,6 +49,10 @@ pub fn load_dataset(data_dir: &Path) -> Result<Dataset, LoadError> {
 
     let issues = [q_issues, p_issues, t_issues, g_issues, o_issues].concat();
 
+    let (questions, draft_questions) = partition_by_status(questions, |q| q.base().status);
+    let (packs, draft_packs) = partition_by_status(packs, |p| p.status);
+    let (games, draft_games) = partition_by_status(games, |g| g.status);
+
     Ok(Dataset {
         data_dir: data_dir.to_string_lossy().into_owned(),
         questions,
@@ -57,7 +61,28 @@ pub fn load_dataset(data_dir: &Path) -> Result<Dataset, LoadError> {
         games,
         overlays,
         issues,
+        drafts: Drafts {
+            questions: draft_questions,
+            packs: draft_packs,
+            games: draft_games,
+        },
     })
+}
+
+fn partition_by_status<T>(
+    reg: Registry<T>,
+    split: impl Fn(&T) -> ContentStatus,
+) -> (Registry<T>, Registry<T>) {
+    let mut published = Registry::<T>::new();
+    let mut drafts = Registry::<T>::new();
+    for (id, entry) in reg {
+        if matches!(split(&entry.item), ContentStatus::Draft) {
+            drafts.insert(id, entry);
+        } else {
+            published.insert(id, entry);
+        }
+    }
+    (published, drafts)
 }
 
 fn load_yaml_dir<T, Raw: DeserializeOwned>(

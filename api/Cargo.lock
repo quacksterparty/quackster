@@ -38,6 +38,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.30.0",
+ "tower",
  "tower-http 0.7.0",
  "tracing",
  "tracing-opentelemetry",

@@ -1,9 +1,9 @@
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::common::*;
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct PackFilter {
     #[serde(default)]
@@ -23,7 +23,7 @@ pub struct PackFilter {
     pub limit: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 #[garde(custom(pack_has_content))]
 pub struct Pack {
@@ -50,6 +50,8 @@ pub struct Pack {
     #[garde(dive)]
     #[serde(default)]
     pub filter: Option<PackFilter>,
+    #[serde(default = "default_published")]
+    pub status: ContentStatus,
 }
 
 fn pack_has_content(pack: &Pack, _ctx: &()) -> garde::Result {
@@ -65,7 +67,7 @@ fn pack_has_content(pack: &Pack, _ctx: &()) -> garde::Result {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 #[serde(deny_unknown_fields)]
 pub struct PackOverlay {

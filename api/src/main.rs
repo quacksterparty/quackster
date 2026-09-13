@@ -7,7 +7,7 @@ mod protocol;
 mod state;
 
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::{fs, process};
 
 use axum::middleware;
@@ -74,7 +74,7 @@ async fn main() {
     let media = Arc::new(media::MediaFetcher::from_config(&config));
     let state = Arc::new(AppState {
         config,
-        data: Arc::new(data),
+        data: Arc::new(RwLock::new(data)),
         rooms: DashMap::new(),
         media,
     });

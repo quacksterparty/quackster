@@ -1,11 +1,11 @@
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use super::common::*;
 use super::media::{Media, MediaKind};
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct Prompt {
     pub text: String,
@@ -14,7 +14,7 @@ pub struct Prompt {
     pub media: Option<Vec<Media>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct Choice {
     #[garde(custom(valid_slug))]
@@ -26,7 +26,7 @@ pub struct Choice {
     pub media: Option<Vec<Media>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct MultipleChoiceVariant {
     #[garde(
         length(min = 2),
@@ -68,7 +68,7 @@ fn choices_unique_ids(choices: &[Choice], _ctx: &()) -> garde::Result {
     Ok(())
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct OpenVariant {
     #[garde(length(min = 1))]
@@ -77,20 +77,20 @@ pub struct OpenVariant {
     pub normalize: Option<Vec<NormalizeOp>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct TrueFalseVariant {
     pub correct: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct NumericInputVariant {
     #[garde(range(min = 0.0))]
     #[serde(default)]
     pub tolerance: f64,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 #[garde(custom(range_max_gt_min))]
 pub struct RangeVariant {
@@ -118,7 +118,7 @@ fn default_step() -> f64 {
     1.0
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(custom(text_has_variant))]
 pub struct TextVariants {
     #[serde(default)]
@@ -142,7 +142,7 @@ fn text_has_variant(v: &TextVariants, _ctx: &()) -> garde::Result {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(custom(numeric_has_variant))]
 pub struct NumericVariants {
     #[serde(default)]
@@ -166,7 +166,7 @@ fn numeric_has_variant(v: &NumericVariants, _ctx: &()) -> garde::Result {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct TextContent {
     #[garde(custom(valid_locale))]
@@ -179,7 +179,7 @@ pub struct TextContent {
     pub variants: TextVariants,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct NumericContent {
     #[garde(custom(valid_locale))]
@@ -193,7 +193,7 @@ pub struct NumericContent {
     pub variants: NumericVariants,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct OrderItem {
     #[garde(custom(valid_slug))]
@@ -206,7 +206,7 @@ pub struct OrderItem {
     pub media: Option<Vec<Media>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct OrderContent {
     #[garde(custom(valid_locale))]
@@ -243,7 +243,7 @@ fn order_items_valid(items: &[OrderItem], _ctx: &()) -> garde::Result {
 }
 
 /// Base metadata shared by all question kinds.
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 pub struct QuestionBase {
     #[garde(custom(valid_question_id))]
@@ -261,10 +261,12 @@ pub struct QuestionBase {
     /// `Order` questions ignore this — they have no variant dimension.
     #[serde(default)]
     pub preferred_variant: Option<VariantName>,
+    #[serde(default = "default_published")]
+    pub status: ContentStatus,
 }
 
 /// Discriminated union over `kind: text | numeric | order`.
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Question {
     Text {

@@ -113,7 +113,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
     });
 
     let (token_tx, token_rx) = oneshot::channel::<Token>();
-    let data = Arc::clone(&state.data);
+    let data = state.snapshot_dataset();
     let media_fetcher = Arc::clone(&state.media);
 
     let mut write_task = tokio::spawn(async move {
@@ -184,7 +184,7 @@ async fn handle_socket(socket: WebSocket, join_code: String, state: Arc<AppState
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{sync::RwLock, time::Duration};
 
     use dashmap::DashMap;
     use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite};
@@ -197,6 +197,7 @@ mod tests {
     /// Real server on port 0 with one room; returns the ws URL for that room.
     async fn start_server() -> String {
         let data = Arc::new(crate::data::load("../data").expect("load ../data"));
+        let data_for_room = Arc::clone(&data);
         let game = data
             .games
             .values()
@@ -206,10 +207,10 @@ mod tests {
             .clone();
         let code = JoinCode("TEST42".into());
         let media = Arc::new(crate::media::MediaFetcher::disabled());
-        let handle = spawn_room(code.clone(), game, Arc::clone(&data), Arc::clone(&media));
+        let handle = spawn_room(code.clone(), game, data_for_room, Arc::clone(&media));
         let state = Arc::new(AppState {
             config: AppConfig::default(),
-            data,
+            data: Arc::new(RwLock::new((*data).clone())),
             rooms: DashMap::new(),
             media,
         });

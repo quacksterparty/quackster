@@ -1,7 +1,7 @@
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaKind {
     Image,
@@ -9,7 +9,7 @@ pub enum MediaKind {
     Video,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[serde(deny_unknown_fields)]
 #[garde(allow_unvalidated)]
 #[garde(custom(valid_media))]

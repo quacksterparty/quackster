@@ -48,6 +48,13 @@ pub struct LocaleOverlays {
 
 pub type Overlays = HashMap<String, LocaleOverlays>;
 
+#[derive(Debug, Clone, Default)]
+pub struct Drafts {
+    pub questions: Registry<Question>,
+    pub packs: Registry<Pack>,
+    pub games: Registry<GameConfig>,
+}
+
 /// The full loaded dataset, ready for cross-file checks and querying.
 #[derive(Debug, Clone)]
 pub struct Dataset {
@@ -58,6 +65,14 @@ pub struct Dataset {
     pub overlays: Overlays,
     pub games: Registry<GameConfig>,
     pub issues: Vec<LoadIssue>,
+    pub drafts: Drafts,
+}
+
+impl Dataset {
+    /// Iterate every published question id (no drafts).
+    pub fn published_question_ids(&self) -> impl Iterator<Item = &str> {
+        self.questions.keys().map(String::as_str)
+    }
 }
 
 /// Non-fatal diagnostic from the data loader.

@@ -9,6 +9,7 @@ mod localize;
 mod query;
 mod types;
 mod validate;
+mod write;
 
 #[cfg(test)]
 mod test_helpers;

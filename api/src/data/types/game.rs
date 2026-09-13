@@ -8,10 +8,12 @@ use std::collections::{HashMap, HashSet};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
+use super::common::{ContentStatus, default_published};
+
 use crate::data::{PackFilter, Question, VariantName, valid_game_id};
 
 /// Top-level game config, parsed from `data/games/*.yaml`.
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[garde(allow_unvalidated)]
 #[serde(deny_unknown_fields)]
 pub struct GameConfig {
@@ -23,9 +25,11 @@ pub struct GameConfig {
     pub auto_advance: bool, // auto-start next game in chain
     #[garde(length(min = 1), custom(valid_game_entries))]
     pub games: Vec<Game>, // ordered sequence
+    #[serde(default = "default_published")]
+    pub status: ContentStatus,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GameConfigOverlay {
     pub id: String,
@@ -37,7 +41,7 @@ pub struct GameConfigOverlay {
     pub games: Vec<GameOverlay>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GameOverlay {
     #[serde(default)]
@@ -46,21 +50,21 @@ pub struct GameOverlay {
     pub board: Option<BoardOverlay>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BoardOverlay {
     #[serde(default)]
     pub categories: Vec<BoardCategoryOverlay>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BoardCategoryOverlay {
     #[serde(default)]
     pub name: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Game {
     pub title: String, // translatable
@@ -69,7 +73,7 @@ pub struct Game {
 }
 
 /// A single game in the chain. Each has its own mode, rules, and content.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum GameMode {
     /// Grid-based, Jeopardy-style quiz with NxM board.
@@ -88,7 +92,7 @@ impl GameMode {
 }
 
 /// Grid quiz: inline board definition.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GridQuizGame {
     #[serde(default)]
@@ -96,7 +100,7 @@ pub struct GridQuizGame {
     pub board: Board,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Board {
     #[serde(default)]
@@ -105,7 +109,7 @@ pub struct Board {
     pub categories: Vec<BoardCategory>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BoardCategory {
     pub name: String,
@@ -117,7 +121,7 @@ pub struct BoardCategory {
     pub filter: Option<PackFilter>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct BoardCell {
     pub id: String,
@@ -132,13 +136,13 @@ impl BoardCell {
 }
 
 /// Linear quiz: resolved question list.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LinearGame {
     pub questions: LinearSource,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "source", rename_all = "snake_case", deny_unknown_fields)]
 pub enum LinearSource {
     /// Explicit list of question IDs.
@@ -234,19 +238,20 @@ pub enum Judge {
 
 /// Who picks the next cell in grid_quiz. Independent of the answer-side buzz
 /// policy — see `docs/game-flow.md` §Picker modes.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum PickerMode {
     /// Strict rotation through the player order every round.
     Rotate,
     /// First correct answerer picks next (Jeopardy control); no correct answer
     /// → fall back to rotation.
+    #[default]
     WinnerPicks,
 }
 
 /// grid_quiz-specific rules, separate from the shared `Rules` (linear has no
 /// cells to pick). Defaults from the manifest; host may override per session.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct GridQuizRules {
     #[serde(default = "default_picker_mode")]
@@ -258,15 +263,6 @@ pub struct GridQuizRules {
 
 fn default_picker_mode() -> PickerMode {
     PickerMode::WinnerPicks
-}
-
-impl Default for GridQuizRules {
-    fn default() -> Self {
-        Self {
-            picker_mode: PickerMode::WinnerPicks,
-            reveal_auto_advance_secs: None,
-        }
-    }
 }
 
 impl Game {

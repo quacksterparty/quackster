@@ -54,14 +54,18 @@ async fn create_room(
         return (StatusCode::INTERNAL_SERVER_ERROR, "no free join code").into_response();
     };
 
-    let Some(game) = state.data.games.get(&body.game_id) else {
-        return (StatusCode::BAD_REQUEST, "game does not exist").into_response();
+    let (game, dataset) = {
+        let data = state.read_dataset();
+        let Some(game) = data.games.get(&body.game_id).cloned() else {
+            return (StatusCode::BAD_REQUEST, "game does not exist").into_response();
+        };
+        (game, state.snapshot_dataset())
     };
 
     let handle = spawn_room(
         code.clone(),
         game.item.clone(),
-        Arc::clone(&state.data),
+        dataset,
         Arc::clone(&state.media),
     );
     state.rooms.insert(code.clone(), handle);
