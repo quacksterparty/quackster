@@ -26,7 +26,7 @@
 	// GameStage (top-right corner).
 	const media_total = $derived(media_status ? Object.keys(media_status).length : 0);
 	const media_all_ready = $derived(
-		media_total > 0 && Object.values(media_status ?? {}).every((s) => s.kind === 'Ready')
+		!media_total || Object.values(media_status ?? {}).every((s) => s.kind === 'Ready')
 	);
 
 	function start_game() {
