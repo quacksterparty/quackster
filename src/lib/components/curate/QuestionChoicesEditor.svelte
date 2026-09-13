@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PoolQuestion } from '$lib/data/seed';
+	import type { PoolQuestion } from '$lib/wire';
 	import { pool } from '$lib/data/pool.svelte';
 	import Button from '../Button.svelte';
 

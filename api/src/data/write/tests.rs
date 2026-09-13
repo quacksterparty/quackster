@@ -127,3 +127,31 @@ fn json_merge_non_object_replaces() {
     json_merge(&mut target, serde_json::json!({ "a": 5 }));
     assert_eq!(target, serde_json::json!({ "a": 5 }));
 }
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct MaybeItem {
+    id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    note: Option<String>,
+}
+
+#[test]
+fn omits_none_fields_when_writing_yaml() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("item.yaml");
+    let item = MaybeItem {
+        id: "x".into(),
+        name: None,
+        note: None,
+    };
+    write_yaml_file_atomic(&path, &item).unwrap();
+    let raw = fs::read_to_string(&path).unwrap();
+    assert!(raw.contains("id: x"), "raw was:\n{raw}");
+    assert!(!raw.contains("name"), "name should be skipped, raw was:\n{raw}");
+    assert!(!raw.contains("note"), "note should be skipped, raw was:\n{raw}");
+
+    let back: MaybeItem = read_yaml_file(&path).unwrap();
+    assert_eq!(back, item);
+}

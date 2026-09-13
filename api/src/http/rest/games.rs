@@ -22,7 +22,7 @@ use crate::data::{
 use crate::http::error::ValidationError;
 use crate::http::locale::preferred_locale;
 use crate::http::rest::{
-    ListParams, absolute_file, bad_request, conflict, internal_error, not_found,
+    absolute_file, bad_request, conflict, internal_error, not_found,
     read_single, reject_relpath, reload_dataset, write_single,
 };
 use crate::state::AppState;
@@ -65,6 +65,16 @@ struct CreateBody {
     item: GameConfig,
 }
 
+#[derive(Deserialize)]
+struct GameQuery {
+    #[serde(default)]
+    include_drafts: bool,
+    /// `?full=true` returns the full `GameConfig` (board/rules/mode) instead
+    /// of the wire DTO (titles/entries only). Used by /curate to edit games.
+    #[serde(default)]
+    full: bool,
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/games", get(list_games).post(create_game))
@@ -80,8 +90,8 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn list_games(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Query(params): Query<ListParams>,
-) -> impl IntoResponse {
+    Query(params): Query<GameQuery>,
+) -> Response {
     let data = state.read_dataset();
     let locale = preferred_locale(&headers, |locale| {
         data.overlays_for(locale)
@@ -89,6 +99,23 @@ async fn list_games(
             .any(|overlays| !overlays.games.is_empty())
     });
     let (game_overlays, tag_overlays) = collect_overlays(&data, locale.as_deref());
+    let vary = [(header::VARY, "Accept-Language")];
+    if params.full {
+        let mut out: Vec<GameConfig> = data
+            .games
+            .iter()
+            .map(|(_, entry)| overlay_game(&entry.item, &game_overlays, &tag_overlays))
+            .collect();
+        if params.include_drafts {
+            out.extend(
+                data.drafts
+                    .games
+                    .iter()
+                    .map(|(_, entry)| overlay_game(&entry.item, &game_overlays, &tag_overlays)),
+            );
+        }
+        return (vary, Json(out)).into_response();
+    }
     let mut games: Vec<Game> = data
         .games
         .iter()
@@ -99,15 +126,15 @@ async fn list_games(
             build_game(id, &entry.item, &data, &game_overlays, &tag_overlays)
         }));
     }
-    ([(header::VARY, "Accept-Language")], Json(games))
+    (vary, Json(games)).into_response()
 }
 
 async fn get_game(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(params): Query<ListParams>,
+    Query(params): Query<GameQuery>,
     headers: HeaderMap,
-) -> impl IntoResponse {
+) -> Response {
     let data = state.read_dataset();
     let locale = preferred_locale(&headers, |locale| {
         data.overlays_for(locale)
@@ -115,18 +142,56 @@ async fn get_game(
             .any(|overlays| !overlays.games.is_empty())
     });
     let (game_overlays, tag_overlays) = collect_overlays(&data, locale.as_deref());
+    let vary = [(header::VARY, "Accept-Language")];
+
+    if params.full {
+        if let Some(entry) = data.games.get(&id) {
+            let cfg = overlay_game(&entry.item, &game_overlays, &tag_overlays);
+            return (vary, Json(cfg)).into_response();
+        }
+        if params.include_drafts
+            && let Some(entry) = data.drafts.games.get(&id)
+        {
+            let cfg = overlay_game(&entry.item, &game_overlays, &tag_overlays);
+            return (vary, Json(cfg)).into_response();
+        }
+        return StatusCode::NOT_FOUND.into_response();
+    }
 
     if let Some(entry) = data.games.get(&id) {
         let game = build_game(&id, &entry.item, &data, &game_overlays, &tag_overlays);
-        return ([(header::VARY, "Accept-Language")], Json(game)).into_response();
+        return (vary, Json(game)).into_response();
     }
     if params.include_drafts
         && let Some(entry) = data.drafts.games.get(&id)
     {
         let game = build_game(&id, &entry.item, &data, &game_overlays, &tag_overlays);
-        return ([(header::VARY, "Accept-Language")], Json(game)).into_response();
+        return (vary, Json(game)).into_response();
     }
     StatusCode::NOT_FOUND.into_response()
+}
+
+/// Apply translatable overlay fields onto a cloned `GameConfig`. Tag overlays
+/// aren't merged (data-layer GameConfig doesn't carry tag lists). Category-name
+/// overlays aren't either — curate edits canonical content.
+fn overlay_game(
+    cfg: &GameConfig,
+    game_overlays: &[&GameConfigOverlay],
+    _tag_overlays: &[&TagOverlay],
+) -> GameConfig {
+    let matching: Option<&GameConfigOverlay> =
+        game_overlays.iter().copied().find(|o| o.id == cfg.id);
+    let Some(overlay) = matching else {
+        return cfg.clone();
+    };
+    let mut out = cfg.clone();
+    if let Some(t) = &overlay.title {
+        out.title = t.clone();
+    }
+    if let Some(d) = &overlay.description {
+        out.description = d.clone();
+    }
+    out
 }
 
 fn collect_overlays<'a>(

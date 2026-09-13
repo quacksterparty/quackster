@@ -1,6 +1,6 @@
 import BoardCanvas from '$lib/components/curate/BoardCanvas.svelte';
 import { pool } from '$lib/data/pool.svelte';
-import type { CurateDraft, GridQuizBoard } from '$lib/data/seed';
+import type { CurateDraft, GridQuizBoard } from '$lib/wire';
 import type { GamemodeDescriptor } from './types';
 
 export interface GridQuizCell {

@@ -3,7 +3,7 @@
 	import QuestionList from '$lib/components/QuestionList.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { pool } from '$lib/data/pool.svelte';
-	import type { PoolQuestion } from '$lib/data/seed';
+	import type { PoolQuestion } from '$lib/wire';
 	import { getGamemode } from '$lib/gamemodes';
 
 	let {

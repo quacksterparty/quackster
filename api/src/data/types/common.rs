@@ -30,9 +30,9 @@ pub struct Source {
     #[garde(pattern(r"^https?://"))]
     pub url: String,
     #[garde(pattern(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))]
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accessed: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
 
@@ -41,7 +41,7 @@ pub struct Source {
 #[cfg_attr(test, ts(export, export_to = "Common.ts"))]
 pub struct Deprecation {
     pub reason: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replaced_by: Option<String>,
 }
 

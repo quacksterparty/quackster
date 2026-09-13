@@ -37,11 +37,11 @@ pub struct GameConfig {
 #[serde(deny_unknown_fields)]
 pub struct GameConfigOverlay {
     pub id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub games: Vec<GameOverlay>,
 }
 
@@ -50,9 +50,9 @@ pub struct GameConfigOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct GameOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub board: Option<BoardOverlay>,
 }
 
@@ -61,7 +61,7 @@ pub struct GameOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub categories: Vec<BoardCategoryOverlay>,
 }
 
@@ -70,7 +70,7 @@ pub struct BoardOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct BoardCategoryOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
 
@@ -121,7 +121,7 @@ pub struct GridQuizGame {
 #[cfg_attr(test, ts(export, export_to = "GameConfigs.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct Board {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub difficulty_map: Option<HashMap<u32, Vec<String>>>,
     pub points: Vec<u32>,
     pub categories: Vec<BoardCategory>,
@@ -133,11 +133,11 @@ pub struct Board {
 #[serde(deny_unknown_fields)]
 pub struct BoardCategory {
     pub name: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub question_ids: Option<HashMap<u32, BoardCell>>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pack_ref: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<PackFilter>,
 }
 
@@ -147,7 +147,7 @@ pub struct BoardCategory {
 #[serde(deny_unknown_fields)]
 pub struct BoardCell {
     pub id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variant: Option<VariantName>,
 }
 
@@ -299,7 +299,7 @@ pub struct GridQuizRules {
     #[serde(default = "default_picker_mode")]
     pub picker_mode: PickerMode,
     /// `None` = manual (mod advances Reveal); `Some(n)` = auto-advance after n secs.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reveal_auto_advance_secs: Option<u32>,
 }
 

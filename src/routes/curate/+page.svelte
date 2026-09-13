@@ -14,6 +14,12 @@
 	let activeQuestionId = $state<string | null>(null);
 	let pickerOpen = $state(false);
 
+	// Load from the backend on mount. The store starts empty until the first
+	// fetch resolves — the template renders the loading/error state below.
+	$effect(() => {
+		void pool.init();
+	});
+
 	const draft = $derived(pool.getDraft(activeDraftId));
 	const mode = $derived(draft ? getGamemode(draft.board.mode) : null);
 	// Dynamic component: re-evaluated when the mode changes (e.g. grid → linear).
@@ -23,7 +29,7 @@
 		const q = pool.createDraftQuestion();
 		activeQuestionId = q.id;
 		activeCell = null;
-		toast.success(`Created ${q.id} — fill in the prompt to auto-rename`);
+		toast.success(`Created ${q.id} — Save all to persist to disk`);
 	}
 
 	function selectDraft(id: string) {
@@ -71,16 +77,14 @@
 		if (!d || !m) return;
 		const issues: string[] = [];
 		if (!d.title.trim()) issues.push('title');
-		if (m.computeProgress(d) < 1) issues.push(`${Math.round((1 - m.computeProgress(d)) * 100)}% board empty`);
+		if (m.computeProgress(d) < 1)
+			issues.push(`${Math.round((1 - m.computeProgress(d)) * 100)}% board empty`);
 		if (issues.length) toast.error(`Validation: ${issues.join(', ')}`);
 		else toast.success('All checks pass');
 	}
 
-	function saveAll() {
-		const d = draft;
-		if (!d) return;
-		pool.updateDraft(d.id, { status: 'saved', updated: new Date().toISOString() });
-		toast.success('Saved (mock — backend save is a separate task)');
+	async function saveAll() {
+		await pool.saveAll();
 	}
 </script>
 
@@ -91,28 +95,45 @@
 <div class="page">
 	<ActionBar
 		{activeDraftId}
+		loading={pool.loading}
+		loadError={pool.loadError}
+		dirtyQuestions={pool.dirtyQuestions}
+		dirtyDrafts={pool.dirtyDrafts}
+		saving={pool.saving}
 		onModeChange={changeMode}
 		onSelectDraft={selectDraft}
 		onNewQuestion={newQuestion}
 		onValidate={validate}
 		onSaveAll={saveAll}
 	/>
-	{#if BoardComponent && draft}
+	{#if !pool.loaded}
+		<div class="status">
+			{#if pool.loadError}
+				<p class="err">Backend unreachable: {pool.loadError}</p>
+				<p class="hint">
+					Start the API on <code>:3000</code> (<code>cargo run</code> from <code>api/</code>) or
+					check your admin secret in Settings.
+				</p>
+			{:else}
+				<p class="hint">Loading questions and games from backend…</p>
+			{/if}
+		</div>
+	{:else if BoardComponent && draft}
 		<BoardComponent {draft} {activeCell} onSelectCell={selectCell} />
+		<div class="body">
+			<QuestionEditor
+				{activeDraftId}
+				{activeCell}
+				{activeQuestionId}
+				onPickQuestion={openPicker}
+				onCreateNew={newQuestion}
+				onDetach={detach}
+			/>
+			<aside class="preview-side" aria-label="Preview and validation">
+				<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} />
+			</aside>
+		</div>
 	{/if}
-	<div class="body">
-		<QuestionEditor
-			{activeDraftId}
-			{activeCell}
-			{activeQuestionId}
-			onPickQuestion={openPicker}
-			onCreateNew={newQuestion}
-			onDetach={detach}
-		/>
-		<aside class="preview-side" aria-label="Preview and validation">
-			<PreviewPane {activeDraftId} {activeCell} {activeQuestionId} />
-		</aside>
-	</div>
 </div>
 
 {#if activeCell !== null && mode}
@@ -140,6 +161,24 @@
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-md);
 		overflow-y: auto;
+	}
+	.status {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-8);
+		text-align: center;
+	}
+	.status .err {
+		color: var(--color-danger);
+		font-family: var(--font-heading);
+	}
+	.status .hint {
+		color: var(--color-text-muted);
+		max-width: 32rem;
 	}
 	@media (max-width: 900px) {
 		.body {

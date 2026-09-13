@@ -2,7 +2,7 @@
 import type { ContentStatus, Deprecation, License, NormalizeOp, Source, VariantName } from "./Common";
 import type { Media } from "./Media";
 
-export type Choice = { id: string, text: string, correct: boolean | null, media: Array<Media> | null, };
+export type Choice = { id: string, text: string, correct: boolean | null, media?: Array<Media> | null, };
 
 export type MultipleChoiceVariant = { choices: Array<Choice>, };
 
@@ -10,54 +10,54 @@ export type NumericContent = { default_lang: string, prompt: Prompt, answer: num
 
 export type NumericInputVariant = { tolerance: number, };
 
-export type NumericVariants = { multiple_choice: MultipleChoiceVariant | null, numeric_input: NumericInputVariant | null, range: RangeVariant | null, };
+export type NumericVariants = { multiple_choice?: MultipleChoiceVariant | null, numeric_input?: NumericInputVariant | null, range?: RangeVariant | null, };
 
-export type OpenVariant = { accepted: Array<string>, normalize: Array<NormalizeOp> | null, };
+export type OpenVariant = { accepted: Array<string>, normalize?: Array<NormalizeOp> | null, };
 
 export type OrderContent = { default_lang: string, prompt: Prompt, items: Array<OrderItem>, explanation: string | null, };
 
-export type OrderItem = { id: string, text: string, position: number, media: Array<Media> | null, };
+export type OrderItem = { id: string, text: string, position: number, media?: Array<Media> | null, };
 
-export type Prompt = { text: string, media: Array<Media> | null, };
+export type Prompt = { text: string, media?: Array<Media> | null, };
 
 /**
  * Discriminated union over `kind: text | numeric | order`.
  */
-export type Question = { "kind": "text", content: TextContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked: string | null, license: License | null, sources: Array<Source> | null, 
+export type Question = { "kind": "text", content: TextContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked?: string | null, license: License | null, sources: Array<Source> | null, 
 /**
  * If defined on the question's variants wins at materialize time
  * otherwise the kind's default is used.
  * `Order` questions ignore this — they have no variant dimension.
  */
-preferred_variant: VariantName | null, status: ContentStatus, } | { "kind": "numeric", content: NumericContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked: string | null, license: License | null, sources: Array<Source> | null, 
+preferred_variant?: VariantName | null, status: ContentStatus, } | { "kind": "numeric", content: NumericContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked?: string | null, license: License | null, sources: Array<Source> | null, 
 /**
  * If defined on the question's variants wins at materialize time
  * otherwise the kind's default is used.
  * `Order` questions ignore this — they have no variant dimension.
  */
-preferred_variant: VariantName | null, status: ContentStatus, } | { "kind": "order", content: OrderContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked: string | null, license: License | null, sources: Array<Source> | null, 
+preferred_variant?: VariantName | null, status: ContentStatus, } | { "kind": "order", content: OrderContent, id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked?: string | null, license: License | null, sources: Array<Source> | null, 
 /**
  * If defined on the question's variants wins at materialize time
  * otherwise the kind's default is used.
  * `Order` questions ignore this — they have no variant dimension.
  */
-preferred_variant: VariantName | null, status: ContentStatus, };
+preferred_variant?: VariantName | null, status: ContentStatus, };
 
 /**
  * Base metadata shared by all question kinds.
  */
-export type QuestionBase = { id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked: string | null, license: License | null, sources: Array<Source> | null, 
+export type QuestionBase = { id: string, tags: Array<string>, deprecated: Deprecation | null, lang_locked?: string | null, license: License | null, sources: Array<Source> | null, 
 /**
  * If defined on the question's variants wins at materialize time
  * otherwise the kind's default is used.
  * `Order` questions ignore this — they have no variant dimension.
  */
-preferred_variant: VariantName | null, status: ContentStatus, };
+preferred_variant?: VariantName | null, status: ContentStatus, };
 
 export type RangeVariant = { min: number, max: number, step: number, tolerance: number, };
 
 export type TextContent = { default_lang: string, prompt: Prompt, answer: string, explanation: string | null, variants: TextVariants, };
 
-export type TextVariants = { multiple_choice: MultipleChoiceVariant | null, open: OpenVariant | null, true_false: TrueFalseVariant | null, };
+export type TextVariants = { multiple_choice?: MultipleChoiceVariant | null, open?: OpenVariant | null, true_false?: TrueFalseVariant | null, };
 
 export type TrueFalseVariant = { correct: boolean, };

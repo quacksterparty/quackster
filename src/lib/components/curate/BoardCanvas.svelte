@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
-	import type { CurateDraft, GridQuizBoard } from '$lib/data/seed';
+	import type { CurateDraft, GridQuizBoard } from '$lib/wire';
 
 	let {
 		draft,

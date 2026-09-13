@@ -18,17 +18,17 @@ pub struct QuestionOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct ContentOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub answer: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub prompt: Option<PromptOverlay>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<OrderItemOverlay>>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variants: Option<VariantsOverlay>,
 }
 
@@ -37,9 +37,9 @@ pub struct ContentOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct PromptOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }
 
@@ -48,9 +48,9 @@ pub struct PromptOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct VariantsOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub multiple_choice: Option<MultipleChoiceOverlay>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub open: Option<OpenVariantOverlay>,
 }
 
@@ -68,9 +68,9 @@ pub struct MultipleChoiceOverlay {
 #[serde(deny_unknown_fields)]
 pub struct ChoiceOverlay {
     pub id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }
 
@@ -79,7 +79,7 @@ pub struct ChoiceOverlay {
 #[cfg_attr(test, ts(export, export_to = "Overlays.ts"))]
 #[serde(deny_unknown_fields)]
 pub struct OpenVariantOverlay {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accepted: Option<Vec<String>>,
 }
 
@@ -89,8 +89,8 @@ pub struct OpenVariantOverlay {
 #[serde(deny_unknown_fields)]
 pub struct OrderItemOverlay {
     pub id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }

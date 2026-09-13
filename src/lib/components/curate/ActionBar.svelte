@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
-	import { formatRelative } from '$lib/data/seed';
+	import { formatRelative } from '$lib/wire';
 	import { listGamemodes, type ModeId } from '$lib/gamemodes';
 	import Button from '../Button.svelte';
 
 	let {
 		activeDraftId,
+		loading = false,
+		loadError = null,
+		dirtyQuestions,
+		dirtyDrafts,
+		saving = false,
 		onSelectDraft,
 		onNewQuestion,
 		onValidate,
@@ -13,6 +18,11 @@
 		onModeChange
 	}: {
 		activeDraftId: string;
+		loading?: boolean;
+		loadError?: string | null;
+		dirtyQuestions?: Set<string>;
+		dirtyDrafts?: Set<string>;
+		saving?: boolean;
 		onSelectDraft: (id: string) => void;
 		onNewQuestion: () => void;
 		onValidate: () => void;
@@ -32,12 +42,13 @@
 						: 'Incomplete'
 			: '—'
 	);
+	const dirtyCount = $derived((dirtyQuestions?.size ?? 0) + (dirtyDrafts?.size ?? 0));
 </script>
 
 <header class="bar">
 	<div class="left">
 		<select
-			class="draft-select"
+			class="select"
 			value={activeDraftId}
 			onchange={(e) => {
 				onSelectDraft((e.target as HTMLSelectElement).value);
@@ -48,7 +59,7 @@
 			{/each}
 		</select>
 		<select
-			class="mode-select"
+			class="select"
 			aria-label="Gamemode"
 			title="Gamemode"
 			value={draft?.board.mode ?? 'grid_quiz'}
@@ -67,9 +78,20 @@
 		</span>
 	</div>
 	<div class="right">
-		<Button variant="ghost" size="sm" onclick={onNewQuestion}>+ New question</Button>
-		<Button variant="ghost" size="sm" onclick={onValidate}>Validate</Button>
-		<Button variant="primary" size="sm" onclick={onSaveAll}>Save all</Button>
+		{#if loading}
+			<span class="meta">Loading backend…</span>
+		{:else if loadError}
+			<span class="meta err" title={loadError}>backend offline</span>
+		{:else if dirtyCount > 0}
+			<span class="meta">{dirtyCount} dirty</span>
+		{:else}
+			<span class="meta ok">in sync</span>
+		{/if}
+		<Button variant="ghost" size="sm" onclick={onNewQuestion} disabled={loading}>+ New question</Button>
+		<Button variant="ghost" size="sm" onclick={onValidate} disabled={loading}>Validate</Button>
+		<Button variant="primary" size="sm" onclick={onSaveAll} disabled={loading || saving}>
+			{saving ? 'Saving…' : `Save all${dirtyCount > 0 ? ` (${dirtyCount})` : ''}`}
+		</Button>
 	</div>
 </header>
 
@@ -89,17 +111,7 @@
 		align-items: center;
 		min-width: 0;
 	}
-	.draft-select {
-		padding: var(--space-1) var(--space-2);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		background: var(--bg-primary);
-		color: var(--color-text);
-		font-family: var(--font-body);
-		font-weight: 600;
-		font-size: calc(0.95rem * var(--font-scale));
-	}
-	.mode-select {
+	.select {
 		padding: var(--space-1) var(--space-2);
 		border: var(--border-width) var(--border-style) var(--border-color);
 		border-radius: var(--radius-sm);
@@ -131,5 +143,6 @@
 	.right {
 		display: flex;
 		gap: var(--space-2);
+		align-items: center;
 	}
 </style>

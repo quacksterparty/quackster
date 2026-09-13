@@ -2,7 +2,7 @@
 
 export type ContentStatus = "published" | "draft" | "deprecated";
 
-export type Deprecation = { reason: string, replaced_by: string | null, };
+export type Deprecation = { reason: string, replaced_by?: string | null, };
 
 /**
  * Question kinds.
@@ -13,6 +13,6 @@ export type NormalizeOp = "lowercase" | "strip_diacritics" | "strip_punctuation"
 
 export type QuestionKind = "text" | "numeric" | "order";
 
-export type Source = { url: string, accessed: string | null, note: string | null, };
+export type Source = { url: string, accessed?: string | null, note?: string | null, };
 
 export type VariantName = "multiple_choice" | "true_false" | "open" | "numeric_input" | "range";

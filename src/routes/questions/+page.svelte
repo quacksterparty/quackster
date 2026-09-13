@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import { isDraftId } from '$lib/data/ids';
-	import { formatRelative, type PoolQuestion } from '$lib/data/seed';
+	import { formatRelative, type PoolQuestion } from '$lib/wire';
 	import QuestionList from '$lib/components/QuestionList.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import { goto } from '$app/navigation';

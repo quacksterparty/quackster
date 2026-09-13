@@ -11,6 +11,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { currentLocale, themeLabel } from '$lib/i18n.svelte';
 	import { room } from '$lib/room.svelte';
+	import { getSecret, setSecret, clearSecret } from '$lib/secret';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -23,6 +24,23 @@
 	function pickLang(loc: Locale) {
 		void setLocale(loc);
 		room.send?.({ kind: 'SetLocale', locale: loc });
+	}
+
+	let secretInput = $state('');
+	let secretConfigured = $state(false);
+
+	// localStorage is browser-only — adapter-static pre-renders without it.
+	// Read the real value on mount so the placeholder / Clear button reflect it.
+	$effect(() => {
+		secretInput = getSecret() ?? '';
+		secretConfigured = getSecret() !== null;
+	});
+
+	function saveSecret() {
+		const v = secretInput.trim();
+		if (v) setSecret(v);
+		else clearSecret();
+		secretConfigured = true;
 	}
 </script>
 
@@ -63,6 +81,31 @@
 					{loc.toUpperCase()}
 				</button>
 			{/each}
+		</div>
+	</div>
+
+	<div class="drawer-section">
+		<h3 class="section-label">🔒 Admin secret</h3>
+		<p class="hint">
+			Required to write content when the backend is configured with
+			<code>APP_ADMIN_SECRET</code>. Reads are public.
+		</p>
+		<div class="secret-row">
+			<input
+				type="password"
+				bind:value={secretInput}
+				placeholder={secretConfigured ? '••••••••' : 'paste secret…'}
+				autocomplete="off"
+				spellcheck="false"
+			/>
+			<button class="chip" onclick={saveSecret} disabled={!secretInput.trim() && !secretConfigured}>
+				{secretConfigured ? 'Update' : 'Save'}
+			</button>
+			{#if secretConfigured}
+				<button class="chip danger" onclick={() => { clearSecret(); secretInput = ''; }}>
+					Clear
+				</button>
+			{/if}
 		</div>
 	</div>
 </Drawer>
@@ -106,5 +149,39 @@
 		border-color: var(--color-primary);
 		color: var(--color-primary);
 		font-weight: 600;
+	}
+	.chip.danger {
+		border-color: var(--color-danger);
+		color: var(--color-danger);
+	}
+	.chip:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.hint {
+		color: var(--color-text-muted);
+		font-size: calc(0.8rem * var(--font-scale));
+		margin: 0;
+	}
+	.hint code {
+		font-family: var(--font-mono);
+		background: var(--bg-primary);
+		padding: 1px 4px;
+		border-radius: var(--radius-sm);
+	}
+	.secret-row {
+		display: flex;
+		gap: var(--space-2);
+		align-items: stretch;
+	}
+	.secret-row input {
+		flex: 1;
+		padding: var(--space-2) var(--space-3);
+		border: var(--border-width) var(--border-style) var(--border-color);
+		border-radius: var(--radius-md);
+		background: var(--bg-surface);
+		color: var(--color-text);
+		font-family: var(--font-mono);
+		font-size: calc(0.9rem * var(--font-scale));
 	}
 </style>

@@ -244,7 +244,7 @@ Drawer.svelte renders children directly into .drawer (fixed, flex column) with n
 
 Browser-first curation for self-host admins and quiz hosts. Frontend wiring target; backend CRUD is quackster-37.
 
-The Svelte /curate UI today runs on an in-memory rune store (src/lib/data/pool.svelte.ts seeded from src/lib/data/seed.ts); it will talk to the file-backed REST CRUD in quackster-37. canonical YAML remains source of truth; a saved quiz is one game_<slug> GameConfig with one grid_quiz board. /api/questions?include_drafts=true drives the question picker; /api/games drives the game configurator. Frontend keeps the no-backend-yet fallback (run on the rune store) so visitors without the curate backend can still browse.
+The Svelte /curate UI today runs on an in-memory rune store (src/lib/data/pool.svelte.ts); it talks to the file-backed REST CRUD in quackster-37. canonical YAML remains source of truth; a saved quiz is one game_<slug> GameConfig with one grid_quiz board. /api/questions?include_drafts=true drives the question picker; /api/games?full=true&include_drafts=true drives the game configurator. No local fallback: the curate page shows a load error if the backend is unreachable (seed.ts removed).
 
 Full question reads stay public under trusted-instance model; mutations use admin_secret when configured and are open when it is not (same secret as room creation, per quackster-37). No pack-first UX, TUI, raw YAML editor, accounts, or translation editor in first version.
 
@@ -261,6 +261,9 @@ Full question reads stay public under trusted-instance model; mutations use admi
 ** TODO Implement candidate validation and Save all ordering: grouped blocking field/cross-file errors, nonblocking source/license warnings, media then questions then game, partial-save recovery status, and automatic reload
 
 ** TODO Implement public question discovery API with case-insensitive search across prompt/answer/explanation/choices/items plus kind/tag/variant/media filters
+
+** DONE Wire /curate to the real backend: question/game CRUD via /api/questions and /api/games (full=true), admin_secret input in Settings, in-memory pool marks dirty, Save all pushes POST/PUT/DELETE; seed.ts removed
+CLOSED: [2026-09-13 Sun 19:30]
 
 ** TODO Build Svelte /curate question editor for text/numeric/order and current variants, media upload/ref fields, existing-tag pickers, immutable IDs, clone-for-kind-change, canonical-language editing, reference-impact warnings, and preview
 
@@ -1037,3 +1040,28 @@ Scope when added: `questions`, `packs`, `games`, `tags/<category>` all get the s
 Ponytail: only add when an admin notices. The current behaviour is silent and harmless; promote when it isn't.
 
 Trigger to add: a curator complaint about empty `.yaml` files in the data dir, or when `git status` after a delete churn becomes noisy.
+
+* DONE Generate TS bindings for everything the frontend talks to :p1:backend:frontend:
+CLOSED: [2026-09-14 Mon 22:00]
+:PROPERTIES:
+:ID:       quackster-40
+:END:
+
+Before: only the runtime protocol + room CRUD + grants + verdict had ts-rs derives (`Protocol.ts`, `Rooms.ts`, `Games.ts`, `Grants.ts`, `Verdict.ts`). The curate resource types — `Question`, `Pack`, `Tag`, `GameConfig`, all overlay types, `Media`, the 422 + 409 DTOs — were zero-bound.
+
+After: ts-rs derives added to ~50 types. New `.ts` files in `src/lib/bindings/`:
+
+- `Common.ts` — License, Source, Deprecation, QuestionKind, VariantName, NormalizeOp, ContentStatus
+- `Media.ts` — Media, MediaKind
+- `Tags.ts` — Tag
+- `Packs.ts` — Pack, PackFilter
+- `Questions.ts` — Question enum + 14 nested types (Prompt, Choice, all variants, content types, base)
+- `GameConfigs.ts` — GameConfig + Game + rules + every game mode type (in its own file because the data-layer `Game` collides with the list-endpoint DTO `Game` in `Games.ts`; both are kept side-by-side)
+- `Overlays.ts` — all *Overlay types (QuestionOverlay, ContentOverlay, PromptOverlay, VariantsOverlay, MultipleChoiceOverlay, ChoiceOverlay, OpenVariantOverlay, OrderItemOverlay, PackOverlay, TagOverlay, GameConfigOverlay, GameOverlay, BoardOverlay, BoardCategoryOverlay)
+- `Errors.ts` — FieldError, ValidationError (422); Dependent, DependentsError (409 DELETE)
+
+Test count: 215 → 277 (+62 export_bindings_* tests). Cargo green. pnpm check green.
+
+*** Related
+- [[id:quackster-37]] (CRUD endpoints these types back)
+- [[id:quackster-26]] (next: curate UI rewires off `PoolQuestion` onto these)

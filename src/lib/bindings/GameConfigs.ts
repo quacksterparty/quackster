@@ -2,11 +2,11 @@
 import type { ContentStatus, VariantName } from "./Common";
 import type { PackFilter } from "./Packs";
 
-export type Board = { difficulty_map: { [key in number]: Array<string> } | null, points: Array<number>, categories: Array<BoardCategory>, };
+export type Board = { difficulty_map?: { [key in number]: Array<string> } | null, points: Array<number>, categories: Array<BoardCategory>, };
 
-export type BoardCategory = { name: string, question_ids: { [key in number]: BoardCell } | null, pack_ref: string | null, filter: PackFilter | null, };
+export type BoardCategory = { name: string, question_ids?: { [key in number]: BoardCell } | null, pack_ref?: string | null, filter?: PackFilter | null, };
 
-export type BoardCell = { id: string, variant: VariantName | null, };
+export type BoardCell = { id: string, variant?: VariantName | null, };
 
 /**
  * Who gets the floor when a question goes live.
@@ -38,7 +38,7 @@ export type GridQuizRules = { picker_mode: PickerMode,
 /**
  * `None` = manual (mod advances Reveal); `Some(n)` = auto-advance after n secs.
  */
-reveal_auto_advance_secs: number | null, };
+reveal_auto_advance_secs?: number | null, };
 
 /**
  * How answers are judged.

@@ -12,7 +12,7 @@ use super::media::{Media, MediaKind};
 pub struct Prompt {
     pub text: String,
     #[garde(dive)]
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }
 
@@ -24,9 +24,10 @@ pub struct Choice {
     #[garde(custom(valid_slug))]
     pub id: String,
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub correct: Option<bool>,
     #[garde(dive)]
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }
 
@@ -81,7 +82,7 @@ fn choices_unique_ids(choices: &[Choice], _ctx: &()) -> garde::Result {
 pub struct OpenVariant {
     #[garde(length(min = 1))]
     pub accepted: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub normalize: Option<Vec<NormalizeOp>>,
 }
 
@@ -137,13 +138,13 @@ fn default_step() -> f64 {
 #[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(custom(text_has_variant))]
 pub struct TextVariants {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub multiple_choice: Option<MultipleChoiceVariant>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub open: Option<OpenVariant>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub true_false: Option<TrueFalseVariant>,
 }
@@ -163,13 +164,13 @@ fn text_has_variant(v: &TextVariants, _ctx: &()) -> garde::Result {
 #[cfg_attr(test, ts(export, export_to = "Questions.ts"))]
 #[garde(custom(numeric_has_variant))]
 pub struct NumericVariants {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub multiple_choice: Option<MultipleChoiceVariant>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub numeric_input: Option<NumericInputVariant>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[garde(dive)]
     pub range: Option<RangeVariant>,
 }
@@ -194,6 +195,7 @@ pub struct TextContent {
     #[garde(dive)]
     pub prompt: Prompt,
     pub answer: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
     #[garde(dive)]
     pub variants: TextVariants,
@@ -209,7 +211,9 @@ pub struct NumericContent {
     #[garde(dive)]
     pub prompt: Prompt,
     pub answer: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
     #[garde(dive)]
     pub variants: NumericVariants,
@@ -226,7 +230,7 @@ pub struct OrderItem {
     #[garde(range(min = 1))]
     pub position: u32,
     #[garde(dive)]
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<Vec<Media>>,
 }
 
@@ -241,6 +245,7 @@ pub struct OrderContent {
     pub prompt: Prompt,
     #[garde(length(min = 2), custom(order_items_valid), dive)]
     pub items: Vec<OrderItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
 }
 
@@ -278,16 +283,20 @@ pub struct QuestionBase {
     pub id: String,
     #[garde(custom(valid_tag_refs))]
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deprecated: Option<Deprecation>,
     #[garde(custom(valid_opt_locale))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang_locked: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<License>,
     #[garde(dive)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sources: Option<Vec<Source>>,
     /// If defined on the question's variants wins at materialize time
     /// otherwise the kind's default is used.
     /// `Order` questions ignore this — they have no variant dimension.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preferred_variant: Option<VariantName>,
     #[serde(default = "default_published")]
     pub status: ContentStatus,

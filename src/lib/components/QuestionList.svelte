@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import { isDraftId } from '$lib/data/ids';
-	import type { PoolQuestion, QuestionKind, QuestionStatus } from '$lib/data/seed';
+	import type { PoolQuestion, QuestionKind, QuestionStatus } from '$lib/wire';
 	import type { Snippet } from 'svelte';
 
 	type KindFilter = 'all' | QuestionKind;

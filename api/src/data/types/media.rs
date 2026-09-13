@@ -21,11 +21,11 @@ pub struct Media {
     pub kind: MediaKind,
     #[serde(rename = "ref")]
     pub media_ref: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alt: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub width: Option<u32>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub height: Option<u32>,
 }
 

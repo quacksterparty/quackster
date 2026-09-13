@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
-	import type { CurateDraft, LinearBoard as LinearBoardShape } from '$lib/data/seed';
+	import type { CurateDraft, LinearBoard as LinearBoardShape } from '$lib/wire';
 	import Button from '../Button.svelte';
 
 	let {

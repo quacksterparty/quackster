@@ -1,6 +1,41 @@
 <script lang="ts">
 	import { pool } from '$lib/data/pool.svelte';
 	import { getGamemode } from '$lib/gamemodes';
+	import QuestionPrompt from '$lib/components/game/QuestionPrompt.svelte';
+	import type { PoolQuestion } from '$lib/wire';
+	import type { QuestionView } from '$lib/bindings/Protocol';
+
+	/** Adapt a draft question into the runtime `QuestionView` so we can render
+	 * it through the same component the player sees. The runtime deliberately
+	 * hides correct markers + numeric tolerance — curator-only debug lands in
+	 * the `<details>` block below. */
+	function toQuestionView(q: PoolQuestion): QuestionView {
+		const prompt = { text: q.prompt, media: null };
+		if (q.kind === 'numeric') {
+			if (q.range) {
+				return {
+					prompt,
+					variant: { kind: 'Range', min: q.range.min, max: q.range.max, step: q.range.step },
+					answer: null
+				};
+			}
+			return { prompt, variant: { kind: 'NumericInput' }, answer: null };
+		}
+		if (q.kind === 'text' && q.choices && q.choices.length > 0) {
+			return {
+				prompt,
+				variant: {
+					kind: 'MultipleChoice',
+					choices: q.choices.map((c) => ({ id: c.id, text: c.text, media: null }))
+				},
+				answer: null
+			};
+		}
+		if (q.kind === 'text' && q.variants.includes('true_false')) {
+			return { prompt, variant: { kind: 'TrueFalse' }, answer: null };
+		}
+		return { prompt, variant: { kind: 'Open' }, answer: null };
+	}
 
 	let {
 		activeDraftId,
@@ -104,49 +139,39 @@
 	{#if question}
 		<section class="pv-section">
 			<h3>How a player sees it</h3>
-			<div class="player-view">
-				<div class="pv-pts">{cellLabel || 'Question'}</div>
-				<div class="pv-prompt">{question.prompt || '(empty prompt)'}</div>
+			<div class="player-frame">
+				<QuestionPrompt question={toQuestionView(question)} />
+			</div>
+			<details class="author-debug">
+				<summary>Author debug</summary>
 				{#if question.choices}
-					<ul class="pv-choices">
+					<ul class="dbg-choices">
 						{#each question.choices as c (c.id)}
-							<li class:correct={c.correct}>{c.text || '—'}</li>
+							<li class:correct={c.correct}>
+								{c.correct ? '✓' : '✗'} {c.text || '—'}
+							</li>
 						{/each}
 					</ul>
 				{:else if question.kind === 'numeric'}
 					{#if question.range}
-						<div class="pv-range">
-							<div class="pv-range-label">Range</div>
-							<div class="pv-range-band">
-								[{question.range.min}, {question.range.max}] {question.unit ?? ''}
-							</div>
-							<div class="pv-range-meta">
-								step {question.range.step} · tolerance ± {question.range.tolerance}
-							</div>
-						</div>
+						<p class="dbg-meta">
+							[{question.range.min}, {question.range.max}] {question.unit ?? ''} ·
+							step {question.range.step} · tolerance ± {question.range.tolerance}
+						</p>
 					{/if}
 					{#if question.numericInput}
-						<div class="pv-range">
-							<div class="pv-range-label">Numeric input</div>
-							<div class="pv-range-band">
-								{question.answerNumeric ?? 0} ± {question.numericInput.tolerance}
-								{question.unit ?? ''}
-							</div>
-						</div>
-					{/if}
-					{#if !question.range && !question.numericInput}
-						<input class="pv-input" placeholder="Enter number" disabled />
+						<p class="dbg-meta">
+							numeric input: {question.answerNumeric ?? '?'} ± {question.numericInput.tolerance}
+							{question.unit ?? ''}
+						</p>
 					{/if}
 				{:else}
-					<input class="pv-input" placeholder="Type your answer" disabled />
+					<p class="dbg-meta">answer: {question.answer || '(empty)'}</p>
 				{/if}
 				{#if question.explanation}
-					<details class="pv-expl">
-						<summary>Explanation</summary>
-						<p>{question.explanation}</p>
-					</details>
+					<p class="dbg-meta">explanation: {question.explanation}</p>
 				{/if}
-			</div>
+			</details>
 		</section>
 	{/if}
 </div>
@@ -216,77 +241,39 @@
 		font-size: calc(0.8rem * var(--font-scale));
 		margin: 0;
 	}
-	.player-view {
-		background: var(--bg-primary);
-		padding: var(--space-3);
-		border-radius: var(--radius-md);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-	.pv-pts {
-		font-size: calc(0.7rem * var(--font-scale));
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-text-muted);
-	}
-	.pv-prompt {
-		font-family: var(--font-heading);
-		font-size: calc(1.1rem * var(--font-scale));
-	}
-	.pv-choices {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-2);
-	}
-	.pv-choices li {
-		padding: var(--space-2) var(--space-3);
-		background: var(--bg-surface);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		font-family: var(--font-body);
-		font-size: calc(0.9rem * var(--font-scale));
-	}
-	.pv-choices li.correct {
-		border-color: var(--color-success);
-		color: var(--color-success);
-	}
-	.pv-input {
-		padding: var(--space-2) var(--space-3);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		background: var(--bg-surface);
-		color: var(--color-text);
-	}
-	.pv-range {
-		padding: var(--space-2) var(--space-3);
-		background: var(--bg-surface);
-		border: var(--border-width) var(--border-style) var(--border-color);
-		border-radius: var(--radius-sm);
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-	.pv-range-label {
-		font-size: calc(0.7rem * var(--font-scale));
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-text-muted);
-	}
-	.pv-range-band {
-		font-family: var(--font-mono);
-		font-size: calc(1rem * var(--font-scale));
-	}
-	.pv-range-meta {
-		font-size: calc(0.7rem * var(--font-scale));
-		color: var(--color-text-muted);
-		font-family: var(--font-mono);
-	}
-	.pv-expl {
+	.author-debug {
 		font-size: calc(0.8rem * var(--font-scale));
 		color: var(--color-text-muted);
+	}
+	/* Scope QuestionPrompt's `cqi` font-scale to this pane — without an
+	 * inline-size container the cqi resolves against the viewport and the
+	 * prompt renders at room-stage size (3.5rem h2, etc.). */
+	.player-frame {
+		container-type: inline-size;
+	}
+	.author-debug summary {
+		cursor: pointer;
+		font-family: var(--font-body);
+	}
+	.dbg-choices {
+		list-style: none;
+		margin: var(--space-2) 0 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.dbg-choices li {
+		padding: var(--space-1) var(--space-2);
+		border-left: 3px solid var(--border-color);
+	}
+	.dbg-choices li.correct {
+		border-left-color: var(--color-success);
+		color: var(--color-success);
+	}
+	.dbg-meta {
+		margin: var(--space-1) 0 0;
+		font-family: var(--font-mono);
+		font-size: calc(0.75rem * var(--font-scale));
 	}
 </style>

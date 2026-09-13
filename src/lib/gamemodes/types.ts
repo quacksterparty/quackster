@@ -1,5 +1,5 @@
 import type { Component } from 'svelte';
-import type { CurateDraft, DraftBoard, QuestionVariant } from '$lib/data/seed';
+import type { BoardCellRef, CurateDraft, DraftBoard, QuestionVariant } from '$lib/wire';
 
 /** Registry of gamemodes the curate UI knows how to edit. */
 export type ModeId = 'grid_quiz' | 'linear';
@@ -45,5 +45,5 @@ export interface GamemodeDescriptor<TCell = unknown> {
 	cellLabel: (cell: TCell, draft: CurateDraft) => string;
 
 	/** Cell at `position` currently bound to a question? Used by editor to show "Attached to …". */
-	getCellRef: (cell: TCell, draft: CurateDraft) => { questionId: string; variant?: QuestionVariant } | null;
+	getCellRef: (cell: TCell, draft: CurateDraft) => BoardCellRef | null;
 }

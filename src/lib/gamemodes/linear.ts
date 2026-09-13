@@ -1,6 +1,6 @@
 import LinearBoard from '$lib/components/curate/LinearBoard.svelte';
 import { pool } from '$lib/data/pool.svelte';
-import type { CurateDraft, LinearBoard as LinearBoardShape } from '$lib/data/seed';
+import type { CurateDraft, LinearBoard as LinearBoardShape } from '$lib/wire';
 import type { GamemodeDescriptor } from './types';
 
 /** Linear cell is just the slot index. */
