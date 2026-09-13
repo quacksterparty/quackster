@@ -1,4 +1,4 @@
-import type { ClientView, Command } from './bindings/Protocol';
+import type { ClientView, Command, PlayerView } from './bindings/Protocol';
 import type { Grant } from './bindings/Grants';
 
 /**
@@ -35,4 +35,12 @@ export function me() {
 export function has(g: Grant): boolean {
 	const grants = me()?.grants ?? [];
 	return grants.includes(g);
+}
+
+export function onlyPlayers(): Record<string, PlayerView> {
+	const players = room.view?.players;
+	if (!players) return {};
+	return Object.fromEntries(
+		Object.entries(players).filter(([, player]) => player.grants.includes('Play'))
+	);
 }

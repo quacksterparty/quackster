@@ -31,7 +31,12 @@
 	// current question_id and show every ruling for it (steals, revisions)
 	// once reveal needs the full per-question breakdown.
 	const lastJudgment = $derived<JudgmentView | null>(judgmentLog.at(-1) ?? null);
-	const standings = $derived(sortedByScore(players));
+	const onlyPlayers = $derived(
+		Object.fromEntries(
+			Object.entries(players).filter(([, player]) => player.grants.includes('Play'))
+		)
+	);
+	const standings = $derived(sortedByScore(onlyPlayers));
 
 	function verdictLabel(verdict: Exclude<Verdict, 'pending'>): string {
 		switch (verdict) {

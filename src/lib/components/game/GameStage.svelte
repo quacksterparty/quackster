@@ -12,7 +12,9 @@
 
 	const grid = $derived(view.stage.kind === 'GridQuiz' ? view.stage : null);
 	const media_status = $derived(view.media_status);
-	const show_media_panel = $derived(media_status !== null && grid?.phase === 'lobby');
+	const show_media_panel = $derived(
+		Object.keys(media_status ?? {}).length && grid?.phase === 'lobby'
+	);
 </script>
 
 <article class="stage">
